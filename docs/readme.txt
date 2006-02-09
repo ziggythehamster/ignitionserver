@@ -65,6 +65,8 @@ Windows NT includes: Windows NT 4, Windows 2000, Windows XP, and Windows Server 
 This _might_ run under UNIX/Linux with Wine, but you will have to play with it yourself (i.e. do
 not post to the support tracker; WE CAN NOT HELP YOU!)
 
+Remember to disable DIE in your ircx.conf file.
+
 	===========++++++++===========++++++++===========
 
 4. Frequently Asked Questions
@@ -90,6 +92,11 @@ A: First, make sure you read the above question. Then, check the following thing
    If you diagnosed those things and still have a problem, make sure ignitionServer isn't running
    as another process (Ctrl-Alt-Del). ignitionServer will only start one time. All other times it
    will not allow it.
+
+Q: ignitionServer sends out Closing Link: (AutoKilled: Server Misconfigured) and disconnects users on 
+   connection
+A: A new feature was introduced to stop incorrectly configured servers to be used…(E.G. Using Default 
+   A Lines). To disable this feature simply find X:DIE in ircx.conf file and change the 1 to a 0
 
 Q: What operating system is reccommended to run ignitionServer?
 A: We reccommend you use Windows NT 4, Windows 2000, Windows XP, or Windows Server 2003. Windows

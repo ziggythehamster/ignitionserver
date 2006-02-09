@@ -54,7 +54,7 @@ If App.PrevInstance = True Then
 MsgBox "FATAL ERROR IN MODULE ""IGNITIONSERVER"": This product is already running!"
 End
 End If
-AppVersion = App.Major & "." & App.Minor & "." & App.Revision
+AppVersion = App.Major & "." & App.Minor & "." & App.Revision & "-Release2"
 AppComments = "ignitionServer " & AppVersion & " (http://www.ignition-project.com/)"
 StartUpDate = Now
 Error_Connect
@@ -329,6 +329,14 @@ Do
             End If
             Call m_access(cptr, sptr, arglist)
           End With
+        Case "CREATE": Cmds.Create = Cmds.Create + 1: Cmds.CreateBW = Cmds.CreateBW + cmdLen
+          With cptr
+            If .HasRegistered = False Then
+              SendWsock .index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+              GoTo nextmsg
+            End If
+            Call m_create(cptr, sptr, arglist)
+          End With
         Case "PONG": Cmds.Pong = Cmds.Pong + 1: Cmds.PongBW = Cmds.PongBW + cmdLen
           With cptr
             If .Timeout = 2 Then
@@ -339,7 +347,7 @@ Do
                     SendWsock .index, SPrefix & " 002 " & .Nick & " :Your host is " & ServerName & ", running version ignitionServer-" & AppVersion, vbNullString, , True
                     SendWsock .index, SPrefix & " 003 " & .Nick & " :This server was created " & StartUpDate, vbNullString, , True
                     SendWsock .index, SPrefix & " 004 " & .Nick & " " & ServerName & " ignitionServer " & UserModes & " " & ChanModes, vbNullString, , True
-                    SendWsock .index, SPrefix & " 005 " & .Nick & " IRCX CHANTYPES=# PREFIX=(qov).@+ CHANMODES=" & ChanModes & " NETWORK=" & Replace(IRCNet, " ", "_") & " :are supported by this server", vbNullString, , True
+                    SendWsock .index, SPrefix & " 005 " & .Nick & " IRCX CHANTYPES=# PREFIX=(qov).@+ CHANMODES=" & ChanModesX & " NETWORK=" & Replace(IRCNet, " ", "_") & " CASEMAPPING=ascii CHARSET=ascii STD=i-d :are supported by this server", vbNullString, , True
                     IrcStat.GlobUsers = IrcStat.GlobUsers + 1: IrcStat.LocUsers = IrcStat.LocUsers + 1
                     If IrcStat.MaxGlobUsers < IrcStat.GlobUsers Then IrcStat.MaxGlobUsers = IrcStat.MaxGlobUsers + 1
                     If IrcStat.MaxLocUsers < IrcStat.LocUsers Then IrcStat.MaxLocUsers = IrcStat.MaxLocUsers + 1
@@ -493,12 +501,19 @@ Do
 '*****************************
 'I'm going to add a CHGHost soon but am not Ready To Put it in Fully *Yet* Planning on it in near Future
 'Task #90351 - DG
-'        Case "CHGHOST": Cmds.Chghost = Cmds.Chghost + 1: Cmds.ChghostBW = Cmds.ChghostBW + cmdLen
-'          If Not cptr.HasRegistered Then
-'            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
-'            GoTo nextmsg
-'          End If
-'            Call m_chghost(cptr, sptr, arglist)
+'-completed by ziggy-
+        Case "CHGHOST": Cmds.Chghost = Cmds.Chghost + 1: Cmds.ChghostBW = Cmds.ChghostBW + cmdLen
+          If Not cptr.HasRegistered Then
+            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+            GoTo nextmsg
+          End If
+            Call m_chghost(cptr, sptr, arglist)
+        Case "CHGNICK": Cmds.ChgNick = Cmds.ChgNick + 1: Cmds.ChgNickBW = Cmds.ChgNickBW + cmdLen
+          If Not cptr.HasRegistered Then
+            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+            GoTo nextmsg
+          End If
+            Call m_chgnick(cptr, sptr, arglist)
         Case "OPER": Cmds.Oper = Cmds.Oper + 1: Cmds.OperBW = Cmds.OperBW + cmdLen
           If Not cptr.HasRegistered Then
             SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)

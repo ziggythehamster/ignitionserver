@@ -1,15 +1,15 @@
 ###############################
 ## Ignition Server ChangeLog ##
 ###############################
-
-Zg = Ziggy(ziggy@silentsoft.net)
-DG = DigiGuy(digi_guy@users.sourceforge.net)
-
-
+#
+# Zg = Ziggy(ziggy@silentsoft.net)
+# DG = DigiGuy(digi_guy@users.sourceforge.net)
+#
+#
 ### Project Start ###
-
-Zg - added .Owner to some parts of the code
-Zg - added IRCX command to some parts of the code (mod_main probably)
+#
+Zg - [1-Dec] - added .Owner to some parts of the code
+Zg - [1-Dec] - added IRCX command to some parts of the code (mod_main probably)
 Zg - [3-Dec] - changed everything that says "pureIRCd" to say "ignitionServer" (to avoid future confusion)
 Zg - [3-Dec] - fixed /ADMIN reply and format of A: line (original crew had it messed up)
 Zg - [3-Dec] - added property variables
@@ -43,7 +43,7 @@ DG - [11-Dec] - Renamed ircd.conf to ircx.conf
 DG - [11-Dec] - Renamed hard coding of motd file name from ircd.motd to ircx.motd
 DG - [12-Dec] - Added Halfop, Changed ChanHidden Mode to H, Fixed Bugs 858578 & 858588, Fixed Broken Link to clsChanMemberHashTable.cls
 DG - [12-Dec] - Moved Documentation to a New Dir(Docs) + Added Readme.rtf and license.rtf
-Zg - [11-Dec] - Fixed #858578 part 1: Deopping Owners
+Zg - [12-Dec] - Fixed #858578 part 1: Deopping Owners
 Zg - [12-Dec] - Fixed several errors from the original pure-IRCd (need more params doesn't return the right command occasionally -- hard coded problem)
 Zg - [12-Dec] - Fixed #858578 part 2: Kicking owners
 Zg - [12-Dec] - {BUG #858578} Fixed!
@@ -87,3 +87,20 @@ Zg - [22-Dec] - The server now sets IsIRCX whenever you turn IRCX on (and sends 
 Zg - [22-Dec] - GetModes returns +h now (whoops - slight mishap there)
 Zg - [23-Dec] - /list and /listx now hide rooms that are +h
 Zg - [10-Jan] - revised ircx.conf (preparing for release of 0.1.2)
+#
+### RELEASE - 0.1.2 ###
+#
+DG - [14-Jan] - Added Release Number to changelog (and fixed an out of order date :) - Tagging Release Too
+Zg - [21-Jan] - Date wasn't out of order.. just out-of-timezone :P began working on X: lines, the events system, and a few other things I've forgotten by the time I've written this
+Zg - [28-Jan] - Whee... just found like 4 bugs thanks to a real user (Michio of X9)
+Zg - [28-Jan] - Bugs 881792 and 886678 fixed
+DG - [29-Jan] - Fixed Bug 886730
+DG - [29-Jan] - Added X:DIE to prevent 'Lazy Admins'(LazyAdminitis) from not configuring the server, EggDrop has it, Why can't we?
+DG - [29-Jan] - Updated Docs to suit.
+DG - [29-Jan] - Change of heart Made X:DIE:1 just auto kill...
+DG - [29-Jan] - Docs updated + added date for first two entries (as 1-Dec) in case anyone attempts to Phase our ChangeLog on a website(or something)
+DG - [30-Jan] - Added Offline Mode, Changed P Lines to way they SHOULD be, added a Custom Notice Line, Added a P Line Structure(like the OLines etc)
+Zg - [30-Jan] - Added CHGHOST (Task 90351)
+Zg - [30-Jan] - Fixed bug #886707 (whois muckup)
+Zg - [30-Jan] - Fixed bug #888011 (OnJoin muckup)
+Zg - [31-Jan] - Added CHGNICK (Task 90351)

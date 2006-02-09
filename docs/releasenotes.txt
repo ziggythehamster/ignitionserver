@@ -1,0 +1,47 @@
+		RELEASE NOTES FOR IGNITIONSERVER RELEASE: 0.1.2-R2
+
+
+Changes:
+
+Zg - [21-Jan] - Date wasn't out of order.. just out-of-timezone :P began working on X: lines, the events system, and a few other things I've forgotten by the time I've written this
+Zg - [28-Jan] - Whee... just found like 4 bugs thanks to a real user (Michio of X9)
+Zg - [28-Jan] - Bugs 881792 and 886678 fixed
+DG - [29-Jan] - Fixed Bug 886730
+DG - [29-Jan] - Added X:DIE to prevent 'Lazy Admins'(LazyAdminitis) from not configuring the server, EggDrop has it, Why can't we?
+DG - [29-Jan] - Updated Docs to suit.
+DG - [29-Jan] - Change of heart Made X:DIE:1 just auto kill...
+DG - [29-Jan] - Docs updated + added date for first two entries (as 1-Dec) in case anyone attempts to Phase our ChangeLog on a website(or something)
+DG - [30-Jan] - Added Offline Mode, Changed P Lines to way they SHOULD be, added a Custom Notice Line, Added a P Line Structure(like the OLines etc)
+Zg - [30-Jan] - Added CHGHOST (Task 90351)
+Zg - [30-Jan] - Fixed bug #886707 (whois muckup)
+Zg - [30-Jan] - Fixed bug #888011 (OnJoin muckup)
+zg - [31-Jan] - Added CHGNICK (Task 90351)
+
+
+
+New Features include:
+
+- X Lines
+- AutoDie(Kills connecting users if the server hasn't being configured
+- Structured P Line
+- Offline Mode & Message
+- Custom Auth Notice
+- CHGHOST Command
+- CHGNICK Command
+
+
+Bug Fixes
+
+Bug #  | Bug Name
+---------------------
+877994 | mIRC hides modes 
+881792 | Q: (Nick Reservation) Lines are Case Sensitive 
+886678 | Q: lines can not be overridden 
+886707 | CRITICAL: non-local users do not show a proper whois 
+886730 | Case Sensitive Logins 
+
+
+
+Comments:
+
+This release is mainly a Bug Fix/tidy up with some new features

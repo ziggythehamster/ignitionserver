@@ -90,12 +90,12 @@ Select Case Flag
         If AccessLvl >= 3 Then
         For x = 1 To UBound(KLine)
             If Len(KLine(x).Host) > 0 Then
-                GetStats = GetStats & SPrefix & " " & RPL_STATSKLINE & " " & Nick & " :K " & KLine(x).User & "@" & KLine(x).Host & " :" & KLine(x).reason & vbCrLf
+                GetStats = GetStats & SPrefix & " " & RPL_STATSKLINE & " " & Nick & " :K " & KLine(x).User & "@" & KLine(x).Host & " :" & KLine(x).Reason & vbCrLf
             End If
         Next x
         For x = 1 To UBound(ZLine)
             If Len(ZLine(x).IP) > 0 Then
-                GetStats = GetStats & SPrefix & " " & RPL_STATSKLINE & " " & Nick & " :Z " & ZLine(x).IP & " :" & ZLine(x).reason & vbCrLf
+                GetStats = GetStats & SPrefix & " " & RPL_STATSKLINE & " " & Nick & " :Z " & ZLine(x).IP & " :" & ZLine(x).Reason & vbCrLf
             End If
         Next x
         End If
@@ -107,11 +107,18 @@ Select Case Flag
 'RPL_STATSNLINE
     'list current ServerLink/Unknown connection info -Dill
     Case "l"
-        GetStats = GetStats & SPrefix & " " & RPL_STATSLINKINFO & " " & Nick & " SendQ SendM SendBytes RcveM RcveBytes Open_since :Idle" & vbCrLf
+        GetStats = GetStats & SPrefix & " " & RPL_STATSLINKINFO & " " & Nick & " Name SendQ" & vbCrLf
+        Dim Links() As clsClient
+        Links = Servers.Values
+        If Not Links(0) Is Nothing Then
+          For i = 0 To UBound(Links)
+            GetStats = GetStats & SPrefix & " " & RPL_STATSLINKINFO & " " & Nick & " " & Links(i).ServerName & " " & Len(Links(i).SendQ) & vbCrLf
+          Next i
+        End If
     'Send current uptime -Dill
     Case "u"
         GetStats = GetStats & SPrefix & " " & RPL_STATSUPTIME & " " & Nick & " :" & Duration((GetTickCount - StartUp) \ 1000) & vbCrLf
-        GetStats = GetStats & SPrefix & " " & RPL_STATSCONN & " " & Nick & " :Connection count since last (re) start: " & IrcStat.Connections & vbCrLf
+        GetStats = GetStats & SPrefix & " " & RPL_STATSCONN & " " & Nick & " :Connection count since last (re)start: " & IrcStat.Connections & vbCrLf
     'send command inbound bandwidth and usage -Dill
     Case "m"
         If Cmds.Admin > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :ADMIN " & Cmds.Admin & vbCrLf
@@ -121,6 +128,7 @@ Select Case Flag
         If Cmds.ChanServ > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :CHANSERV " & Cmds.ChanServ & " " & Cmds.ChanServBW & vbCrLf
         If Cmds.Close > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :CLOSE " & Cmds.Close & " " & Cmds.CloseBW & vbCrLf
         If Cmds.Connect > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :CONNECT " & Cmds.Connect & " " & Cmds.ConnectBW & vbCrLf
+        If Cmds.Create > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :CREATE " & Cmds.Create & " " & Cmds.CreateBW & vbCrLf
         If Cmds.Die > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :DIE " & Cmds.Die & " " & Cmds.DieBW & vbCrLf
         If Cmds.Hash > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :HASH " & Cmds.Hash & " " & Cmds.HashBW & vbCrLf
         If Cmds.Info > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :INFO " & Cmds.Info & " " & Cmds.InfoBW & vbCrLf

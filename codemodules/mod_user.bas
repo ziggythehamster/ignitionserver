@@ -75,40 +75,73 @@ End Function
 '*/
 'Set /nick help here
 Public Function m_nick(cptr As clsClient, sptr As clsClient, parv$()) As Long
+On Error GoTo NickError
+Dim WhereAmI As String
 #If Debugging = 1 Then
     SendSvrMsg "NICK called! (" & cptr.Nick & ")"
 #End If
-Dim pdat$, i&, TempVar$
+Dim pdat$, i&, tempVar$
 If cptr.AccessLevel = 4 Then
     If UBound(parv) > 0 Then
+        #If Debugging = 1 Then
+          SendSvrMsg "server nick - ubound(parv) > 0"
+        #End If
         Dim NewCptr As clsClient, MSwitch As Boolean
         MSwitch = True
+        WhereAmI = "getting global user..."
         Set NewCptr = GlobUsers(parv(1))
         If Not NewCptr Is Nothing Then
+            WhereAmI = "nick collision"
             m_error NewCptr, "Nick Collision"
         End If
+        WhereAmI = "newcptr = newclient"
         Set NewCptr = New clsClient
+        WhereAmI = "set hops"
         NewCptr.Hops = CLng(parv(1))
+        WhereAmI = "add global user"
         Set NewCptr = GlobUsers.Add(parv(0), NewCptr)
+        WhereAmI = "newcptr is nothing"
         If NewCptr Is Nothing Then Exit Function
+        WhereAmI = "set newcptr options"
         With NewCptr
+            WhereAmI = "set accesslevel"
             .AccessLevel = 1
+            WhereAmI = "set nick"
             .Nick = parv(0)
+            WhereAmI = "set signon time"
             .SignOn = CLng(parv(2))
+            WhereAmI = "set user"
             .User = parv(3)
+            WhereAmI = "set host"
             .Host = parv(4)
+            WhereAmI = "set realhost"
             .RealHost = parv(4)
+            WhereAmI = "set prefix"
             .Prefix = ":" & .Nick & "!" & .User & "@" & .RealHost
+            WhereAmI = "set server desc"
             .ServerDescription = sptr.ServerDescription
+            WhereAmI = "set server name"
             .ServerName = parv(5)
+            WhereAmI = "set name"
             .Name = parv(6)
+            WhereAmI = "set from link"
             Set .FromLink = cptr
+            WhereAmI = "increase global users"
             IrcStat.GlobUsers = IrcStat.GlobUsers + 1
+            WhereAmI = "increase max users, if needed"
             If IrcStat.MaxGlobUsers < IrcStat.GlobUsers Then IrcStat.MaxGlobUsers = IrcStat.MaxGlobUsers + 1
+            WhereAmI = "propragate signon"
             SendToServer_ButOne "NICK " & .Nick & " " & .Hops + 1 & " " & .SignOn & " " & .User & " " & .RealHost & _
             " " & .ServerName & " :" & .Name, cptr.ServerName, sptr.ServerName
         End With
+        WhereAmI = "end set newcptr options"
+        #If Debugging = 1 Then
+          SendSvrMsg "nick set by server; host: " & NewCptr.RealHost & " name: " & NewCptr.Name & " nick: " & NewCptr.Nick
+        #End If
     Else
+        #If Debugging = 1 Then
+          SendSvrMsg "server nick - ubound(parv) else [<=0]"
+        #End If
         SendToServer_ButOne "NICK " & parv(0), cptr.ServerName, sptr.Nick
         Dim ByteArr() As Byte, Members() As clsChanMember
         ByteArr = StrConv(sptr.Prefix & " NICK " & parv(0) & vbCrLf, vbFromUnicode)
@@ -149,10 +182,10 @@ Else
     SendWsock cptr.index, ERR_ERRONEUSNICKNAME & " " & cptr.Nick, TranslateCode(ERR_ERRONEUSNICKNAME, parv(0))
     Exit Function
   End If
-  i = GetQLine(parv(0))
+  i = GetQLine(parv(0), cptr.AccessLevel)
   If i > 0 Then
     'the original people added another parameter that didn't need to be there
-    SendWsock cptr.index, ERR_ERRONEUSNICKNAME & " " & parv(0), QLine(i).reason & " [" & QLine(i).Nick & "]"
+    SendWsock cptr.index, ERR_ERRONEUSNICKNAME & " " & parv(0), QLine(i).Reason & " [" & QLine(i).Nick & "]"
     Exit Function
   End If
   If Not GlobUsers(parv(0)) Is Nothing Then  'in case the nickname specified is already in use -Dill
@@ -210,27 +243,31 @@ Else
   'assign the new nick to the database -Dill
   If Len(cptr.Nick) > 0 Then GlobUsers.Remove cptr.Nick
   GlobUsers.Add parv(0), cptr
-  TempVar = cptr.Nick
+  tempVar = cptr.Nick
   cptr.Nick = parv(0)
   cptr.Prefix = ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host
   Dim WasOwner As Boolean, WasOp As Boolean, WasHOp As Boolean, WasVoice As Boolean
   Dim tmpData As Integer
   For m_nick = 1 To cptr.OnChannels.Count
        With cptr.OnChannels.Item(m_nick).Member
-         WasOwner = .Item(TempVar).IsOwner
-         WasOp = .Item(TempVar).IsOp
-         WasHOp = .Item(TempVar).IsHOp
-         WasVoice = .Item(TempVar).IsVoice
+         WasOwner = .Item(tempVar).IsOwner
+         WasOp = .Item(tempVar).IsOp
+         WasHOp = .Item(tempVar).IsHOp
+         WasVoice = .Item(tempVar).IsVoice
          tmpData = 0
          If WasOwner Then tmpData = 6
          If WasOp Then tmpData = 4 'WTF is this bit for? Any Ideas Ziggy? - DG
                                 'looks like a temp variable for the user level - Ziggy
          If WasVoice Then tmpData = tmpData + 1
-         .Remove TempVar
+         .Remove tempVar
          .Add CLng(tmpData), cptr
        End With
   Next m_nick
 End If
+Exit Function
+
+NickError:
+SendSvrMsg "Error in NICK processing code at " & WhereAmI & ". Error: " & err.Number & " - " & err.Description
 End Function
 
 '/*
@@ -490,6 +527,9 @@ Else
           SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, a(i))
         Else
           c.WhoisAccessLevel = cptr.AccessLevel
+          #If Debugging = 1 Then
+            SendSvrMsg "getting whois for " & c.Nick & "; host: " & c.RealHost
+          #End If
           SendWsock cptr.index, c.GetWhois(cptr.Nick), vbNullString, , True
         End If
       End If
@@ -542,7 +582,7 @@ Public Function m_user(cptr As clsClient, sptr As clsClient, parv$()) As Long
     SendWsock cptr.index, ERR_ALREADYREGISTRED & " " & cptr.Nick, TranslateCode(ERR_ALREADYREGISTRED)
     Exit Function
   End If
-  Dim Ident$, pdat$
+  Dim Ident$, pdat$, i&, x&, z&, allusers() As clsClient
   With cptr
     .User = parv(0)
     .Name = parv(3)
@@ -557,9 +597,46 @@ Public Function m_user(cptr As clsClient, sptr As clsClient, parv$()) As Long
         m_error cptr, "Closing Link: (Bad Password)"
         Exit Function
     End If
+    If Die = True Then
+        For x = 1 To .OnChannels.Count
+            SendToChan .OnChannels.Item(x), .Prefix & " AutoKilled: Server Misconfigured", vbNullString
+        Next x
+        SendToServer "QUIT :AutoKilled: Server Misconfigured", .Nick
+        SendWsock .index, "KILL " & .Nick, ":AutoKilled: Server Misconfigured", .Prefix
+        m_error cptr, "Closing Link: (AutoKilled: Server Misconfigured)"
+        .IsKilled = True
+        KillStruct .Nick
+        Exit Function
+    End If
+    If OfflineMode = True Then
+        If OfflineMessage = "" Then
+            For x = 1 To .OnChannels.Count
+                SendToChan .OnChannels.Item(x), .Prefix & " AutoKilled: Server In Offline Mode", vbNullString
+            Next x
+            SendToServer "QUIT :AutoKilled: Server In Offline Mode", .Nick
+            SendWsock .index, "KILL " & .Nick, ":AutoKilled: Server In Offline Mode", .Prefix
+            m_error cptr, "Closing Link: (AutoKilled: Server In Offline Mode)"
+            .IsKilled = True
+            KillStruct .Nick
+            Exit Function
+        Else
+            For x = 1 To .OnChannels.Count
+                SendToChan .OnChannels.Item(x), .Prefix & " AutoKilled: " & OfflineMessage, vbNullString
+            Next x
+            SendToServer "QUIT :AutoKilled: " & OfflineMessage, .Nick
+            SendWsock .index, "KILL " & .Nick, ":AutoKilled: " & OfflineMessage, .Prefix
+            m_error cptr, "Closing Link: (AutoKilled: " & OfflineMessage & ")"
+            .IsKilled = True
+            KillStruct .Nick
+            Exit Function
+        End If
+    End If
     If Len(.Nick) = 0 Then Exit Function
     pdat = GetRand
     SendWsock cptr.index, "NOTICE AUTH", ":*** If you experience problems due to PING timeouts, type '/raw PONG :" & pdat & "' now"
+    If Not CustomNotice = "" Then
+        SendWsock cptr.index, "NOTICE AUTH", ":*** " & CustomNotice
+    End If
     SendWsock cptr.index, "PING " & pdat, vbNullString, , True
     IrcStat.UnknownConnections = IrcStat.UnknownConnections - 1
   End With
@@ -1038,10 +1115,114 @@ If UBound(parv) < 1 Then
 End If
 Call DoVLine(cptr, parv(0), parv(1))
 End Function
-'Public Function m_chghost(cptr As clsClient, sptr As clsClient, parv$()) As Long
-'
-'End Function
+Public Function m_chghost(cptr As clsClient, sptr As clsClient, parv$()) As Long
+'parv[0] = Nick
+'parv[1] = New Host
+If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
+    SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+    Exit Function
+End If
+If UBound(parv) <> 1 Then
+  SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "CHGHOST")
+  Exit Function
+End If
+If Len(parv(1)) = 0 Then
+  SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "CHGHOST")
+  Exit Function
+End If
+Dim User As clsClient
+Set User = GlobUsers(parv(0))
+If User Is Nothing Then
+  SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, parv(0))
+  Exit Function
+End If
+User.Host = parv(1)
+SendSvrMsg "*** " & cptr.Nick & " changed the hostname of " & User.Nick & " to " & parv(1)
+SendWsock User.index, "NOTICE", ":" & cptr.Nick & " changed your hostname to " & parv(1), sptr.Prefix
+End Function
+Public Function m_chgnick(cptr As clsClient, sptr As clsClient, parv$()) As Long
+'parv[0] = Nick
+'parv[1] = New nick
+If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
+    SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+    Exit Function
+End If
+If UBound(parv) <> 1 Then
+  SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "CHGNICK")
+  Exit Function
+End If
+If Len(parv(1)) = 0 Then
+  SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "CHGNICK")
+  Exit Function
+End If
+If Not GlobUsers(parv(1)) Is Nothing Then  'in case the nickname specified is already in use -Dill
+  SendWsock cptr.index, "NOTICE", ":*** Nickname " & parv(1) & " is in use! Cannot change nickname.", sptr.Prefix
+  Exit Function
+End If
+Dim User As clsClient
+Set User = GlobUsers(parv(0))
+If User Is Nothing Then
+  SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, parv(0))
+  Exit Function
+End If
 
+
+Dim tmpNick As String
+Dim tmpPrefix As String
+Dim ByteArr() As Byte, Members() As clsChanMember
+tmpNick = User.Nick
+tmpPrefix = User.Prefix
+User.Nick = parv(1)
+SendSvrMsg "*** " & cptr.Nick & " changed the nickname of " & tmpNick & " to " & parv(1)
+'now to do the standard nick change -z
+Dim AllVisible As New Collection
+Dim NickX As Integer
+Dim i As Integer
+ReDim RecvArr(1)
+'notify channels -z
+For NickX = 1 To User.OnChannels.Count
+  Members = User.OnChannels.Item(NickX).Member.Values
+  For i = LBound(Members) To UBound(Members)
+    If Members(i).Member.Hops = 0 Then
+      If Not Members(i).Member Is User Then
+        On Local Error Resume Next
+        AllVisible.Add Members(i).Member.index, CStr(Members(i).Member.index)
+      End If
+    End If
+  Next i
+Next NickX
+For i = 1 To AllVisible.Count
+  'send notificaiton -z
+  Call SendWsock(AllVisible(i), "NICK", parv(1), tmpPrefix)
+Next i
+SendToServer "NICK " & tmpNick, ":" & parv(1)
+SendWsock User.index, "NICK", parv(1), tmpPrefix
+
+Dim tempVar As String
+'assign the new nick to the database -Dill
+If Len(User.Nick) > 0 Then GlobUsers.Remove tmpNick
+GlobUsers.Add parv(1), User
+tempVar = tmpNick
+User.Nick = parv(1)
+User.Prefix = ":" & User.Nick & "!" & User.User & "@" & User.Host
+Dim WasOwner As Boolean, WasOp As Boolean, WasHOp As Boolean, WasVoice As Boolean
+Dim tmpData As Integer
+For NickX = 1 To User.OnChannels.Count
+     With User.OnChannels.Item(NickX).Member
+       WasOwner = .Item(tempVar).IsOwner
+       WasOp = .Item(tempVar).IsOp
+       WasHOp = .Item(tempVar).IsHOp
+       WasVoice = .Item(tempVar).IsVoice
+       tmpData = 0
+       If WasOwner Then tmpData = 6
+       If WasOp Then tmpData = 4 'WTF is this bit for? Any Ideas Ziggy? - DG
+                              'looks like a temp variable for the user level - Ziggy
+       If WasVoice Then tmpData = tmpData + 1
+       .Remove tempVar
+       .Add CLng(tmpData), User
+     End With
+Next NickX
+End Function
 Public Function m_samode(cptr As clsClient, sptr As clsClient, parv$()) As Long
 If Len(parv(0)) = 0 Then
     SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "SAMODE")

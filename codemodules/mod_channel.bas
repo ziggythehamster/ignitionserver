@@ -1430,7 +1430,7 @@ pastban:
 pastaccess:
       CurrentInfo = "onjoin"
       If Len(Chan.Prop_OnJoin) > 0 Then
-        SendWsock cptr.index, Chan.Name & " PRIVMSG " & Chan.Name, ":" & Chan.Prop_OnJoin & vbCrLf, ":"
+        SendWsock cptr.index, ":" & Chan.Name & " PRIVMSG " & Chan.Name & " :" & Chan.Prop_OnJoin & vbCrLf, vbNullString, , True
       End If
     End If
 NextChan:

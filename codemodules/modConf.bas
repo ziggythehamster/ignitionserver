@@ -32,6 +32,7 @@ Public YLine() As YLines
 Public ZLine() As ZLines
 Public KLine() As KLines
 Public QLine() As QLines
+Public PLine() As PLines
 Public OLine() As OLines
 Public CLine() As CLines
 Public NLine() As NLines
@@ -45,7 +46,7 @@ Select Case Flag
         ReDim ZLine(1): ReDim KLine(1)
         ReDim QLine(1): ReDim OLine(1)
         ReDim NLine(1): ReDim CLine(1)
-        ReDim VLine(1)
+        ReDim VLine(1): ReDim PLine(1)
         If Dir(App.Path & "\ircx.conf") <> vbNullString Then
           Open App.Path & "\ircx.conf" For Input As ff
           Do While Not EOF(ff)
@@ -123,14 +124,14 @@ Select Case Flag
                 ReDim Preserve KLine(UBound(KLine) + 1)
                 With KLine(UBound(KLine))
                     .Host = Line(0)
-                    .reason = Line(1)
+                    .Reason = Line(1)
                     .User = Line(2)
                 End With
               Case "Q"    'Nickname quarantines -Dill
                 Line = Split(Temp, ":")
                 ReDim Preserve QLine(UBound(QLine) + 1)
                 With QLine(UBound(QLine))
-                    .reason = Line(1)
+                    .Reason = Line(1)
                     .Nick = Line(2)
                 End With
               Case "Z"    'Connection filters -Dill
@@ -138,11 +139,17 @@ Select Case Flag
                 ReDim Preserve ZLine(UBound(ZLine) + 1)
                 With ZLine(UBound(ZLine))
                     .IP = Line(0)
-                    .reason = Line(1)
+                    .Reason = Line(1)
                 End With
               Case "P"    'Additional listening ports -Dill
                 Line = Split(Replace(Temp, "*", vbNullString), ":")
-                Sockets.Listen Line(0), CInt(Line(3))
+                ReDim Preserve PLine(UBound(PLine) + 1)
+                With PLine(UBound(PLine))
+                    .IP = Line(1)
+                    .PortOption = Line(3)
+                    .Port = (4)
+                End With
+                Sockets.Listen Line(1), CInt(Line(4))
                 Ports = Ports + 1
               Case "V"
                 Line = Split(Temp, ":")
@@ -170,10 +177,38 @@ Select Case Flag
                 MaxListLen = Line(10)
                 MaxMsgsInQueue = Line(11)
               Case "X"
-              'X:diepassword:restartpassword
+                'X:section:parameters
+                Dim Section As String
                 Line = Split(Temp, ":")
-                DiePass = Line(0)
-                RestartPass = Line(1)
+                Section = Line(0)
+                If UCase(Section) = "DIEPASS" Then
+                  DiePass = Line(1)
+                ElseIf UCase(Section) = "RESTARTPASS" Then
+                  RestartPass = Line(1)
+                ElseIf UCase(Section) = "DIE" Then
+                  If Line(1) = "0" Then
+                    Die = False
+                  ElseIf Line(1) = "1" Then
+                    'LAZY ADMIN ALERT
+                    'Lets set Auto Kill to 1
+                    'Shows that it pays to read README's Huh? - DG
+                    Die = True
+                  Else
+                    Die = False
+                  End If
+                ElseIf UCase(Section) = "OFFLINEMODE" Then
+                    If Line(1) = "0" Or Line(1) = "off" Then
+                        OfflineMode = False
+                    ElseIf Line(1) = "1" Or Line(1) = "on" Then
+                        OfflineMode = True
+                    Else
+                        OfflineMode = False
+                    End If
+                ElseIf UCase(Section) = "OFFLINEMESSAGE" Then
+                    OfflineMessage = Line(1)
+                ElseIf UCase(Section) = "CNOTICE" Then
+                    CustomNotice = Line(1)
+                End If
               'Everything else is ignored -Dill
             End Select
           Loop
@@ -206,7 +241,7 @@ Dim i As Long
 For i = 1 To UBound(KLine)
     If (cptr.IP Like KLine(i).Host) Or (cptr.Host Like KLine(i).Host) Then
         If (cptr.User Like KLine(i).User) Then
-            m_error cptr, "Closing Link: Kline active (" & KLine(i).reason & ")"
+            m_error cptr, "Closing Link: K: line active (" & KLine(i).Reason & ")"
             KillStruct (cptr.Nick)
             DoKLine = True
             Exit Function
@@ -264,7 +299,7 @@ Public Function DoZLine(index As Long, IP As String) As Boolean
 Dim i As Long, buf() As Byte
 For i = 2 To UBound(ZLine)
     If IP Like ZLine(i).IP Then
-        buf = StrConv("ERROR :Closing Link: 'Z: Lined' " & ZLine(i).reason & vbCrLf, vbFromUnicode)
+        buf = StrConv("ERROR :Closing Link: 'Z: Lined' " & ZLine(i).Reason & vbCrLf, vbFromUnicode)
         Call Send(Sockets.SocketHandle(index), buf(0), UBound(buf) + 1, 0&)
         DoZLine = True
         Exit Function
@@ -287,7 +322,7 @@ Dim ff As Integer, Temp As String
 ff = FreeFile
 If Dir(App.Path & "\ircx.motd") <> vbNullString Then
   Open App.Path & "\ircx.motd" For Input As ff
-  MotD = SPrefix & " 375 " & vbNullChar & " :- " & ServerName & " Message of the day, " & vbCrLf
+  MotD = SPrefix & " 375 " & vbNullChar & " :- " & ServerName & " Message of the Day -" & vbCrLf
   Do While Not EOF(ff)
     Line Input #ff, Temp
     MotD = MotD & SPrefix & " 372 " & vbNullChar & " :- " & Temp & vbCrLf
@@ -299,10 +334,10 @@ End If
 Close ff
 End Function
 
-Public Function GetQLine(Nick As String) As Long
+Public Function GetQLine(Nick As String, AccessLevel As Long) As Long
 Dim i As Long
 For i = 2 To UBound(QLine)
-    If Nick Like QLine(i).Nick Then
+    If UCase(Nick) Like UCase(QLine(i).Nick) And AccessLevel <> 3 Then
         GetQLine = i
         Exit Function
     End If
@@ -312,9 +347,9 @@ End Function
 Public Function DoOLine(cptr As clsClient, Pass As String, OperName As String) As Boolean
 Dim i As Long, x As Long
 For i = 2 To UBound(OLine)
-    If StrComp(OperName, OLine(i).Name) = 0 Then
+    If StrComp(UCase(OperName), UCase(OLine(i).Name)) = 0 Then
         If InStr(1, OLine(i).Host, "@") Then
-            If cptr.User & "@" & cptr.RealHost Like OLine(i).Host Then
+            If UCase(cptr.User) & "@" & UCase(cptr.RealHost) Like UCase(OLine(i).Host) Then
                 If StrComp(Pass, OLine(i).Pass) = 0 Then
                     cptr.AccessLevel = 3
                     Opers.Add cptr.GUID, cptr
@@ -332,7 +367,7 @@ For i = 2 To UBound(OLine)
                 Exit Function
             End If
         Else
-            If cptr.RealHost Like OLine(i).Host Then
+            If UCase(cptr.RealHost) Like UCase(OLine(i).Host) Then
                 If StrComp(Pass, OLine(i).Pass) = 0 Then
                     cptr.AccessLevel = 3
                     Opers.Add cptr.GUID, cptr
@@ -379,8 +414,8 @@ Public Sub DoVLine(cptr As clsClient, Login$, Pass$)
 Dim i&
 For i = 2 To UBound(VLine)
     With VLine(i)
-        If StrComp(.Name, Login) = 0 Then
-            If cptr.User & "@" & cptr.Host Like .Host Then
+        If StrComp(UCase(.Name), UCase(Login)) = 0 Then
+            If UCase(cptr.User) & "@" & UCase(cptr.Host) Like UCase(.Host) Then
                 If Pass = .Pass Then
                     cptr.Host = .Vhost
                     cptr.Prefix = ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host
@@ -391,7 +426,7 @@ For i = 2 To UBound(VLine)
                     Exit Sub
                 End If
             Else
-                SendWsock cptr.index, "NOTICE " & cptr.Nick, ":No vhost for your hostname"
+                SendWsock cptr.index, "NOTICE " & cptr.Nick, ":No virtual host for your hostname"
                 Exit Sub
             End If
         End If

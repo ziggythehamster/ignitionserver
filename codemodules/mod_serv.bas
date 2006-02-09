@@ -354,7 +354,8 @@ If Not cptr.HasRegistered Then
                 Next y
             Next i
         End If
-        SendSvrMsg "*** Notice -- " & s & " Severs, " & u & " users and " & c & " channel structures sent to " & .ServerName
+        
+        SendSvrMsg "*** Notice -- " & s & " server(s), " & u & " user(s), and " & c & " channel structures sent to " & .ServerName
         SendSvrMsg "*** Notice -- Link with " & .ServerName & " established."
         SendToServer_ButOne "SERVER " & .ServerName & " " & .Hops + 1 & " :" & .ServerDescription, .ServerName, ServerName
     End With
@@ -984,7 +985,7 @@ KUser = Mid$(Mask, InStr(1, Mask, "!") + 1)
 ReDim Preserve KLine(UBound(KLine) + 1)
 With KLine(UBound(KLine))
     .Host = KHost
-    .reason = parv(1)
+    .Reason = parv(1)
     .User = KUser
 End With
 End Function
@@ -1007,8 +1008,22 @@ For i = 1 To UBound(KLine)
         If KLine(i).User & "@" & KLine(i).Host Like parv(0) Then
             KLine(i).Host = vbNullString
             KLine(i).User = vbNullString
-            KLine(i).reason = vbNullString
+            KLine(i).Reason = vbNullString
         End If
     End If
 Next i
+End Function
+
+Public Function m_event(cptr As clsClient, sptr As clsClient, parv$()) As Long
+#If Debugging = 1 Then
+  SendSvrMsg "*** Notice -- EVENT called! (" & cptr.Nick & ")"
+#End If
+If cptr.AccessLevel = 4 Then
+'Todo
+ElseIf cptr.AccessLevel = 3 Then
+  
+Else
+    SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+    Exit Function
+End If
 End Function

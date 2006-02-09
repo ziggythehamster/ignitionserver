@@ -28,9 +28,10 @@ Public hlp As Help
 
 Public Type Help
 
-Oper As String: OperSyntax As String
-Nick As String: NickSyntax As String
-Who As String: WhoSyntax As String
+Oper As String: OperSyntax As String: OperExample As String
+Nick As String: NickSyntax As String: NickExample As String
+Who As String: WhoSyntax As String: WhoExample As String
+GNotice As String: GNoticeSyntax As String: GNoticeExample As String
 
 End Type
 
@@ -46,12 +47,21 @@ Public Function m_help(cptr As clsClient, sptr As clsClient, helpcmd As String) 
 'General Commands
 Select Case UCase(helpcmd)
     Case "NICK"
-        do_cmd_help cptr.index, cptr.Nick, "NICK", hlp.NickSyntax, hlp.Nick
+        do_cmd_help cptr.index, cptr.Nick, "NICK", hlp.NickSyntax, hlp.Nick, hlp.NickExample
     Case "OPER"
-        do_cmd_help cptr.index, cptr.Nick, "OPER", hlp.OperSyntax, hlp.Oper
+        If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
+          SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+          Exit Function
+        End If
+        do_cmd_help cptr.index, cptr.Nick, "OPER", hlp.OperSyntax, hlp.Oper, hlp.OperExample
+    Case "GNOTICE"
+        If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
+          SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+          Exit Function
+        End If
+        do_cmd_help cptr.index, cptr.Nick, "GNOTICE", hlp.GNoticeSyntax, hlp.GNotice, hlp.GNoticeExample
     Case "WHO"
-        do_cmd_help cptr.index, cptr.Nick, "WHO", hlp.WhoSyntax, hlp.Who
-    
+        do_cmd_help cptr.index, cptr.Nick, "WHO", hlp.WhoSyntax, hlp.Who, hlp.WhoExample
     Case "CMD"
         SendWsock cptr.index, RPL_HELPHDR & " " & cptr.Nick, ":~~~~~ignitionServer Help~~~~~"
         SendWsock cptr.index, RPL_HELPHLP & " " & cptr.Nick, ":"
@@ -62,9 +72,14 @@ Select Case UCase(helpcmd)
         SendWsock cptr.index, RPL_HELPHLP & " " & cptr.Nick, ":"
         SendWsock cptr.index, RPL_HELPTLR & " " & cptr.Nick, ":End of /IRCXHELP"
     Case "OPERCMD"
+        If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
+          SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+          Exit Function
+        End If
         SendWsock cptr.index, RPL_HELPHDR & " " & cptr.Nick, ":~~~~~ignitionServer Help~~~~~"
         SendWsock cptr.index, RPL_HELPHLP & " " & cptr.Nick, ":"
-        SendWsock cptr.index, RPL_HELPHLP & " " & cptr.Nick, ":OPER - Identify yourself as a Server Operator"
+        SendWsock cptr.index, RPL_HELPHLP & " " & cptr.Nick, ":OPER - Identify yourself as an IRC Operator"
+        SendWsock cptr.index, RPL_HELPHLP & " " & cptr.Nick, ":GNOTICE - Send a Global Notice to all who can see server messages"
         SendWsock cptr.index, RPL_HELPHLP & " " & cptr.Nick, ":"
         SendWsock cptr.index, RPL_HELPHLP & " " & cptr.Nick, ":For more info on these commands please use /ircxhelp <command>"
         SendWsock cptr.index, RPL_HELPHLP & " " & cptr.Nick, ":"
@@ -80,21 +95,31 @@ Select Case UCase(helpcmd)
     End Select
 End Function
 
-Public Function do_cmd_help(index As Long, Nick As String, cmdName As String, cmdSyntax As String, cmdHelp As String) As Long
+Public Function do_cmd_help(index As Long, Nick As String, cmdName As String, cmdSyntax As String, cmdHelp As String, cmdExample As String) As Long
     SendWsock index, RPL_HELPHDR & " " & Nick, ":~~~~~ignitionServer Help - " & cmdName & "~~~~~"
     SendWsock index, RPL_HELPHLP & " " & Nick, ":"
     SendWsock index, RPL_HELPHLP & " " & Nick, ":SYNTAX: " & cmdSyntax
+    SendWsock index, RPL_HELPHLP & " " & Nick, ":EXAMPLE: " & cmdExample
     SendWsock index, RPL_HELPHLP & " " & Nick, ":" & cmdHelp
     SendWsock index, RPL_HELPHLP & " " & Nick, ":"
     SendWsock index, RPL_HELPTLR & " " & Nick, ":End of /IRCXHELP"
 End Function
 
 Public Function SetHelp()
-hlp.Nick = "Use /nick to change your current nickname to a new one"
-hlp.NickSyntax = "/nick <newnick>"
-hlp.Oper = "/oper is the only way to identify yourself as an Operator of a IRC Server. You must have a Username and Password which is assigned by the Server Admin"
+'**** Localization
+'**** Edit the text here to change the messages
+'TODO: Load from a file that can be edited in notepad
+hlp.Nick = "Used to change your current nickname to a new one."
+hlp.NickSyntax = "/nick <NewNick>"
+hlp.NickExample = "/nick Ziggy"
+hlp.Oper = "Used to login as an IRC Operator. You must have a username and password assigned by the Server Administrator."
 hlp.OperSyntax = "/oper <UserName> <PassWord>"
-hlp.Who = "Used to find users on the Network, Will not find Hidden Users."
+hlp.OperExample = "/oper Ziggy HamstersRule"
+hlp.Who = "Used to find users on the network. Will not work if the user is hidden (has +i set on themselves)."
 hlp.WhoSyntax = "/who <HostMask>"
+hlp.WhoExample = "/who Ziggy"
+hlp.GNotice = "Sends a notice to all IRC Operators and those who can see server messages (+s) on every server. Depending on your client, you may have to add a : before you type your text. (/gnotice :<Text>)"
+hlp.GNoticeSyntax = "/gnotice <Text>"
+hlp.GNoticeExample = "/gnotice I crashed services -- please wait while I restart them"
 End Function
 

@@ -28,7 +28,7 @@ Option Explicit
 Public Const MaxTrafficRate As Long = 100
 
 '-=BUILD DATE=-
-Public Const BuildDate As String = "20040110-release"
+Public Const BuildDate As String = "20040131-R2"
 
 #Const Debugging = 0
 
@@ -89,6 +89,16 @@ Public MaxMsgsInQueue As Long
 '/die and /restart passwords
 Public RestartPass As String
 Public DiePass As String
+
+'Auto Kill For Missconfigured servers...
+Public Die As Boolean
+
+'Offline Mode
+Public OfflineMode As Boolean
+Public OfflineMessage As String
+
+'Custom Message
+Public CustomNotice As String
 
 'HTM - High Traffic Mode
 'Added 2nd feb 2003 by dilligent to handle Oper/server sendq's more efficiently
@@ -199,6 +209,12 @@ Public Type QLines
   Reason As String
 End Type
 
+Public Type PLines
+  IP As String
+  PortOption As String
+  Port As String
+End Type
+
 Public Type ZLines
   IP As String
   Reason As String
@@ -262,6 +278,8 @@ Public Type Commands
   Chghost As Long: ChghostBW As Currency
   ListX As Long: ListXBW As Currency
   Access As Long: AccessBW As Currency
+  Create As Long: CreateBW As Currency
+  ChgNick As Long: ChgNickBW As Currency
 End Type
 
 '/*
@@ -627,30 +645,36 @@ Public Const modeAdd As Long = 43
 Public Const modeRemove As Long = 45
 
 'All possible modes for chan/user
-Public Const UserModes As String = "soOixkrRDdcCkKbB"
-Public Const ChanModes As String = "bqovmntisplk"
+'Now in alphabetical order - Ziggy
+'Added missing modes
+Public Const UserModes As String = "bcdeikorsxBCDKORS"
+Public Const ChanModes As String = "abdehiklmnopqrstuvwxz"
+'for the 005 reply
+Public Const ChanModesX As String = "b,k,l,adehimnopqrstuvwxyz"
 
 'Authentication Packages/IRCX stuff
 Public Const AuthPackages As String = "ANON"
 Public Const Capabilities As String = "*"
 
 'User Modes (ASCII values of the mode char's for faster processing)
-Public Const umServerMsg As Long = 115  'recieves servermessages
-Public Const umLocOper As Long = 111    'Local IRC Operator, flags included: rhgwlckbBnuf
-Public Const umGlobOper As Long = 79    'Global IRC Operator, flags included: oRDCKN
-Public Const umInvisible As Long = 105  'invisible, only visible to those who know the exact nick
-Public Const umIRCX As Long = 120       'IRCX user
-Public Const umHostCloak As Long = 100  'gets his host cloaked
-Public Const umCanRehash As Long = 114  'access to /rehash server
-Public Const umCanRestart As Long = 82  'access to /restart server
-Public Const umCanDie As Long = 68      'access to /die server
-Public Const umLocRouting As Long = 99  'access to local /connect's and /squit's
-Public Const umGlobRouting As Long = 67 'access to global /connect's and /squit's
-Public Const umLocKills As Long = 107   'access to local /kill's
-Public Const umGlobKills As Long = 75   'access to global /kill's
-Public Const umCanKline As Long = 98    'Can /kline user
-Public Const umCanUnKline As Long = 66  'Can /unkline user
-Public Const umRegistered As Long = 114 'has a registered nick
+Public Const umServerMsg As Long = 115  '+s / recieves servermessages
+Public Const umLocOper As Long = 111    '+o / Local IRC Operator, flags included: rhgwlckbBnuf
+Public Const umGlobOper As Long = 79    '+O / Global IRC Operator, flags included: oRDCKN
+Public Const umInvisible As Long = 105  '+i / invisible, only visible to those who know the exact nick
+Public Const umIRCX As Long = 120       '+x / IRCX user
+Public Const umHostCloak As Long = 100  '+d / gets his host cloaked
+'Public Const umCanRehash As Long = 114 '***** '+r / access to /rehash server *conflict*
+Public Const umCanRehash As Long = 101  '+e / access to /rehash server
+Public Const umCanRestart As Long = 82  '+R / access to /restart server
+Public Const umCanDie As Long = 68      '+D / access to /die server
+Public Const umLocRouting As Long = 99  '+c / access to local /connect's and /squit's
+Public Const umGlobRouting As Long = 67 '+C / access to global /connect's and /squit's
+Public Const umLocKills As Long = 107   '+k / access to local /kill's
+Public Const umGlobKills As Long = 75   '+K / access to global /kill's
+Public Const umCanKline As Long = 98    '+b / Can /kline user
+Public Const umCanUnKline As Long = 66  '+B / Can /unkline user
+Public Const umRegistered As Long = 114 '+r / has a registered nick *conflict*
+Public Const umService As Long = 83     '+S / is a service
 
 Public Function TranslateCode$(Code&, Optional Nick$, Optional Chan$, Optional cmd$)
 #If Debugging = 1 Then
@@ -741,7 +765,7 @@ Select Case Code
   Case ERR_BANLISTFULL
     TranslateCode = Nick & " " & Chan & " :Channel list is full"
   Case ERR_NOPRIVILEGES
-    TranslateCode = ":Permission Denied- You're not an IRC operator"
+    TranslateCode = ":Permission Denied: You're not an IRC operator"
   Case ERR_CHANOPRIVSNEEDED
     TranslateCode = Chan & " :You're not channel operator"
   Case ERR_CANTKILLSERVER
@@ -769,5 +793,7 @@ Select Case Code
     TranslateCode = ":Some entires not cleared due to security"
   Case IRCERR_DUPACCESS
     TranslateCode = ":Duplicate access entry"
+  Case IRCERR_CHANNELEXIST
+    TranslateCode = Chan & " :Channel already exists."
 End Select
 End Function

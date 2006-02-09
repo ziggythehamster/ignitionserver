@@ -57,6 +57,7 @@ Public GUID As String
 Public Prefix As String
 Public ServerName As String
 Public ServerDescription As String
+Public Port As String
 Public SendQ As String
 Public SignOn As Long
 Public AwayMsg As String
