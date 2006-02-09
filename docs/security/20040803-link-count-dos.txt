@@ -1,0 +1,75 @@
+[ THE IGNITION PROJECT SECURITY BULLETIN ]----------------------------
+This is a security bulletin from The Ignition Project, a group of open
+source developers. It describes a flaw in one of our products, if
+fixes are avaliable, how to fix the issue, and what exactly went
+"wrong" that allows this security issue to occur.
+
+(Product Information)_________________________________________________
+Vendor:   The Ignition Project <http://www.ignition-project.com/>
+Product:  ignitionServer
+Versions: 0.1.2 to 0.3.1
+
+(Vulnerability Information)___________________________________________
+Vulnerability: Link Count Denial of Service
+Reported By:   Keith Gable <ziggy@ignition-project.com> (Developer)
+Fix Available: Yes
+How To Fix:    Upgrade to 0.3.2 or newer
+URL of Fix:    http://www.ignition-project.com/ignition/server/download/
+Criticality:   Low
+Where:         Remote
+Impact:        DoS
+
+(Long Description)____________________________________________________
+Because the linking code in ignitionServer is still somewhat buggy,
+an outsider can send a specially-crafted command to vulnerable systems
+that can initiate a denial of service attack. Clients that have become
+known to the system (through "registering" their connection) are
+allowed to send the SERVER command, which is designed for server-to-
+server communication only. This allows normal clients to "introduce"
+servers to the network. This raises the number of servers listed in
+/links, and everywhere else a link count is shown. The "introduced"
+server is then propragrated across the network. Using some clever
+trickery, a malicious user could flood the entire network by
+"introducing" bad servers. However, linking is currently in an
+experimental state, and therefore only testers actually use linking.
+In a one server situation, the threat is small. An attacker could
+increase the number of links to 2^32 (4 million), which could possibly
+cause a buffer overrun if the exception catcher does not catch it.
+
+(How To Exploit)______________________________________________________
+Connect to a server, register your connection, and send a server
+command as if you were registering as a server. The transaction looks
+like this:
+
+NICK Ziggy
+USER Ziggy "ignition-project.com" "localhost" :Keith Gable
+SERVER <random-string> 1 :Denial of Service
+
+<random-string> is any string of characters, beginning with a letter,
+and containing at least one period/dot (.). Examples of strings that
+are legal are:
+
+as.df
+a5611436.
+mysite.com
+
+The server will not allow servers to identify themselves twice, so
+there needs to be some randomness.
+
+(Vulnerable Code)_____________________________________________________
+To get the vulnerable code, checkout both sides of the release from
+the SourceForge CVS repository. Instructions for this varies by
+operating system, however, the basic information is as follows:
+
+Server: cvs.sourceforge.net
+Username: anonymous
+Password: (none)
+Repository Location: /cvsroot/ignition
+Module name: ignitionserver
+
+The tag names are RELEASE_0_2_3 and RELEASE_0_3_1. Use a "diff"
+program for your particular operating system to see the code needed
+to fix it.
+
+(References)__________________________________________________________
+http://sourceforge.net/tracker/index.php?func=detail&aid=977296&group_id=96071&atid=613526

@@ -1,0 +1,413 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ignitionserver>
+<!--
+ignitionServer 0.3.4 Server Configuration
+=========================================
+
+This XML file contains all of the settings
+required for ignitionServer to properly
+function. Using comments, we attempt to
+completely document what each line changes
+and what each line does, so PLEASE read the
+comments!
+
+Comments may span multiple lines, be on the
+same line, etc. All comments are enclosed
+with characters like this comment block is.
+It shouldn't be too hard to figure out :).
+
+P.S. DON'T FORGET! Remove the <die /> line,
+or else your server will say it's misconfigured!
+-->
+   <core>
+      <!--
+      ignitionServer Core Settings
+      ============================
+      
+      This section sets all of the core server settings, like
+      server address, server name, server description, server
+      location, and server administrator information.
+      
+      NOTES:
+      Server address must be one word, and can only contain
+      letters that domains can contain (A-Z, a-z, 0-9, dash [-],
+      and dot [.]). It must begin with a letter or number. For
+      best results, server address should be a resolvable hostname,
+      but it's not necessarily required.
+      -->
+      <serveraddress>localhost</serveraddress>
+      <servername>ignitionServer Test Server</servername>
+      <serverlocation>Oklahoma, US</serverlocation>
+      <serverdescription>IRCXpro - $300. Exchange - $1500. ignitionServer - Priceless.</serverdescription>
+      
+      <administrator location="Some Location, Earth" name="Your Name Here" email="admin@yoursite.com" />
+      <!--
+      /restart and /die passwords
+      If password encrpytion is enabled, they are encrypted.
+      
+      defaults:
+      /restart: restart
+      /die: die
+      -->
+      <restartpass>8a7ef1c3e82395341b7000b79c239eb4</restartpass>
+      <diepass>81b63b9d54b303edeaf9765a6915ee13</diepass>
+   </core>
+   <ports>
+      <!--
+      ignitionServer Port Setup
+      =========================
+      
+      This section defines what ports and
+      adapters that ignitionServer listens on for
+      connections. It also allows you to set
+      various options on the port. Currently,
+      there are no supported options, however we
+      intend on adding them.
+      
+      Description of Fields:
+      adapter: IP address of the adapter to bind to. can be retreived with ipconfig /all (NT/2000/XP) or winipcfg (95/98/Me)
+      port: port on the adapter to bind to. must not be already bound to, by ignitionServer or another process
+      options (optional): comma-delimted list of options for the port. no options are currently supported, however we plan on supporting
+               the following options:
+               auth - require IRCX authentication on this port
+               auth="AuthType;AuthType;AuthType" - require IRCX authentication, and only allow the authentication methods specified in quotes (seperated by a semicolon)
+               ssl - use SSL encryption on this port
+               serveronly - clients will be killed if they attempt to register as a client and not a server
+               motd="file.motd" - specify a special MOTD for this port
+      Note: options are currently NOT supported!
+      -->
+      <port adapter="*" port="6667" />
+   </ports>   
+   <security>
+      <!--
+      ignitionServer Security Settings
+      ================================
+      
+      This section contains all of the security-related settings,
+      including the advanced security settings. The defaults will
+      usually be fine, but you'll probably want to double-check the
+      settings here first.
+      -->
+      
+      <!-- in all of the following, 0 means "infinite" (which really means 4,294,967,296) -->
+      <!-- Use infinite with extreme caution! Setting the maximum nickname length to infinite will allow Denial of Service attacks! -->
+      <maxconnections>1024</maxconnections>  <!-- total number of connections the server can handle -->
+      <maxclones>5</maxclones>               <!-- maximum number of connections from a particular IP address -->
+      <maxchansperuser>10</maxchansperuser>  <!-- maximum number of channels a user can be in -->
+      <nicklen>32</nicklen>                  <!-- maximum length of a nickname -->
+      <topiclen>150</topiclen>               <!-- maximum length of a channel's topic -->
+      <kicklen>150</kicklen>                 <!-- maximum length of a kick message -->
+      <partlen>150</partlen>                 <!-- maximum length of a part message -->
+      <keylen>32</keylen>                    <!-- maximum length of a host/owner/member key -->
+      <quitlen>150</quitlen>                 <!-- maximum length of a quit message -->
+      <wholen>200</wholen>                   <!-- maximum number of users to return in a /who -->
+      <maxlistlen>0</maxlistlen>             <!-- maximum number of channels to return in a /list or /listx -->
+      <maxmessagequeue>0</maxmessagequeue>   <!-- maximum number of messages in a user's queue - in a large network, set this to about 20 for adequate flood protection -->
+      <!-- in the following settings, 0 does NOT mean "infinite" -->
+      <!--
+      passcrypt: set the password encryption type
+                 Currently, the only supported password encryption is MD5 (casing does not matter).
+      -->
+      <passcrypt>md5</passcrypt>
+      <hostmasking>
+         <!--
+         ignitionServer Hostmasking Settings
+         ===================================
+         
+         hostmaskmode: set how to mask hostnames
+                       Currently, the following options are valid:
+                       none - do not mask hostnames
+                       md5 - mask hostnames with the MD5 sum of the hostname
+                       host - custom hostname masking
+         hostmaskhost: set the hostname mask for use when hostmaskmode is host
+                       The user's signon nickname is appended to the hostname with a dot.
+                       Example: nickname.hostname
+         -->
+         <hostmaskmode>md5</hostmaskmode>
+         <hostmaskhost>users.yoursite.com</hostmaskhost>
+      </hostmasking>
+      <operprot>
+         <!--
+         ignitionServer Operator Protection Settings
+         ===========================================
+         
+         This section sets what level an oper gets in
+         a channel when he/she is +P or +p. Both options
+         take the same kind of values, and the following
+         values are valid:
+         
+         owner - give this operator protection level owner access when they join channels
+         host - give this operator protection level host access when they join channels
+         voice - give this operator protection level voice when they join channels
+         normal - give this operator protection level normal access to channels
+         -->
+         
+         <!-- highprot = +P -->
+         <highprot>owner</highprot>
+         <!-- lowprot = +p -->
+         <lowprot>host</lowprot>
+      </operprot>
+   </security>
+   <connections>
+      <!--
+      ignitionServer Connection Access Control
+      ========================================
+      
+      This section controls what clients get assigned
+      to what groups, and also allows you to define new
+      groups and filters for these groups.
+      
+      For those of you who are familiar with the old-style
+      configuration, groups are Y: lines and rules are I: lines.
+      -->
+      <groups>
+         <!--
+         ignitionServer Group Settings
+         =============================
+         
+         When setting up your server, it helps to
+         designate certain ranges of IDs for certain
+         purposes.
+         
+         For the purposes of this configuration, we use
+         the following ranges (FYI: more than one user can
+         belong to a group):
+         
+         1-99:    Normal Clients
+         100-199: IRC Operators
+         200-299: Servers
+         300-399: Services
+         
+         You are encouraged to come up with your own naming convention,
+         but the names MUST be numbers, and cannot be higher than 32767.
+         
+         By the way, IRC Operators must have their own group, for security
+         reasons. The server automatically assigns them to whatever group
+         specified in the <oper /> line, however it must be different from
+         the group they were assigned to previously.
+         
+         Description of Fields:
+         id: any number from 1 to 32767, must be unique
+         ping: the number of seconds between pings when the user is inactive. 0 disables pinging.
+         flood: the number of seconds required between clients "joining" the group. if a client
+                joins faster than this, they are not allowed to connect. 0 disables this feature.
+         maxclients: the maximum number of clients that can belong to this group. 0 means infinite.
+         sendq: the length (in bytes) of the output buffer. this buffer is used whenever the server
+                cannot immediately process a request (it's busy). this buffer is in place because
+                malicious clients could easily bog the server down without it. if a client exceeds
+                their sendq, they are killed and removed from the server.
+         title (optional): gives a name to the group
+         
+         Recommended SendQ Lengths:
+         Normal Clients: 20 RFC 1459 lines (512 bytes): 10240
+         IRC Operators: 30 RFC 1459 lines (512 bytes): 15360
+         Servers: 60 RFC 1459 lines (512 bytes): 30720
+         -->
+         
+         <!-- Default Normal Client Group -->
+         <group id="1" ping="180" flood="0" maxclients="10000" sendq="10240" title="Default Normal Client Group"/>
+         <!-- Default IRC Operator Group -->
+         <group id="100" ping="180" flood="0" maxclients="100" sendq="15360" title="Default IRC Operator Group"/>
+         <!-- Default Server Group -->
+         <group id="200" ping="180" flood="0" maxclients="100000" sendq="30720" title="Default Server Group" />
+      </groups>
+      <rules>
+         <!--
+         ignitionServer Client Assignment Rules
+         ======================================
+         
+         Client assignment rules assign clients to particular
+         groups based on rules. Rules do not "cascade"; you cannot
+         make one rule that allows all users with one password, and
+         then have the same rule with a different password. However,
+         rules are processed in order, and clients are assigned based
+         on the first rule they match. THIS MEANS THAT IF YOU HAVE
+         CUSTOM RULES, YOU MUST PLACE THEM BEFORE THE DEFAULT "ALL"
+         RULE! If you do not do this, all clients will be assigned to
+         the first rule their hosts match, which would be the
+         "everybody" rule.
+         
+         Assignment rules allow you to give certain hosts or IP addresses
+         different groups. For example, you could create a "Netherlands" group,
+         and assign any user whose host is *.nl to it. This group could benefit
+         from a larger sendq, a less frequent ping, and possibly a higher client
+         number. This would be extremely handy if your server was located in the
+         Netherlands. Clients from elsewhere will be slower from clients located
+         in the Netherlands.
+         
+         NOTE: DO NOT MODIFY THE DEFAULT RULE UNLESS YOU UNDERSTAND WHAT YOU
+         ARE DOING! NORMALLY, CHANGING THE DEFAULT RULE IS UNNECESSARY!
+         
+         Description of Fields:
+         ipmask: a mask of the IP address. if you prefer to mask using hostnames, specify
+                 NOMATCH here. if you do not do this, the hostmask will not be matched (this
+                 is for security reasons - it is a lot more powerful to assign using IP addresses,
+                 and we need to be certain you want to use the less-accurate hostmask method [if,
+                 for example, you're wanting to require a password from everyone except for 192.168.0.*]).
+                 wildcards * and ? are allowed.
+         hostmask: a mask of the hostname. will only be used if ipmask is NOMATCH. wildcards * and ? are allowed.
+         password (optional): password required to log in if a user matches this rule. servers must not have a
+                              rule password and a link password (you need to create a new rule for them if the
+                              server would match a rule that requires a password). if encryption is enabled,
+                              the password is encrypted.
+         group: group to assign the user to. must exist as a <group /> above.
+         title (optional): gives a name to the rule
+         -->
+         <rule ipmask="*" hostmask="*" password="" group="1" title="Default Normal Client Rule" />
+      </rules>
+   </connections>
+   <opers>
+      <!--
+      ignitionServer Operator Settings
+      ================================
+      
+      NEW INSTALLATIONS: PASS IS "admin"
+      
+      Use included PassCrypt to generate passwords or log on to your server
+      and type /passcrypt MD5 password (replace password with your password)
+      
+      NOTE: Encrypted passwords only encrypt the passwords on disk - /oper'ing
+      is still the same (/oper user pass).. And when opering, you do NOT use
+      the encrypted password (in the default case, you'd still go
+      /oper admin admin).
+      
+      DO NOT FORGET! CHANGE THE DEFAULT PASSWORD FROM "admin" TO SOMETHING
+      ELSE! YOUR SERVER **WILL** BE COMPROMISED IF YOU FAIL TO DO THIS!
+
+      NEW! You don't have to include a lot of modes now! Here's the simplified
+      list:
+         N - Network Administrator (NOocekbBKCRDWH)
+         O - Global Operator (OocekbBKCW)
+         o - Local Operator (ocekbB)
+
+      In addition, you may want to add the following modes:
+         s - Gets Server Messages (good idea)
+         w - Gets Wallops (good idea)
+         P - Is High Protected (see X:HIGHPROT)
+         p - Is Low Protected (see X:LOWPROT)
+
+      The following modes may or may not be automatically given to a specific
+      oper level (for security reasons), but are given automatically to some
+      oper levels:
+         W - Can send WallOps (automatic for global oper and netadmin, unless
+             mode expansion is off [then it's netadmin only])
+         H - Can /chghost and /chgnick (automatic for netadmin)
+
+      Of course, you can always stick with the old long list of modes, if you
+      like (or if you want to customize a particular user's privledges). To do
+      this, prefix the list of modes with a dash (-). For example, to make a
+      user a local operator only, their <oper /> line might look like this:
+         <oper user="username" password="password" hostmask="*" flags="-o" group="100" />.
+      The - simply tells ignitionServer to switch off mode expansion.
+
+      Please note: NetAdmin gets access to some really powerful commands, so
+      do NOT just copy and paste the default modes from the default O: line
+      for the rest of your opers!
+      -->
+      <oper user="admin" password="21232f297a57a5a743894a0e4a801fc3" hostmask="*@localhost" flags="NPs" group="100" />
+   </opers>
+   <vhosts>
+      <!--
+      ignitionServer Virtual Host Settings
+      ====================================
+      
+      Virtual Hosts allow users to log in and use
+      a "virtual host". Their hostname will appear
+      to everyone as this virtual host. This prevents
+      script kiddie denial of service attacks and
+      also could allow for you to group users and IRC
+      operators (i.e. nick.operators.my-network).
+      
+      If the AutoVHost option is true, IRC operators
+      will get a VHost automatically set on them if
+      their hostname, user, and password match a
+      VHost.
+      
+      Users can "login" and receive a virtual host
+      by typing /vhost username password.
+      
+      If password encryption is enabled, the password
+      is encrypted.
+      -->
+      <vhost user="admin" password="21232f297a57a5a743894a0e4a801fc3" hostmask="*@localhost" vhost="admin.localhost" />
+   </vhosts>
+   <bannednicks>
+      <!--
+      ignitionServer Banned Nicknames (Quarantines)
+      =============================================
+      
+      This section allows you to ban certain nicknames
+      from being used. Wildcards * and ? are allowed.
+      Only local clients/nicknames can be banned.
+      
+      Description of Fields:
+      nick: the nickname/nickname mask that is disallowed
+      reason: the reason to display to the client
+      action (optional): either warn or kill. the default action is
+                         warn - a standard erroneous nickname message
+                         is sent, and the user is expected to change
+                         the nickname. if the action is set to kill,
+                         the user is killed by the server (useful for
+                         clonebots that keep joining your server)
+      -->
+      <!-- standard services -->
+      <bannednick nick="ChanServ" reason="Reserved for services" />
+      <bannednick nick="NickServ" reason="Reserved for services" />
+      <bannednick nick="MemoServ" reason="Reserved for services" />
+      <bannednick nick="OperServ" reason="Reserved for services" />
+      <bannednick nick="HelpServ" reason="Reserved for services" />
+      <!-- undernet and other networks use X and Q for services -->
+      <bannednick nick="X" reason="Reserved for services" />
+      <bannednick nick="Q" reason="Reserved for services" />
+      <!-- common IRC operator nicknames -->
+      <bannednick nick="DALnet*" reason="Reserved for IRC Operators" />
+      <bannednick nick="IRCop*" reason="Reserved for IRC Operators" />
+      <bannednick nick="Sysop*" reason="Reserved for IRC Operators" />
+      <bannednick nick="Admin*" reason="Reserved for IRC Operators" />
+      <bannednick nick="HelpOp*" reason="Reserved for IRC Operators" />
+      <!-- example of the kill action -->
+      <bannednick nick="localhost" reason="You are not localhost" action="kill" />
+   </bannednicks>
+   <klines>
+      <!--
+      ignitionServer Kill Lines
+      =========================
+      
+      Kill lines automatically kill a user when they register as a user (and not before).
+      This can be used to ban pesky bots, or annoying users. Kill lines are different
+      from the command /kline in that kill lines are permanent (until removed from this file).
+      Bans added with /kline exist only while the server is running, and are forgotten when
+      the server is rehashed or restarted.
+      
+      Description of Fields:
+      hostmask: a mask of the host to kill
+      message: the message to kill the user with
+      identmask: a mask of the ident of the user -- for example, you could kline a user with
+                 an ident matching that of a known clonebot.
+                 
+      Examples:
+      <kline hostmask="*aol.com" message="Use your free minutes elsewhere!" identmask="*" /> - ban AOL
+      <kline hostmask="*" message="You are a clone bot." identmask="1337*BOT*" /> - ban any user with an ident matching 1337*BOT*
+      <kline hostmask="*" message="Go away." identmask="*" /> - bans everybody
+      -->
+   </klines>
+   <zlines>
+      <!--
+      ignitionServer IP Bans
+      ======================
+      
+      IP bans are less powerful than kill lines, however IP bans are triggered when the user connects.
+      Kill lines only kill users when they have become known as users to the server. IP bans
+      also require less server power to enforce.
+      
+      Description of Fields:
+      ipmask: a mask of the IP address
+      message: the message to show to the user
+      
+      Examples:
+      <zline ipmask="12.*" message="We don't like your ISP" /> - bans AT&T
+      <zline ipmask="192.168.*" message="Don't connect via my LAN address" /> - bans your home network and tells them to connect to another address
+      <zline ipmask="*" message="Go away." /> - bans everybody on connection
+      -->
+   </zlines>
+</ignitionserver>

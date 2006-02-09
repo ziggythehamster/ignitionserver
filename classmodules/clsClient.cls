@@ -28,7 +28,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsClient.cls,v 1.17 2004/07/20 22:11:42 ziggythehamster Exp $
+' $Id: clsClient.cls,v 1.19 2004/08/08 03:11:01 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -144,10 +144,26 @@ For I = 1 To OnChannels.Count
   End If
 Next I
 End Function
-Public Function GetOnChans1459() As String
+Public Function GetOnChans1459(Optional UseCheckClient As Boolean = False, Optional UserNick As String) As String
 Dim Chan As clsChannel, x&
 Dim I&
 For I = 1 To OnChannels.Count
+    If UseCheckClient Then
+      If Len(UserNick) > 0 Then
+        'if the channel is hidden/secret, don't show the channel
+        If (OnChannels.Item(I).IsSecret) Or (OnChannels.Item(I).IsPrivate) Then
+          If OnChannels.Item(I).GetUser(UserNick) Is Nothing Then
+            GoTo NextChannel
+          End If
+        End If
+        'if this user is invisible, don't show the channel
+        If IsInvisible Then
+          If OnChannels.Item(I).GetUser(UserNick) Is Nothing Then
+            GoTo NextChannel
+          End If
+        End If
+      End If
+    End If
     With OnChannels.Item(I).Member.Item(Nick)
         If .IsOwner Then
             GetOnChans1459 = GetOnChans1459 & "@" & OnChannels.Item(I).Name & " "
@@ -159,31 +175,49 @@ For I = 1 To OnChannels.Count
             GetOnChans1459 = GetOnChans1459 & OnChannels.Item(I).Name & " "
         End If
     End With
+NextChannel:
 Next I
 GetOnChans1459 = Trim$(GetOnChans1459)
 End Function
-Public Function GetOnChans() As String
+Public Function GetOnChans(Optional UseCheckClient As Boolean = False, Optional UserNick As String) As String
 Dim Chan As clsChannel, x&
 Dim I&
 For I = 1 To OnChannels.Count
+    If UseCheckClient Then
+      If Len(UserNick) > 0 Then
+        'if the channel is hidden/secret, don't show the channel
+        If (OnChannels.Item(I).IsSecret) Or (OnChannels.Item(I).IsPrivate) Then
+          If OnChannels.Item(I).GetUser(UserNick) Is Nothing Then
+            GoTo NextChannel
+          End If
+        End If
+        'if this user is invisible, don't show the channel
+        If IsInvisible Then
+          If OnChannels.Item(I).GetUser(UserNick) Is Nothing Then
+            GoTo NextChannel
+          End If
+        End If
+      End If
+    End If
     With OnChannels.Item(I).Member.Item(Nick)
         If .IsOwner Then
             GetOnChans = GetOnChans & "." & OnChannels.Item(I).Name & " "
         ElseIf .IsOp Then
             GetOnChans = GetOnChans & "@" & OnChannels.Item(I).Name & " "
-        'ElseIf .IsHOp Then 'HalfOp seems to be an unwriten standard in IRC now...
-        '    GetOnChans = GetOnChans & "%" & OnChannels.Item(i).Name & " "
         ElseIf .IsVoice Then
             GetOnChans = GetOnChans & "+" & OnChannels.Item(I).Name & " "
         Else
             GetOnChans = GetOnChans & OnChannels.Item(I).Name & " "
         End If
     End With
+NextChannel:
 Next I
 GetOnChans = Trim$(GetOnChans)
 End Function
 
 Public Function GetWhois(Nickname$) As String
+Dim tmpNick As String
+On Error GoTo GetWhoisError
 GetWhois = SPrefix & " " & RPL_WHOISUSER & " " & Nickname & " " & Nick & " " & User & " " & Host & " * :" & Name & vbCrLf
 If WhoisAccessLevel >= 3 Or Nickname = Nick Then
   Dim tmpIP As String
@@ -199,11 +233,13 @@ If IsRegistered Then GetWhois = GetWhois & SPrefix & " 307 " & Nickname & " " & 
 If IsNetAdmin Then '-zg [this was rearranged because of the presence of the 308 raw]
   GetWhois = GetWhois & SPrefix & " 308 " & Nickname & " " & Nick & " :is a network administrator" & vbCrLf '-zg
 End If
-If OnChannels.Count > 0 Then
+If (Len(Trim$(GetOnChans(True, Nickname))) > 0) Or WhoisAccessLevel >= 3 Then
+  tmpNick = Nickname
+  If WhoisAccessLevel >= 3 Then tmpNick = vbNullString
   If WhoisIRCX Then
-    GetWhois = GetWhois & SPrefix & " 319 " & Nickname & " " & Nick & " :" & GetOnChans & vbCrLf
+    GetWhois = GetWhois & SPrefix & " 319 " & Nickname & " " & Nick & " :" & GetOnChans(True, tmpNick) & vbCrLf
   Else
-    GetWhois = GetWhois & SPrefix & " 319 " & Nickname & " " & Nick & " :" & GetOnChans1459 & vbCrLf
+    GetWhois = GetWhois & SPrefix & " 319 " & Nickname & " " & Nick & " :" & GetOnChans1459(True, tmpNick) & vbCrLf
   End If
 End If
 If Len(AwayMsg) > 0 Then GetWhois = GetWhois & SPrefix & " 301 " & Nickname & " " & Nick & " :" & AwayMsg & vbCrLf
@@ -219,6 +255,10 @@ ElseIf IsLocOperator Then
 End If
 If Idle > 0 Then GetWhois = GetWhois & SPrefix & " 317 " & Nickname & " " & Nick & " " & (UnixTime - Idle) & " " & SignOn & " :seconds idle, signon time"
 WhoisAccessLevel = 0
+Exit Function
+
+GetWhoisError:
+ErrorMsg "Error " & err.Number & " (" & err.Description & ") in 'clsClient.GetWhois'"
 End Function
 Private Sub Class_Initialize()
 Set OnChannels = New clsOnChannels

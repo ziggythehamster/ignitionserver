@@ -1,0 +1,58 @@
+[ THE IGNITION PROJECT SECURITY BULLETIN ]----------------------------
+This is a security bulletin from The Ignition Project, a group of open
+source developers. It describes a flaw in one of our products, if
+fixes are avaliable, how to fix the issue, and what exactly went
+"wrong" that allows this security issue to occur.
+
+(Product Information)_________________________________________________
+Vendor:   The Ignition Project <http://www.ignition-project.com/>
+Product:  ignitionServer
+Versions: 0.1.2 to 0.1.2-R2
+
+(Vulnerability Information)___________________________________________
+Vulnerability: Operator Privilege Escalation
+Reported By:   Keith Gable <ziggy@ignition-project.com> (Developer)
+Fix Available: Yes
+How To Fix:    Upgrade to 0.1.2-R2-P1
+URL of Fix:    http://www.ignition-project.com/ignition/server/download/
+Criticality:   Low
+Where:         Remote
+Impact:        Privilege Escalation
+
+(Long Description)____________________________________________________
+A vulnerability has been reported in ignitionServer, which can be
+exploited by certain malicious users to gain escalated privileges.
+
+An unofficial command reportedly allows operators to manipulate their
+mode. This can be exploited by local IRC operators to escalate their
+privileges to those of a global IRC operator.
+
+[Source: Secunia]
+
+(How To Exploit)______________________________________________________
+Connect and authenticate as an IRC operator. Then, issue the following
+command:
+
+/umode Your_Nickname +ORD
+
+If this command succeeds (type /mode Your_Nickname to see), you are
+now a global IRC operator, and provided you have the passwords, you
+can now stop and restart the server.
+
+(Vulnerable Code)_____________________________________________________
+Check m_umode. This is probably located in mod_serv.bas in older
+versions of ignitionServer. In newer versions of ignitionServer, it's
+located in m_nonstandard.bas. If you are missing code that looks like
+this:
+
+...
+FiltModes = parv(1)
+FiltModes = Replace(FiltModes, "R", "") 'disallow restart
+FiltModes = Replace(FiltModes, "D", "") 'disallow die
+...
+
+You are vulnerable.
+
+(References)__________________________________________________________
+http://secunia.com/advisories/11017/
+http://sourceforge.net/tracker/index.php?func=detail&aid=891555&group_id=96071&atid=613526

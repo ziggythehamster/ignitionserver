@@ -1,0 +1,34 @@
+[ THE IGNITION PROJECT SECURITY BULLETIN ]----------------------------
+This is a security bulletin from The Ignition Project, a group of open
+source developers. It describes a flaw in one of our products, if
+fixes are avaliable, how to fix the issue, and what exactly went
+"wrong" that allows this security issue to occur.
+
+(Product Information)_________________________________________________
+Vendor:   The Ignition Project <http://www.ignition-project.com/>
+Product:  ignitionServer
+Versions: 0.0.0 to 0.0.0
+
+(Vulnerability Information)___________________________________________
+Vulnerability: Problem Name
+Reported By:   Name <user@host.com>
+Fix Available: Yes
+How To Fix:    Upgrade to 0.0.0-P0
+URL of Fix:    http://www.site.com/
+Criticality:   Extreme | High | Moderate | Low | Not Critical
+Where:         Remote | Local Network | Local System
+Impact:        System Access | DoS | Privilege Escalation | Sensitive Info. Exposure | System Info. Exposure | Brute Force | Data Manipulation | Spoofing | Cross Site Scripting | Security Bypass | Hijacking | Other
+
+(Long Description)____________________________________________________
+Long description of what exactly is wrong, what's happening, what
+security measures are being broken, etc.
+
+(How To Exploit)______________________________________________________
+Code or instructions that exploit the issue at hand.
+
+(Vulnerable Code)_____________________________________________________
+Line numbers and locations of the vulnerable code, or if the block is
+small enough, the entire broken code.
+
+(References)__________________________________________________________
+Links to SourceForge bugs, tasks, forum posts, list posts, etc.

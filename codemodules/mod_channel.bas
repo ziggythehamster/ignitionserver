@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_channel"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_channel.bas,v 1.53 2004/07/21 06:56:52 ziggythehamster Exp $
+' $Id: mod_channel.bas,v 1.65 2004/08/08 03:45:28 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -871,6 +871,13 @@ Dim WasHidden         As Boolean 'was a hidden room
 Dim UnsetPrivate      As Boolean 'unset +p
 Dim UnsetSecret       As Boolean 'unset +s
 Dim UnsetHidden       As Boolean 'unset +h
+Dim ShowAudStuff      As Boolean 'to fix a stupid VB bug :\
+Dim ShowAudStuffClnt  As clsClient
+Dim HideAudStuff      As Boolean 'again, fixing a VB bug :\
+Dim HideAudStuffClnt  As clsClient
+
+Set ShowAudStuffClnt = New clsClient
+Set HideAudStuffClnt = New clsClient
 
 parc = UBound(parv)
 Dim TargetClient As clsClient
@@ -910,9 +917,13 @@ If cptr.AccessLevel = 4 Then
                     If MSwitch Then
                         With Chan.Member.Item(parv(Inc))
                             If Not .IsOwner Then
-                                .IsOwner = True
-                                'TODO: replace parv(Inc) here with their full mask
                                 Set TargetClient = GlobUsers.Item(parv(Inc))
+                                'the following line notifies the clients in an auditorium that this person exists
+                                If Chan.IsAuditorium And Not ((.IsOwner) Or (.IsOp)) Then SendToChanNotOps Chan, TargetClient.Prefix & " JOIN :" & Chan.Name, 0
+                                If Chan.IsAuditorium And Not ((.IsOwner) Or (.IsOp)) Then SendToChanNotOps1459 Chan, TargetClient.Prefix & " MODE " & Chan.Name & " +o " & TargetClient.Nick, 0
+                                If Chan.IsAuditorium And Not ((.IsOwner) Or (.IsOp)) Then SendToChanNotOpsIRCX Chan, TargetClient.Prefix & " MODE " & Chan.Name & " +q " & TargetClient.Nick, 0
+                                
+                                .IsOwner = True
                                 If Not TargetClient Is Nothing Then GenerateEvent "MEMBER", "MODE", Replace(TargetClient.Prefix, ":", ""), Chan.Name & " " & Replace(TargetClient.Prefix, ":", "") & " +q " & Replace(sptr.Prefix, ":", "")
                                 Set TargetClient = Nothing
                             End If
@@ -922,6 +933,8 @@ If cptr.AccessLevel = 4 Then
                             If .IsOwner Then
                                 .IsOwner = False
                                 Set TargetClient = GlobUsers.Item(parv(Inc))
+                                'the following line notifies the clients in an auditorium that this person exists
+                                If Chan.IsAuditorium And Not ((.IsOwner) Or (.IsOp)) Then SendToChanNotOps Chan, TargetClient.Prefix & " PART " & Chan.Name, 0
                                 If Not TargetClient Is Nothing Then GenerateEvent "MEMBER", "MODE", Replace(TargetClient.Prefix, ":", ""), Chan.Name & " " & Replace(TargetClient.Prefix, ":", "") & " -q " & Replace(sptr.Prefix, ":", "")
                                 Set TargetClient = Nothing
                             End If
@@ -934,8 +947,12 @@ If cptr.AccessLevel = 4 Then
                     If MSwitch Then
                         With Chan.Member.Item(parv(Inc))
                             If Not .IsOp Then
-                                .IsOp = True
                                 Set TargetClient = GlobUsers.Item(parv(Inc))
+                                'the following line notifies the clients in an auditorium that this person exists
+                                If Chan.IsAuditorium And Not ((.IsOwner) Or (.IsOp)) Then SendToChanNotOps Chan, TargetClient.Prefix & " JOIN :" & Chan.Name, 0
+                                If Chan.IsAuditorium And Not ((.IsOwner) Or (.IsOp)) Then SendToChanNotOps Chan, TargetClient.Prefix & " MODE " & Chan.Name & " +o " & TargetClient.Nick, 0
+                                
+                                .IsOp = True
                                 If Not TargetClient Is Nothing Then GenerateEvent "MEMBER", "MODE", Replace(TargetClient.Prefix, ":", ""), Chan.Name & " " & Replace(TargetClient.Prefix, ":", "") & " +o " & Replace(sptr.Prefix, ":", "")
                                 Set TargetClient = Nothing
                             End If
@@ -945,7 +962,9 @@ If cptr.AccessLevel = 4 Then
                             If .IsOp Then
                                 .IsOp = False
                                 Set TargetClient = GlobUsers.Item(parv(Inc))
-                                If Not TargetClient Is Nothing Then GenerateEvent "MEMBER", "MODE", Replace(TargetClient.Prefix, ":", ""), Chan.Name & " " & Replace(TargetClient.Prefix, ":", "") & " -o " & Replace(sptr.Prefix, ":", "")
+                                'the following line notifies the clients in an auditorium that this person exists
+                                If Chan.IsAuditorium And Not ((.IsOwner) Or (.IsOp)) Then SendToChanNotOps Chan, TargetClient.Prefix & " PART " & Chan.Name, 0
+                                If Not TargetClient Is Nothing Then GenerateEvent "MEMBER", "MODE", Replace(TargetClient.Prefix, ":", ""), Chan.Name & " " & Replace(TargetClient.Prefix, ":", "") & " -q " & Replace(sptr.Prefix, ":", "")
                                 Set TargetClient = Nothing
                             End If
                         End With
@@ -1087,11 +1106,26 @@ If cptr.AccessLevel = 4 Then
                 Case cmKnock
                     Chan.IsKnock = MSwitch
                     NM = NM & "u"
+                Case cmAuditorium
+                    Chan.IsAuditorium = MSwitch
+                    NM = NM & "x"
+                Case cmClone
+                    Chan.IsClone = MSwitch
+                    NM = NM & "e"
+                Case cmCloneable
+                    Chan.IsCloneable = MSwitch
+                    NM = NM & "d"
             End Select
         Next I
         MU = LTrim$(MU)
-        SendToChanIRCX Chan, ":" & op & " MODE " & Chan.Name & " " & NM & " " & MU, vbNullString
-        SendToChan1459 Chan, ":" & op & " MODE " & Chan.Name & " " & Replace(NM, "q", "o") & " " & MU, vbNullString
+        If Chan.IsAuditorium Then
+          'the users in the channel need not know about this :)
+          SendToChanOpsIRCX Chan, ":" & op & " MODE " & Chan.Name & " " & NM & " " & MU, vbNullString
+          SendToChanOps1459 Chan, ":" & op & " MODE " & Chan.Name & " " & Replace(NM, "q", "o") & " " & MU, vbNullString
+        Else
+          SendToChanIRCX Chan, ":" & op & " MODE " & Chan.Name & " " & NM & " " & MU, vbNullString
+          SendToChan1459 Chan, ":" & op & " MODE " & Chan.Name & " " & Replace(NM, "q", "o") & " " & MU, vbNullString
+        End If
         SendToServer_ButOne "MODE " & Chan.Name & " " & NM & " " & MU, cptr.ServerName, op_nohost
         GenerateEvent "CHANNEL", "MODE", Chan.Name, Chan.Name & " " & NM & " " & op
     Else
@@ -1241,8 +1275,10 @@ CheckParam:
                     Select Case MSwitch
                       Case True
                         GenerateEvent "MEMBER", "MODE", Replace(TargetUser.Prefix, ":", ""), Chan.Name & " " & Replace(TargetUser.Prefix, ":", "") & " +v " & Replace(cptr.Prefix, ":", "")
+                        If Chan.IsAuditorium And Not ((Chan.Member.Item(TargetUser.Nick).IsOwner) Or (Chan.Member.Item(TargetUser.Nick).IsOp)) Then SendWsock TargetUser.index, "MODE", Chan.Name & " +v " & TargetUser.Nick, cptr.Prefix
                       Case False
                         GenerateEvent "MEMBER", "MODE", Replace(TargetUser.Prefix, ":", ""), Chan.Name & " " & Replace(TargetUser.Prefix, ":", "") & " -v " & Replace(cptr.Prefix, ":", "")
+                        If Chan.IsAuditorium And Not ((Chan.Member.Item(TargetUser.Nick).IsOwner) Or (Chan.Member.Item(TargetUser.Nick).IsOp)) Then SendWsock TargetUser.index, "MODE", Chan.Name & " -v " & TargetUser.Nick, cptr.Prefix
                     End Select
                   End If
                   Chan.Member.Item(TargetUser.Nick).IsVoice = MSwitch
@@ -1270,12 +1306,41 @@ CheckParam:
                     Select Case MSwitch
                       Case True
                         GenerateEvent "MEMBER", "MODE", Replace(TargetUser.Prefix, ":", ""), Chan.Name & " " & Replace(TargetUser.Prefix, ":", "") & " +o " & Replace(cptr.Prefix, ":", "")
+                        'the following line notifies the clients in an auditorium that this person exists
+                        If Chan.IsAuditorium And Not ((Chan.Member.Item(TargetUser.Nick).IsOwner) Or (Chan.Member.Item(TargetUser.Nick).IsOp)) Then SendToChanNotOps Chan, TargetUser.Prefix & " JOIN :" & Chan.Name, TargetUser.Nick
+                        If Chan.IsAuditorium And Not (Chan.Member.Item(TargetUser.Nick).IsOp) Then
+                          If Not (Chan.Member.Item(TargetUser.Nick).IsOwner) Then
+                            'don't tell the TargetUser about it if they're not an owner
+                            'they'll get told later
+                            SendToChanNotOps Chan, cptr.Prefix & " MODE " & Chan.Name & " +o " & TargetUser.Nick, TargetUser.Nick
+                            ShowAudStuff = True
+                            Set ShowAudStuffClnt = TargetUser
+                          Else
+                            SendToChanNotOps Chan, cptr.Prefix & " MODE " & Chan.Name & " +o " & TargetUser.Nick, 0
+                          End If
+                        End If
                       Case False
                         GenerateEvent "MEMBER", "MODE", Replace(TargetUser.Prefix, ":", ""), Chan.Name & " " & Replace(TargetUser.Prefix, ":", "") & " -o " & Replace(cptr.Prefix, ":", "")
+                        'in an auditorium, if the user is no longer +q/+o, they "leave"
+                        'tell the people the person was just -o'ed
+                        If Chan.IsAuditorium And (Chan.Member.Item(TargetUser.Nick).IsOp) Then SendToChanNotOps Chan, cptr.Prefix & " MODE " & Chan.Name & " -o " & TargetUser.Nick, 0
                     End Select
                   End If
                   Chan.Member.Item(TargetUser.Nick).IsOp = MSwitch
                   NewModes = NewModes & "o"
+                  
+                  'the following line is used to tell the person they've been deopped
+                  'in case they won't see the message
+                  If Chan.IsAuditorium And Not ((Chan.Member.Item(TargetUser.Nick).IsOwner) Or (Chan.Member.Item(TargetUser.Nick).IsOp)) Then SendWsock TargetUser.index, "MODE", Chan.Name & " -o " & TargetUser.Nick, cptr.Prefix
+                  'tell the user the gig is up!
+                  If Chan.IsAuditorium And Not ((Chan.Member.Item(TargetUser.Nick).IsOwner) Or (Chan.Member.Item(TargetUser.Nick).IsOp)) Then SendToChanNotOps Chan, TargetUser.Prefix & " PART " & Chan.Name, TargetUser.Nick
+                  
+                  'hide the clients
+                  If Chan.IsAuditorium And Not ((Chan.Member.Item(TargetUser.Nick).IsOwner) Or (Chan.Member.Item(TargetUser.Nick).IsOp)) Then
+                    HideAudStuff = True
+                    Set HideAudStuffClnt = TargetUser
+                  End If
+                  
                   If Len(NewModesExtra) > 0 Then
                     NewModesExtra = NewModesExtra & " " & TargetUser.Nick
                   Else
@@ -1296,15 +1361,76 @@ CheckParam:
                     SendWsock cptr.index, ERR_USERNOTINCHANNEL & " " & cptr.Nick, TranslateCode(ERR_USERNOTINCHANNEL, parv(CurParam), Chan.Name)
                     GoTo NextMode
                   Else
+                    #If Debugging = 1 Then
+                      SendSvrMsg "m_mode -> owner -> processing"
+                    #End If
                     Select Case MSwitch
                       Case True
+                        #If Debugging = 1 Then
+                          SendSvrMsg "m_mode -> owner -> +q, sending event"
+                        #End If
                         GenerateEvent "MEMBER", "MODE", Replace(TargetUser.Prefix, ":", ""), Chan.Name & " " & Replace(TargetUser.Prefix, ":", "") & " +q " & Replace(cptr.Prefix, ":", "")
+                        #If Debugging = 1 Then
+                          SendSvrMsg "m_mode -> owner -> +q, auditorium, sending join"
+                        #End If
+                        If Chan.IsAuditorium And Not ((Chan.Member.Item(TargetUser.Nick).IsOwner) Or (Chan.Member.Item(TargetUser.Nick).IsOp)) Then SendToChanNotOps Chan, TargetUser.Prefix & " JOIN :" & Chan.Name, TargetUser.Nick
+                        #If Debugging = 1 Then
+                          SendSvrMsg "m_mode -> owner -> +q, auditorium, choosing +o/+q"
+                        #End If
+                        If Chan.IsAuditorium And Not (Chan.Member.Item(TargetUser.Nick).IsOwner) Then
+                          If Not (Chan.Member.Item(TargetUser.Nick).IsOp) Then
+                            'don't tell the TargetUser about it if they're not a host
+                            'they'll get told later
+                            #If Debugging = 1 Then
+                              SendSvrMsg "m_mode -> owner -> +q, auditorium, sending +o/+q excl. user"
+                            #End If
+                            SendToChanNotOps1459 Chan, cptr.Prefix & " MODE " & Chan.Name & " +o " & TargetUser.Nick, TargetUser.Nick
+                            SendToChanNotOpsIRCX Chan, cptr.Prefix & " MODE " & Chan.Name & " +q " & TargetUser.Nick, TargetUser.Nick
+                            #If Debugging = 1 Then
+                              SendSvrMsg "m_mode -> owner -> +q, auditorium, sent excl. user"
+                            #End If
+                            ShowAudStuff = True
+                            #If Debugging = 1 Then
+                              SendSvrMsg "m_mode -> owner -> +q, auditorium, assigned ShowAudStuff"
+                            #End If
+                            Set ShowAudStuffClnt = TargetUser
+                            #If Debugging = 1 Then
+                              SendSvrMsg "m_mode -> owner -> +q, auditorium, assigned ShowAudStuffClnt"
+                            #End If
+                          Else
+                            #If Debugging = 1 Then
+                              SendSvrMsg "m_mode -> owner -> +q, auditorium, choosing +o/+q incl. user"
+                            #End If
+                            SendToChanNotOps1459 Chan, cptr.Prefix & " MODE " & Chan.Name & " +o " & TargetUser.Nick, 0
+                            SendToChanNotOpsIRCX Chan, cptr.Prefix & " MODE " & Chan.Name & " +q " & TargetUser.Nick, 0
+                          End If
+                        End If
                       Case False
+                        #If Debugging = 1 Then
+                          SendSvrMsg "m_mode -> owner -> -q, sending event"
+                        #End If
                         GenerateEvent "MEMBER", "MODE", Replace(TargetUser.Prefix, ":", ""), Chan.Name & " " & Replace(TargetUser.Prefix, ":", "") & " -q " & Replace(cptr.Prefix, ":", "")
+                        If Chan.IsAuditorium And (Chan.Member.Item(TargetUser.Nick).IsOp) Then SendToChanNotOps Chan, cptr.Prefix & " MODE " & Chan.Name & " -q " & TargetUser.Nick, 0
                     End Select
                   End If
+                  #If Debugging = 1 Then
+                    SendSvrMsg "m_mode -> owner -> setting MSwitch"
+                  #End If
                   Chan.Member.Item(TargetUser.Nick).IsOwner = MSwitch
                   NewModes = NewModes & "q"
+                  
+                  'the following line is used to tell the person they've been deopped
+                  'in case they won't see the message
+                  If Chan.IsAuditorium And Not ((Chan.Member.Item(TargetUser.Nick).IsOwner) Or (Chan.Member.Item(TargetUser.Nick).IsOp)) Then SendWsock TargetUser.index, "MODE", Chan.Name & " -q " & TargetUser.Nick, cptr.Prefix
+                  'tell the user the gig is up!
+                  If Chan.IsAuditorium And Not ((Chan.Member.Item(TargetUser.Nick).IsOwner) Or (Chan.Member.Item(TargetUser.Nick).IsOp)) Then SendToChanNotOps Chan, TargetUser.Prefix & " PART " & Chan.Name, TargetUser.Nick
+                  
+                  'hide the clients
+                  If Chan.IsAuditorium And Not ((Chan.Member.Item(TargetUser.Nick).IsOwner) Or (Chan.Member.Item(TargetUser.Nick).IsOp)) Then
+                    HideAudStuff = True
+                    Set HideAudStuffClnt = TargetUser
+                  End If
+                  
                   If Len(NewModesExtra) > 0 Then
                     NewModesExtra = NewModesExtra & " " & TargetUser.Nick
                   Else
@@ -1509,6 +1635,19 @@ CheckParam:
                Else
                   SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
                End If
+            Case cmCloneable
+              If cptr.IsNetAdmin Or cptr.IsGlobOperator Then
+                  If Not Chan.IsClone Then
+                    'not a clone, proceed
+                    Chan.IsCloneable = MSwitch
+                    NewModes = NewModes & "d"
+                  Else
+                    'already a clone, fail
+                    SendWsock cptr.index, ERR_UNKNOWNMODE & " " & cptr.Nick, TranslateCode(ERR_UNKNOWNMODE, "+d", Chan.Name)
+                  End If
+              Else
+                  SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+              End If
             Case cmPersistant
                If RegChanMode_ModeR Then
                   If cptr.IsNetAdmin Or cptr.IsGlobOperator Then
@@ -1701,18 +1840,32 @@ Exit Function
 
 Flush:
 'finish the job :)
+
+'basically, the if auditorium business makes sure that only the clients who can see everyone see the mode change
 If SendHiddenRemove Then
-  SendToChan Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " -h", 0
+  If Chan.IsAuditorium Then
+    SendToChanOps Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " -h", 0
+  Else
+    SendToChan Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " -h", 0
+  End If
   SendToServer "MODE " & Chan.Name & " -h", cptr.Nick
   GenerateEvent "CHANNEL", "MODE", Chan.Name, Chan.Name & " -h " & Replace(cptr.Prefix, ":", "")
 End If
 If SendSecretRemove Then
-  SendToChan Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " -s", 0
+  If Chan.IsAuditorium Then
+    SendToChanOps Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " -s", 0
+  Else
+    SendToChan Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " -s", 0
+  End If
   SendToServer "MODE " & Chan.Name & " -s", cptr.Nick
   GenerateEvent "CHANNEL", "MODE", Chan.Name, Chan.Name & " -s " & Replace(cptr.Prefix, ":", "")
 End If
 If SendPrivateRemove Then
-  SendToChan Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " -p", 0
+  If Chan.IsAuditorium Then
+    SendToChanOps Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " -p", 0
+  Else
+    SendToChan Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " -p", 0
+  End If
   SendToServer "MODE " & Chan.Name & " -p", cptr.Nick
   GenerateEvent "CHANNEL", "MODE", Chan.Name, Chan.Name & " -p " & Replace(cptr.Prefix, ":", "")
 End If
@@ -1767,18 +1920,66 @@ If Len(NewModes) > 1 Then
   
   If x > 0 Then NewModes = Left(NewModes, Len(NewModes) - x)
   If Len(NewModesExtra) > 0 Then
-    SendToChanIRCX Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " " & NewModes & " " & NewModesExtra, 0
-    SendToChan1459 Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " " & Replace(NewModes, "q", "o") & " " & NewModesExtra, 0
+    If Chan.IsAuditorium Then
+      SendToChanOpsIRCX Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " " & NewModes & " " & NewModesExtra, 0
+      SendToChanOps1459 Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " " & Replace(NewModes, "q", "o") & " " & NewModesExtra, 0
+    Else
+      SendToChanIRCX Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " " & NewModes & " " & NewModesExtra, 0
+      SendToChan1459 Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " " & Replace(NewModes, "q", "o") & " " & NewModesExtra, 0
+    End If
     SendToServer "MODE " & Chan.Name & " " & NewModes & " " & NewModesExtra, cptr.Nick
   Else
-    SendToChanIRCX Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " " & NewModes, 0
-    SendToChan1459 Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " " & Replace(NewModes, "q", "o"), 0
+    If Chan.IsAuditorium Then
+      SendToChanOpsIRCX Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " " & NewModes, 0
+      SendToChanOps1459 Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " " & Replace(NewModes, "q", "o"), 0
+    Else
+      SendToChanIRCX Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " " & NewModes, 0
+      SendToChan1459 Chan, ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host & " MODE " & Chan.Name & " " & Replace(NewModes, "q", "o"), 0
+    End If
     SendToServer "MODE " & Chan.Name & " " & NewModes, cptr.Nick
   End If
   GenerateEvent "CHANNEL", "MODE", Chan.Name, Chan.Name & " " & NewModes & " " & Replace(cptr.Prefix, ":", "")
 End If
-End Function
 
+If ShowAudStuff = True Then
+  If Not ShowAudStuffClnt Is Nothing Then
+    AuditoriumShowClients Chan, ShowAudStuffClnt
+  End If
+End If
+If HideAudStuff = True Then
+  If Not HideAudStuffClnt Is Nothing Then
+    AuditoriumHideClients Chan, HideAudStuffClnt
+  End If
+End If
+End Function
+Public Function CopyAccess(source As clsChannel, Destination As clsChannel)
+Dim A As Long
+On Error GoTo CpAcErr
+If source.Bans.Count > 0 Then
+  For A = 1 To source.Bans.Count
+    Destination.Bans.AddX source.Bans(A).Mask, source.Bans(A).SetBy, source.Bans(A).SetOn, source.Bans(A).Duration, source.Bans(A).Reason
+  Next A
+End If
+If source.Voices.Count > 0 Then
+  For A = 1 To source.Voices.Count
+    Destination.Voices.AddX source.Voices(A).Mask, source.Voices(A).SetBy, source.Voices(A).SetOn, source.Voices(A).Duration, source.Voices(A).Reason
+  Next A
+End If
+If source.Hosts.Count > 0 Then
+  For A = 1 To source.Hosts.Count
+    Destination.Hosts.AddX source.Hosts(A).Mask, source.Hosts(A).SetBy, source.Hosts(A).SetOn, source.Hosts(A).Duration, source.Hosts(A).Reason
+  Next A
+End If
+If source.Owners.Count > 0 Then
+  For A = 1 To source.Owners.Count
+    Destination.Owners.AddX source.Owners(A).Mask, source.Owners(A).SetBy, source.Owners(A).SetOn, source.Owners(A).Duration, source.Owners(A).Reason
+  Next A
+End If
+Exit Function
+
+CpAcErr:
+ErrorMsg "Error " & err.Number & " (" & err.Description & ") in 'CopyAccess'"
+End Function
 '/*
 '** m_join
 '**  parv$()[0] = sender prefix
@@ -1878,6 +2079,7 @@ Else
         GoTo NextChan
     End If
     'reordered this
+    'TODO: better error message for this
     If Len(StrCache) < 2 Then 'cant have a "blank" room name -Airwalk
         CurrentInfo = "channel name null"
         SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , , StrCache)
@@ -1889,6 +2091,16 @@ Else
         Exit Function
     End If
     If InStr(1, StrCache, "?") > 0 Then
+        CurrentInfo = "illegal channel name"
+        SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , , StrCache)
+        Exit Function
+    End If
+    If InStr(1, StrCache, Chr(7)) > 0 Then
+        CurrentInfo = "illegal channel name"
+        SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , , StrCache)
+        Exit Function
+    End If
+    If InStr(1, StrCache, ",") > 0 Then
         CurrentInfo = "illegal channel name"
         SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , , StrCache)
         Exit Function
@@ -1922,18 +2134,6 @@ Else
     Else
       Call CycleAccess(Chan)
       CurrentInfo = "channel exists"
-      'is there a user limit set? -Dill
-      If Chan.Limit > 0 Then
-        If Chan.Member.Count >= Chan.Limit Then
-          CurrentInfo = "channel full"
-          SendWsock cptr.index, ERR_CHANNELISFULL & " " & cptr.Nick & " " & TranslateCode(ERR_CHANNELISFULL, , Chan.Name), vbNullString, SPrefix
-          If Chan.IsKnock Then
-            SendToChanOpsIRCX Chan, cptr.Prefix & " KNOCK " & Chan.Name & " :Channel is full (+l)", 0
-            SendToServer "KNOCK " & Chan.Name & " :Channel is full (+l)", cptr.Nick
-          End If
-          Exit Function
-        End If
-      End If
       'Is it Oper Only? - DG
       CurrentInfo = "channel exists - Oper Only Check"
       If Chan.IsOperOnly = True Then
@@ -2011,6 +2211,145 @@ pastban:
             Exit Function
         End If
       End If
+      
+      'for security, this is the last cannot join failure a user could encounter
+      'if they have no access to the chan, they have no business knowing if it's full or not
+      Dim HideSJoin As Boolean 'for clone
+      HideSJoin = False
+      
+      If Chan.Limit > 0 Then
+        If Chan.Member.Count >= Chan.Limit Then
+          CurrentInfo = "channel full"
+          
+          'check if the channel is cloneable
+          If Chan.IsCloneable Then
+            'create a clone, exit function
+            Dim CloneChan As clsChannel
+            Dim CheckChan As clsChannel
+            Dim c As Long
+            
+            'see which clone the user can validly join next
+            For c = 1 To 99
+              If Len(Chan.Prop_ParentName) = 0 Then
+                'parent channels have no ParentName set
+                'thusly, we have to base CheckChan on Chan.Name
+                Set CheckChan = Channels(Chan.Name & c)
+              Else
+                'ParentName is filled in, we don't want to end up
+                'with channel names like #TheLobby991 or whatever
+                'this is of course a race condition, but just to be safe
+                Set CheckChan = Channels(Chan.Prop_ParentName & c)
+              End If
+              If CheckChan Is Nothing Then
+                'CheckChan doesn't exist, create it and join!
+                Set CloneChan = Channels.Add(Chan.Name & c, New clsChannel)
+                CloneChan.Name = Chan.Name & c
+                CloneChan.Prop_Name = Chan.Name & c
+                
+                'sync the modes
+                CloneChan.IsClone = True
+                CloneChan.IsAuditorium = Chan.IsAuditorium
+                CloneChan.IsHidden = Chan.IsHidden
+                CloneChan.IsInviteOnly = Chan.IsInviteOnly
+                CloneChan.IsKnock = Chan.IsKnock
+                CloneChan.IsModerated = Chan.IsModerated
+                CloneChan.IsNoExternalMsgs = Chan.IsNoExternalMsgs
+                CloneChan.IsOperOnly = Chan.IsOperOnly
+                CloneChan.IsPersistant = Chan.IsPersistant
+                CloneChan.IsPrivate = Chan.IsPrivate
+                CloneChan.IsRegistered = Chan.IsRegistered 'should this REALLY be synced too?
+                CloneChan.IsSecret = Chan.IsSecret
+                CloneChan.IsTopicOps = Chan.IsTopicOps
+                CloneChan.Limit = Chan.Limit
+                
+                'sync the keys
+                CloneChan.Key = Chan.Key
+                CloneChan.Prop_Hostkey = Chan.Prop_Hostkey
+                CloneChan.Prop_Memberkey = Chan.Prop_Memberkey
+                CloneChan.Prop_Ownerkey = Chan.Prop_Ownerkey
+                
+                'sync the access lists
+                CurrentInfo = "syncing access lists"
+                Call CopyAccess(Chan, CloneChan)
+                
+                'sync properties
+                CurrentInfo = "syncing properties"
+                CloneChan.Topic = Chan.Topic
+                CloneChan.TopcSetAt = Chan.TopcSetAt
+                CloneChan.TopicSetBy = Chan.TopicSetBy
+                CloneChan.Prop_Account = Chan.Prop_Account
+                CloneChan.Prop_Client = Chan.Prop_Client
+                CloneChan.Prop_ClientGUID = Chan.Prop_ClientGUID
+                CloneChan.Prop_CloneNumber = c
+                CloneChan.Prop_Creation = UnixTime 'sync to now
+                CloneChan.Prop_Lag = Chan.Prop_Lag
+                CloneChan.Prop_Language = Chan.Prop_Language
+                CloneChan.Prop_OID = 0
+                CloneChan.Prop_OnJoin = Chan.Prop_OnJoin
+                CloneChan.Prop_OnPart = Chan.Prop_OnPart
+                CloneChan.Prop_ParentName = Chan.Name
+                CloneChan.Prop_PICS = Chan.Prop_PICS
+                CloneChan.Prop_ServicePath = Chan.Prop_ServicePath
+                CloneChan.Prop_Subject = Chan.Prop_Subject
+                CloneChan.Prop_Topic = Chan.Prop_Topic
+                
+                'set the chan to clonechan and finish the function
+                SendToChanOpsIRCX Chan, SPrefix & " CLONE " & CloneChan.Name & " 0", 0
+                HideSJoin = True
+                
+                'TODO: send CLONE message to links, handle CLONE message, generate USER.CREATE event
+                
+                'this is so we don't have to send a -q later
+                SendToServer "NJOIN " & CloneChan.Name & " :" & cptr.Nick, ServerName
+                SendToServer "PROP " & CloneChan.Name & " ACCOUNT :" & CloneChan.Prop_Account, ServerName
+                SendToServer "PROP " & CloneChan.Name & " CLIENT :" & CloneChan.Prop_Client, ServerName
+                SendToServer "PROP " & CloneChan.Name & " CREATION :" & CloneChan.Prop_Creation, ServerName
+                SendToServer "PROP " & CloneChan.Name & " HOSTKEY :" & CloneChan.Prop_Hostkey, ServerName
+                SendToServer "PROP " & CloneChan.Name & " LANGUAGE :" & CloneChan.Prop_Language, ServerName
+                SendToServer "PROP " & CloneChan.Name & " MEMBERKEY :" & CloneChan.Prop_Memberkey, ServerName
+                SendToServer "PROP " & CloneChan.Name & " ONJOIN :" & CloneChan.Prop_OnJoin, ServerName
+                SendToServer "PROP " & CloneChan.Name & " ONPART :" & CloneChan.Prop_OnPart, ServerName
+                SendToServer "PROP " & CloneChan.Name & " OWNERKEY :" & CloneChan.Prop_Ownerkey, ServerName
+                SendToServer "PROP " & CloneChan.Name & " PARENTNAME :" & CloneChan.Prop_ParentName, ServerName
+                SendToServer "PROP " & CloneChan.Name & " SUBJECT :" & CloneChan.Prop_Subject, ServerName
+                SendToServer "PROP " & CloneChan.Name & " TOPIC :" & CloneChan.Prop_Topic, ServerName
+                SendToServer "MODE " & CloneChan.Name & " +" & GetModes(CloneChan), ServerName
+                
+                CurrentInfo = "setting chan"
+                Set Chan = New clsChannel
+                Set Chan = Channels(CloneChan.Name)
+                GoTo afterclone
+              Else
+                'channel exists
+                If CheckChan.Member.Count < CheckChan.Limit Then
+                  If Not cptr.IsOnChan(CheckChan.Name) Then
+                    'this user can safely join this clone
+                    Set Chan = New clsChannel
+                    Set Chan = Channels(CheckChan.Name)
+                    GoTo afterclone
+                  Else
+                    'need to return error for you're already on channel
+                    Exit Function
+                  End If
+                End If
+              End If
+            Next c
+            'if the loop has completed and we still can't find a suitable channel,
+            'it should fall through to the channel is full
+          End If
+          SendWsock cptr.index, ERR_CHANNELISFULL & " " & cptr.Nick & " " & TranslateCode(ERR_CHANNELISFULL, , Chan.Name), vbNullString, SPrefix
+          If Chan.IsKnock Then
+            SendToChanOpsIRCX Chan, cptr.Prefix & " KNOCK " & Chan.Name & " :Channel is full (+l)", 0
+            SendToServer "KNOCK " & Chan.Name & " :Channel is full (+l)", cptr.Nick
+          End If
+          Exit Function
+        End If
+      End If
+afterclone:
+'we use a goto to go here, because we've set chan to be clonechan
+'and we'll process the rest of the crap as if they had joined the original
+'channel, except with a different name
+
       Dim OnJoinModes As String
       'the OnJoinModes thing is for the event reply mostly
       
@@ -2019,8 +2358,16 @@ pastban:
       cptr.OnChannels.Add Chan, Chan.Name
       Chan.Member.Add ChanNormal, cptr
       'Notify all users about the new member -Dill
-      SendToChan Chan, cptr.Prefix & " JOIN :" & Chan.Name, 0
-      SendToServer "JOIN " & Chan.Name, cptr.Nick
+      If Chan.IsAuditorium Then
+        SendToChanOps Chan, cptr.Prefix & " JOIN :" & Chan.Name, 0
+        SendWsock cptr.index, "JOIN", ":" & Chan.Name, cptr.Prefix
+      Else
+        SendToChan Chan, cptr.Prefix & " JOIN :" & Chan.Name, 0
+      End If
+      
+      'we hide this if we've already sent it
+      If Not HideSJoin Then SendToServer "JOIN " & Chan.Name, cptr.Nick
+      
       'tell cptr about all members of the channel -Dill
       CurrentInfo = "names"
       Names(0) = Chan.Name
@@ -2038,13 +2385,24 @@ pastban:
         If parv(1) = Chan.Prop_Ownerkey And Len(Chan.Prop_Ownerkey) > 0 Then
           CurrentInfo = "ownerkey"
           Chan.Member.Item(cptr.Nick).IsOwner = True
-          SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +q " & cptr.Nick, 0
+          If Chan.IsAuditorium Then
+            'if the channel is auditorium, the regular members didn't see this person
+            'join the channel
+            SendToChanNotOps Chan, cptr.Prefix & " JOIN :" & Chan.Name, 0
+          End If
+          SendToChanIRCX Chan, cptr.Prefix & " MODE " & Chan.Name & " +q " & cptr.Nick, 0
+          SendToChan1459 Chan, cptr.Prefix & " MODE " & Chan.Name & " +o " & cptr.Nick, 0
           SendToServer "MODE " & Chan.Name & " +q " & cptr.Nick, cptr.Nick
           OnJoinModes = OnJoinModes & "q"
         End If
         If parv(1) = Chan.Prop_Hostkey And Len(Chan.Prop_Hostkey) > 0 And Chan.Member.Item(cptr.Nick).IsOwner = False Then
           CurrentInfo = "hostkey"
           Chan.Member.Item(cptr.Nick).IsOp = True
+          If Chan.IsAuditorium Then
+            'if the channel is auditorium, the regular members didn't see this person
+            'join the channel
+            SendToChanNotOps Chan, cptr.Prefix & " JOIN :" & Chan.Name, 0
+          End If
           SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +o " & cptr.Nick, 0
           SendToServer "MODE " & Chan.Name & " +o " & cptr.Nick, cptr.Nick
           OnJoinModes = OnJoinModes & "o"
@@ -2059,6 +2417,11 @@ pastban:
         'I concur, but you have to realize that most of our users are pseudo-moronic MSN wannabes -Zg
         If HighProtAsq Then
             Chan.Member.Item(cptr.Nick).IsOwner = True
+            If Chan.IsAuditorium Then
+              'if the channel is auditorium, the regular members didn't see this person
+              'join the channel
+              SendToChanNotOps Chan, cptr.Prefix & " JOIN :" & Chan.Name, 0
+            End If
             SendToChanIRCX Chan, cptr.Prefix & " MODE " & Chan.Name & " +q " & cptr.Nick, 0
             SendToChan1459 Chan, cptr.Prefix & " MODE " & Chan.Name & " +o " & cptr.Nick, 0
             SendToServer "MODE " & Chan.Name & " +q " & cptr.Nick, cptr.Nick
@@ -2066,13 +2429,22 @@ pastban:
             GoTo pastaccess
         ElseIf HighProtAso Then
             Chan.Member.Item(cptr.Nick).IsOp = True
+            If Chan.IsAuditorium Then
+              'if the channel is auditorium, the regular members didn't see this person
+              'join the channel
+              SendToChanNotOps Chan, cptr.Prefix & " JOIN :" & Chan.Name, 0
+            End If
             SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +o " & cptr.Nick, 0
             SendToServer "MODE " & Chan.Name & " +o " & cptr.Nick, cptr.Nick
             OnJoinModes = OnJoinModes & "o"
             GoTo pastaccess
         ElseIf HighProtAsv Then
             Chan.Member.Item(cptr.Nick).IsVoice = True
-            SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +v " & cptr.Nick, 0
+            If Chan.IsAuditorium Then
+              SendToChanOps Chan, cptr.Prefix & " MODE " & Chan.Name & " +v " & cptr.Nick, 0
+            Else
+              SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +v " & cptr.Nick, 0
+            End If
             SendToServer "MODE " & Chan.Name & " +v " & cptr.Nick, cptr.Nick
             OnJoinModes = OnJoinModes & "v"
             GoTo pastaccess
@@ -2086,6 +2458,11 @@ pastban:
         'Other than themselves differently (e.g. give them +o and admins +q)
         If LowProtAsq Then
             Chan.Member.Item(cptr.Nick).IsOwner = True
+            If Chan.IsAuditorium Then
+              'if the channel is auditorium, the regular members didn't see this person
+              'join the channel
+              SendToChanNotOps Chan, cptr.Prefix & " JOIN :" & Chan.Name, 0
+            End If
             SendToChanIRCX Chan, cptr.Prefix & " MODE " & Chan.Name & " +q " & cptr.Nick, 0
             SendToChan1459 Chan, cptr.Prefix & " MODE " & Chan.Name & " +o " & cptr.Nick, 0
             SendToServer "MODE " & Chan.Name & " +q " & cptr.Nick, cptr.Nick
@@ -2093,13 +2470,22 @@ pastban:
             GoTo pastaccess
         ElseIf LowProtAso Then
             Chan.Member.Item(cptr.Nick).IsOp = True
+            If Chan.IsAuditorium Then
+              'if the channel is auditorium, the regular members didn't see this person
+              'join the channel
+              SendToChanNotOps Chan, cptr.Prefix & " JOIN :" & Chan.Name, 0
+            End If
             SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +o " & cptr.Nick, 0
             SendToServer "MODE " & Chan.Name & " +o " & cptr.Nick, cptr.Nick
             OnJoinModes = OnJoinModes & "o"
             GoTo pastaccess
         ElseIf LowProtAsv Then
             Chan.Member.Item(cptr.Nick).IsVoice = True
-            SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +v " & cptr.Nick, 0
+            If Chan.IsAuditorium Then
+              SendToChanOps Chan, cptr.Prefix & " MODE " & Chan.Name & " +v " & cptr.Nick, 0
+            Else
+              SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +v " & cptr.Nick, 0
+            End If
             SendToServer "MODE " & Chan.Name & " +v " & cptr.Nick, cptr.Nick
             OnJoinModes = OnJoinModes & "v"
             GoTo pastaccess
@@ -2111,6 +2497,11 @@ pastban:
         'is in owner access
         CurrentInfo = "user is ownered"
         Chan.Member.Item(cptr.Nick).IsOwner = True
+        If Chan.IsAuditorium Then
+          'if the channel is auditorium, the regular members didn't see this person
+          'join the channel
+          SendToChanNotOps Chan, cptr.Prefix & " JOIN :" & Chan.Name, 0
+        End If
         SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +q " & cptr.Nick, 0
         SendToServer "MODE " & Chan.Name & " +q " & cptr.Nick, cptr.Nick
         OnJoinModes = OnJoinModes & "q"
@@ -2120,6 +2511,11 @@ pastban:
         'is in host access
         CurrentInfo = "user is hosted"
         Chan.Member.Item(cptr.Nick).IsOp = True
+        If Chan.IsAuditorium Then
+          'if the channel is auditorium, the regular members didn't see this person
+          'join the channel
+          SendToChanNotOps Chan, cptr.Prefix & " JOIN :" & Chan.Name, 0
+        End If
         SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +o " & cptr.Nick, 0
         SendToServer "MODE " & Chan.Name & " +o " & cptr.Nick, cptr.Nick
         OnJoinModes = OnJoinModes & "o"
@@ -2129,7 +2525,11 @@ pastban:
         'is in voice access
         CurrentInfo = "user is voiced"
         Chan.Member.Item(cptr.Nick).IsVoice = True
-        SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +v " & cptr.Nick, 0
+        If Chan.IsAuditorium Then
+          SendToChanOps Chan, cptr.Prefix & " MODE " & Chan.Name & " +v " & cptr.Nick, 0
+        Else
+          SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +v " & cptr.Nick, 0
+        End If
         SendToServer "MODE " & Chan.Name & " +v " & cptr.Nick, cptr.Nick
         OnJoinModes = OnJoinModes & "v"
         GoTo pastaccess
@@ -2237,7 +2637,18 @@ If cptr.AccessLevel = 4 Then
       Else
         cmd = .Prefix & " PART " & chans(I) & " :""" & parv(1) & """"
       End If
-      SendToChan Chan, cmd, 0   'Notify all channelmembers -Dill
+      
+      If Chan.IsAuditorium Then
+        If ((Chan.Member.Item(cptr.Nick).IsOp) Or (Chan.Member.Item(cptr.Nick).IsOwner)) Then
+          SendToChan Chan, cmd, 0   'Notify all channelmembers -Dill
+        Else
+          'the person wasn't a host/owner, so only the hosts/owners know about him/her
+          SendToChanOps Chan, cmd, 0   'Notify all ops
+        End If
+      Else
+        SendToChan Chan, cmd, 0   'Notify all channelmembers -Dill
+      End If
+      
       SendToServer_ButOne "PART " & Chan.Name, cptr.ServerName, sptr.Nick
       Chan.Member.Remove .Nick
       .OnChannels.Remove chans(I)
@@ -2293,7 +2704,19 @@ Else
           End If
           cmd = .Prefix & " PART " & Chan.Name & " :""" & parv(1) & """"
         End If
-        SendToChan Chan, cmd, 0   'Notify all channelmembers -Dill
+        
+        If Chan.IsAuditorium Then
+          If ((Chan.Member.Item(cptr.Nick).IsOp) Or (Chan.Member.Item(cptr.Nick).IsOwner)) Then
+            SendToChan Chan, cmd, 0   'Notify all channelmembers -Dill
+          Else
+            'the person wasn't a host/owner, so only the hosts/owners know about him/her
+            SendToChanOps Chan, cmd, 0   'Notify all ops
+            SendWsock cptr.index, cmd, vbNullString, vbNullString, True 'notify the parting user
+          End If
+        Else
+          SendToChan Chan, cmd, 0   'Notify all channelmembers -Dill
+        End If
+        
         SendToServer "PART " & chans(I) & " :" & cptr.Nick, cptr.Nick
         If Len(Chan.Prop_OnPart) > 0 Then
           #If Debugging = 1 Then
@@ -2364,7 +2787,17 @@ NextChan:
       End If
       cmd = cptr.Prefix & " PART " & Chan.Name & " :""" & parv(1) & """"
     End If
-    SendToChan Chan, cmd, vbNullString   'Notify all channelmembers -Dill
+    If Chan.IsAuditorium Then
+      If ((Chan.Member.Item(cptr.Nick).IsOp) Or (Chan.Member.Item(cptr.Nick).IsOwner)) Then
+        SendToChan Chan, cmd, 0   'Notify all channelmembers -Dill
+      Else
+        'the person wasn't a host/owner, so only the hosts/owners know about him/her
+        SendToChanOps Chan, cmd, 0   'notify ops
+        SendWsock cptr.index, cmd, vbNullString, vbNullString, True 'notify the parting user
+      End If
+    Else
+      SendToChan Chan, cmd, 0   'Notify all channelmembers -Dill
+    End If
     SendToServer "PART " & parv(0) & " :" & cptr.Nick, cptr.Nick
     #If Debugging = 1 Then
       SendSvrMsg "Debug - OnPart Len: " & Len(Chan.Prop_OnPart)
@@ -2583,13 +3016,10 @@ If Len(parv(1)) = 0 Then
   Exit Function
 End If
 
-Set Chan = Channels(parv(0))
-
 'cache the owner, host, and member statuses
 Dim tmpGod As Boolean
 Dim tmpOwner As Boolean
 Dim tmpHost As Boolean
-Dim tmpHalfOp As Boolean
 Dim tmpMember As Boolean
 Dim tmpUser As Boolean 'outside the channel
 
@@ -2597,308 +3027,407 @@ Dim tmpSvrName As String 'because I'm lazy and don't want to write a server PROP
 Dim tmpAccessLvl As Long '    "    "
 Dim PropList() As String 'to facilitate multiple prop list queries
 Dim PL_Item As Variant
+Dim ChanList() As String
+Dim CL_Item As Variant
 
-If cptr.AccessLevel = 3 Then
-  'ircop
-  tmpOwner = True
-ElseIf cptr.AccessLevel = 4 Then
+If (cptr.IsProtected) Then
+  'high protected ircop
+  If HighProtAsq Then tmpOwner = True
+  If HighProtAso Then tmpHost = True
+  If HighProtAsv Then tmpMember = True
+  If HighProtAsn Then tmpMember = True
+End If
+If (cptr.IsLProtected) Then
+  'low protected ircop
+  If LowProtAsq Then tmpOwner = True
+  If LowProtAso Then tmpHost = True
+  If LowProtAsv Then tmpMember = True
+  If LowProtAsn Then tmpMember = True
+End If
+If cptr.AccessLevel = 4 Then
  'server
  tmpOwner = True
  tmpGod = True
  'before messing up cptr, let's tell the other servers
  'about the dirty deed
- If Not Chan Is Nothing Then
-   SendToServer_ButOne "PROP " & Chan.Name & " " & parv(1) & " :" & parv(2), cptr.ServerName, sptr.Nick
- End If
+ 'how about not?
+ 
+ 'If Not Chan Is Nothing Then
+ '  SendToServer_ButOne "PROP " & Chan.Name & " " & parv(1) & " :" & parv(2), cptr.ServerName, sptr.Nick
+ 'End If
  tmpSvrName = cptr.ServerName
  tmpAccessLvl = cptr.AccessLevel
  Set cptr = sptr
-ElseIf cptr.AccessLevel = 1 Then
-  If Chan Is Nothing Then
-    tmpOwner = False
-    tmpHost = False
-    tmpHalfOp = False
-    tmpMember = False
-    tmpUser = False
-  Else
-    tmpOwner = CBool(Chan.Member.Item(cptr.Nick).IsOwner)
-    tmpHost = CBool(Chan.Member.Item(cptr.Nick).IsOp)
-    tmpHalfOp = CBool(Chan.Member.Item(cptr.Nick).IsHOp)
-    If Not (tmpOwner = True Or tmpHost = True Or tmpHalfOp) Then tmpMember = True
-    'If not a member of the channel, there are some props we can't read
-    If Chan.GetUser(cptr.Nick) Is Nothing Then
-      #If Debugging = 1 Then
-        SendSvrMsg "Is a user!"
-      #End If
-      tmpUser = True
-      tmpGod = False
+End If
+#If Debugging = 1 Then
+  SendSvrMsg "*** Processing properties..."
+#End If
+If UBound(parv) = 1 Then
+  #If Debugging = 1 Then
+    SendSvrMsg "*** Showing properties..."
+  #End If
+  'show properties
+  ChanList = Split(parv(0), ",")
+  For Each CL_Item In ChanList
+    'setup Chan
+    Set Chan = Channels.Item(CStr(CL_Item))
+    If Chan Is Nothing Then
       tmpOwner = False
       tmpHost = False
-      tmpHalfOp = False
       tmpMember = False
-    End If
-  End If
-End If
-
-If UBound(parv) = 1 Then
-  'show properties
-  If Asc(Left(parv(0), 1)) = 35 Then
-    If Chan Is Nothing Then
-      'channel specified wasn't valid
-      SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , , parv(0))
-      Exit Function
+      tmpUser = False
     Else
-      PropList = Split(parv(1), ",")
-      For Each PL_Item In PropList
-        With Chan
-          If "ACCOUNT" Like UCase$(PL_Item) And ((Len(.Prop_Account) > 0) And (tmpOwner)) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Account :" & .Prop_Account
-          If "CLIENT" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate)) And Len(.Prop_Client) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Client :" & .Prop_Client
-          'If .Prop_ClientGUID <> vbNullString Then SendWsock cptr.Index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "ClientGUID :" & .Prop_ClientGUID
-          If "CREATION" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate))) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Creation :" & .Prop_Creation
-          '.Prop_Lag (future implementation)
-          If "LANGUAGE" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate)) And Len(.Prop_Language) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Language :" & .Prop_Language
-          If "MEMBERKEY" Like UCase$(PL_Item) And (Len(.Prop_Memberkey) <> 0 And Not (tmpUser) And ((tmpMember) Or (tmpOwner) Or (tmpHost))) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "MemberKey :" & .Prop_Memberkey
-          If "NAME" Like UCase$(PL_Item) And (Len(.Prop_Name) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Name :" & .Prop_Name
-          If "OID" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate))) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "OID :" & .Prop_OID
-          If "ONJOIN" Like UCase$(PL_Item) And (Len(.Prop_OnJoin) <> 0 And (tmpOwner Or tmpHost)) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "OnJoin :" & .Prop_OnJoin
-          If "ONPART" Like UCase$(PL_Item) And (Len(.Prop_OnPart) <> 0 And (tmpOwner Or tmpHost)) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "OnPart :" & .Prop_OnPart
-          '.Prop_PICS
-          '.Prop_ServicePath
-          If "SUBJECT" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate)) And Len(.Prop_Subject) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Subject :" & .Prop_Subject
-          If "TOPIC" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate)) And Len(.Prop_Topic) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Topic :" & .Prop_Topic
+      If Not Chan.GetUser(cptr.Nick) Is Nothing Then
+        tmpOwner = Chan.Member.Item(cptr.Nick).IsOwner
+        tmpHost = Chan.Member.Item(cptr.Nick).IsOp
+        If Not (tmpOwner Or tmpHost) Then tmpMember = True
+      End If
+      
+      'If not a member of the channel, there are some props we can't read
+      If Chan.GetUser(cptr.Nick) Is Nothing Then
+        #If Debugging = 1 Then
+          SendSvrMsg "Is a user!"
+        #End If
+        tmpUser = True
+        tmpGod = False
+        tmpOwner = False
+        tmpHost = False
+        tmpMember = False
+      End If
+    End If
+    If Asc(Left$(CStr(CL_Item), 1)) = 35 Then
+      #If Debugging = 1 Then
+        SendSvrMsg "*** Channel Prop"
+      #End If
+      If Chan Is Nothing Then
+        'channel specified wasn't valid
+        #If Debugging = 1 Then
+          SendSvrMsg "*** Invalid Channel"
+        #End If
+        SendWsock cptr.index, IRCRPL_PROPEND & " " & cptr.Nick & " " & CL_Item, TranslateCode(IRCRPL_PROPEND)
+        GoTo NextChannelProp
+      Else
+        If Chan.IsSecret And (Chan.GetUser(cptr.Nick) Is Nothing) Then
+          #If Debugging = 1 Then
+            SendSvrMsg "*** Secret Channel"
+          #End If
           SendWsock cptr.index, IRCRPL_PROPEND & " " & cptr.Nick & " " & Chan.Name, TranslateCode(IRCRPL_PROPEND)
+          GoTo NextChannelProp
+        End If
+        PropList = Split(parv(1), ",")
+        For Each PL_Item In PropList
+          #If Debugging = 1 Then
+            SendSvrMsg "*** Sending Props!"
+          #End If
+          With Chan
+            If "ACCOUNT" Like UCase$(PL_Item) And ((Len(.Prop_Account) > 0) And (tmpOwner)) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Account :" & .Prop_Account
+            If "CLIENT" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate)) And Len(.Prop_Client) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Client :" & .Prop_Client
+            'If .Prop_ClientGUID <> vbNullString Then SendWsock cptr.Index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "ClientGUID :" & .Prop_ClientGUID
+            If "CREATION" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate))) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Creation :" & .Prop_Creation
+            '.Prop_Lag (future implementation)
+            If "LANGUAGE" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate)) And Len(.Prop_Language) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Language :" & .Prop_Language
+            If "MEMBERKEY" Like UCase$(PL_Item) And (Len(.Prop_Memberkey) <> 0 And Not (tmpUser) And ((tmpMember) Or (tmpOwner) Or (tmpHost))) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "MemberKey :" & .Prop_Memberkey
+            If "NAME" Like UCase$(PL_Item) And (Len(.Prop_Name) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Name :" & .Prop_Name
+            If "OID" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate))) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "OID :" & .Prop_OID
+            If "ONJOIN" Like UCase$(PL_Item) And (Len(.Prop_OnJoin) <> 0 And (tmpOwner Or tmpHost)) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "OnJoin :" & .Prop_OnJoin
+            If "ONPART" Like UCase$(PL_Item) And (Len(.Prop_OnPart) <> 0 And (tmpOwner Or tmpHost)) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "OnPart :" & .Prop_OnPart
+            '.Prop_PICS
+            '.Prop_ServicePath
+            If "SUBJECT" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate)) And Len(.Prop_Subject) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Subject :" & .Prop_Subject
+            If "TOPIC" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate)) And Len(.Prop_Topic) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Topic :" & .Prop_Topic
+            SendWsock cptr.index, IRCRPL_PROPEND & " " & cptr.Nick & " " & Chan.Name, TranslateCode(IRCRPL_PROPEND)
+          End With
+        Next
+      End If
+    Else
+      'user properties go here
+      'here's the ones I intend on supporting:
+      'OID            -- the user's object identifier (0)
+      'GUID           -- the user's GUID
+      'Nick           -- the user's nickname
+      'Identity       -- the user's ident
+      
+      'TODO: finish these props:
+      'UserHostname   -- only viewable by opers? it won't make any sense to the client
+      'UserServername -- only viewable by opers? it won't make any sense to the client
+      
+      'will probably never make it, but...
+      'Language would be a good property to have, and it'd need to be settable.
+      'It'd also need to be viewable by everybody...
+      Set TargetUser = GlobUsers(CStr(CL_Item))
+      If TargetUser Is Nothing Then 'if user doesn't exist...
+        'SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, CStr(CL_Item))
+        SendWsock cptr.index, IRCRPL_PROPEND & " " & cptr.Nick & " " & CL_Item, TranslateCode(IRCRPL_PROPEND)
+        GoTo NextChannelProp
+      End If
+      If Not TargetUser Is cptr Then 'if the TargetUser != user issuing command
+        If Not (cptr.IsGlobOperator Or cptr.IsLocOperator) Then 'if not an oper (all opers can see user props)
+          'SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
+          SendWsock cptr.index, IRCRPL_PROPEND & " " & cptr.Nick & " " & CL_Item, TranslateCode(IRCRPL_PROPEND)
+          GoTo NextChannelProp
+        End If
+      End If
+      'now, we list them some props
+      'note: you can't set anything on a user
+      PropList = Split(parv(1), ",")
+      
+      For Each PL_Item In PropList
+        With TargetUser
+          If "GUID" Like UCase$(PL_Item) And (Len(.GUID) > 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & .Nick, "GUID :" & .GUID
+          If "IDENTITY" Like UCase$(PL_Item) And (Len(.User) > 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & .Nick, "Identity :" & .User
+          If "NICK" Like UCase$(PL_Item) And (Len(.Nick) > 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & .Nick, "Nick :" & .Nick
+          If "OID" Like UCase$(PL_Item) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & .Nick, "OID :" & .OID
+          SendWsock cptr.index, IRCRPL_PROPEND & " " & cptr.Nick & " " & .Nick, TranslateCode(IRCRPL_PROPEND)
         End With
       Next
     End If
-  Else
-    'user properties go here
-    'here's the ones I intend on supporting:
-    'OID            -- the user's object identifier (0)
-    'GUID           -- the user's GUID
-    'Nick           -- the user's nickname
-    'Identity       -- the user's ident
-    
-    'TODO: finish these props:
-    'UserHostname   -- only viewable by opers? it won't make any sense to the client
-    'UserServername -- only viewable by opers? it won't make any sense to the client
-    
-    'will probably never make it, but...
-    'Language would be a good property to have, and it'd need to be settable.
-    'It'd also need to be viewable by everybody...
-    Set TargetUser = GlobUsers(parv(0))
-    If TargetUser Is Nothing Then 'if user doesn't exist...
-      SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, parv(0))
-      Exit Function
-    End If
-    If Not TargetUser Is cptr Then 'if the TargetUser != user issuing command
-      If Not (cptr.IsGlobOperator Or cptr.IsLocOperator) Then 'if not an oper (all opers can see user props)
-        SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
-        Exit Function
-      End If
-    End If
-    'now, we list them some props
-    'note: you can't set anything on a user
-    PropList = Split(parv(1), ",")
-    
-    For Each PL_Item In PropList
-      With TargetUser
-        If "GUID" Like UCase$(PL_Item) And (Len(.GUID) > 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & .Nick, "GUID :" & .GUID
-        If "IDENTITY" Like UCase$(PL_Item) And (Len(.User) > 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & .Nick, "Identity :" & .User
-        If "NICK" Like UCase$(PL_Item) And (Len(.Nick) > 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & .Nick, "Nick :" & .Nick
-        If "OID" Like UCase$(PL_Item) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & .Nick, "OID :" & .OID
-        SendWsock cptr.index, IRCRPL_PROPEND & " " & cptr.Nick & " " & .Nick, TranslateCode(IRCRPL_PROPEND)
-      End With
-    Next
-  End If
+NextChannelProp:
+  Next 'chan list
 Else
 'ubound of parv > 1
-Dim tmpVal As String
-'prop # something :value
-'     0    1        2
-  With Chan
-    'set prop, handle here
-    Select Case UCase$(parv(1))
-      Case "ACCOUNT":
-        If tmpGod Then
-          tmpVal = parv(2)
-          .Prop_Account = tmpVal
-          SendToChanOwners Chan, cptr.Prefix & " PROP " & Chan.Name & " ACCOUNT :" & tmpVal, 0
-          If tmpAccessLvl = 4 Then
-            SendToServer_ButOne "PROP " & Chan.Name & " ACCOUNT :" & tmpVal, tmpSvrName, cptr.Nick
+  ChanList = Split(parv(0), ",")
+  For Each CL_Item In ChanList
+    'setup Chan
+    Set Chan = Channels.Item(CStr(CL_Item))
+    If Chan Is Nothing Then
+      tmpOwner = False
+      tmpHost = False
+      tmpMember = False
+      tmpUser = False
+    Else
+      If Not Chan.GetUser(cptr.Nick) Is Nothing Then
+        tmpOwner = Chan.Member.Item(cptr.Nick).IsOwner
+        tmpHost = Chan.Member.Item(cptr.Nick).IsOp
+        If Not (tmpOwner Or tmpHost) Then tmpMember = True
+      End If
+      
+      'If not a member of the channel, there are some props we can't read
+      If Chan.GetUser(cptr.Nick) Is Nothing Then
+        #If Debugging = 1 Then
+          SendSvrMsg "Is a user!"
+        #End If
+        tmpUser = True
+        tmpGod = False
+        tmpOwner = False
+        tmpHost = False
+        tmpMember = False
+      End If
+    End If
+    
+    'does the channel exist?
+    If Chan Is Nothing Then
+      'channel specified wasn't valid
+      SendWsock cptr.index, IRCRPL_PROPEND & " " & cptr.Nick & " " & CL_Item, TranslateCode(IRCRPL_PROPEND)
+      GoTo NextChannelPropValue
+    End If
+    
+    Dim tmpVal As String
+    'prop # something :value
+    '     0    1        2
+    With Chan
+      'set prop, handle here
+      Select Case UCase$(parv(1))
+        Case "ACCOUNT":
+          If tmpGod Then
+            tmpVal = parv(2)
+            .Prop_Account = tmpVal
+            SendToChanOwners Chan, cptr.Prefix & " PROP " & Chan.Name & " ACCOUNT :" & tmpVal, 0
+            If tmpAccessLvl = 4 Then
+              SendToServer_ButOne "PROP " & Chan.Name & " ACCOUNT :" & tmpVal, tmpSvrName, cptr.Nick
+            Else
+              SendToServer "PROP " & Chan.Name & " ACCOUNT :" & tmpVal, cptr.Nick
+            End If
           Else
-            SendToServer "PROP " & Chan.Name & " ACCOUNT :" & tmpVal, cptr.Nick
+            SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
           End If
-        Else
-          SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
-        End If
-      Case "OWNERKEY":
-        If tmpOwner Then
-          tmpVal = parv(2)
-          .Prop_Ownerkey = tmpVal
-          SendToChanOwners Chan, cptr.Prefix & " PROP " & Chan.Name & " OWNERKEY :" & tmpVal, 0
-          If tmpAccessLvl = 4 Then
-            SendToServer_ButOne "PROP " & Chan.Name & " OWNERKEY :" & tmpVal, tmpSvrName, cptr.Nick
+        'parentname and clonenumber are "hidden" properties
+        'no client should ever care about it
+        Case "PARENTNAME":
+          If tmpGod Then
+            tmpVal = parv(2)
+            .Prop_ParentName = tmpVal
+            SendToServer_ButOne "PROP " & Chan.Name & " PARENTNAME :" & tmpVal, tmpSvrName, cptr.Nick
           Else
-            SendToServer "PROP " & Chan.Name & " OWNERKEY :" & tmpVal, cptr.Nick
+            SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
           End If
-        Else
-          SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
-        End If
-      Case "HOSTKEY":
-        If tmpOwner Or tmpHost Then
-          tmpVal = parv(2)
-          .Prop_Hostkey = tmpVal
-          SendToChanOps Chan, cptr.Prefix & " PROP " & Chan.Name & " HOSTKEY :" & tmpVal, 0
-          If tmpAccessLvl = 4 Then
-            SendToServer_ButOne "PROP " & Chan.Name & " HOSTKEY :" & tmpVal, tmpSvrName, cptr.Nick
+        Case "CLONENUMBER":
+          If tmpGod Then
+            tmpVal = parv(2)
+            .Prop_CloneNumber = CLng(tmpVal)
+            SendToServer_ButOne "PROP " & Chan.Name & " CLONENUMBER :" & tmpVal, tmpSvrName, cptr.Nick
           Else
-            SendToServer "PROP " & Chan.Name & " HOSTKEY :" & tmpVal, cptr.Nick
+            SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
           End If
-        Else
-          SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
-        End If
-      Case "MEMBERKEY":
-        If tmpOwner Or tmpHost Then
-          tmpVal = parv(2)
-          .Prop_Memberkey = tmpVal
-          .Key = tmpVal
-          If IRCXM_Trans = True Then
-            SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +k " & tmpVal, 0
-          ElseIf IRCXM_Strict = True Then
-            SendToChanIRCX Chan, cptr.Prefix & " PROP " & Chan.Name & " MEMBERKEY :" & tmpVal, 0
-            SendToChan1459 Chan, cptr.Prefix & " MODE " & Chan.Name & " +k " & tmpVal, 0
-          ElseIf IRCXM_Both = True Then
-            SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " MEMBERKEY :" & tmpVal, 0
-            SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +k " & tmpVal, 0
+        Case "OWNERKEY":
+          If tmpOwner Then
+            tmpVal = parv(2)
+            .Prop_Ownerkey = tmpVal
+            SendToChanOwners Chan, cptr.Prefix & " PROP " & Chan.Name & " OWNERKEY :" & tmpVal, 0
+            If tmpAccessLvl = 4 Then
+              SendToServer_ButOne "PROP " & Chan.Name & " OWNERKEY :" & tmpVal, tmpSvrName, cptr.Nick
+            Else
+              SendToServer "PROP " & Chan.Name & " OWNERKEY :" & tmpVal, cptr.Nick
+            End If
           Else
-            SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +k " & tmpVal, 0
+            SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
           End If
-          'send to server!
-          If tmpAccessLvl = 4 Then
-            SendToServer_ButOne "PROP " & Chan.Name & " MEMBERKEY :" & tmpVal, tmpSvrName, cptr.Nick
+        Case "HOSTKEY":
+          If tmpOwner Or tmpHost Then
+            tmpVal = parv(2)
+            .Prop_Hostkey = tmpVal
+            SendToChanOps Chan, cptr.Prefix & " PROP " & Chan.Name & " HOSTKEY :" & tmpVal, 0
+            If tmpAccessLvl = 4 Then
+              SendToServer_ButOne "PROP " & Chan.Name & " HOSTKEY :" & tmpVal, tmpSvrName, cptr.Nick
+            Else
+              SendToServer "PROP " & Chan.Name & " HOSTKEY :" & tmpVal, cptr.Nick
+            End If
           Else
-            SendToServer "PROP " & Chan.Name & " MEMBERKEY :" & tmpVal, cptr.Nick
+            SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
           End If
-          GenerateEvent "CHANNEL", "KEYWORD", Chan.Name, Chan.Name & " " & Replace(cptr.Prefix, ":", "") & " :" & Chan.Key
-        Else
-          SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
-        End If
-      Case "CLIENT":
-        If (tmpOwner Or tmpHost) Then
-          tmpVal = parv(2)
-          .Prop_Client = tmpVal
-          SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " CLIENT :" & tmpVal, 0
-          If tmpAccessLvl = 4 Then
-            SendToServer_ButOne "PROP " & Chan.Name & " CLIENT :" & tmpVal, tmpSvrName, cptr.Nick
+        Case "MEMBERKEY":
+          If tmpOwner Or tmpHost Then
+            tmpVal = parv(2)
+            .Prop_Memberkey = tmpVal
+            .Key = tmpVal
+            If IRCXM_Trans = True Then
+              SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +k " & tmpVal, 0
+            ElseIf IRCXM_Strict = True Then
+              SendToChanIRCX Chan, cptr.Prefix & " PROP " & Chan.Name & " MEMBERKEY :" & tmpVal, 0
+              SendToChan1459 Chan, cptr.Prefix & " MODE " & Chan.Name & " +k " & tmpVal, 0
+            ElseIf IRCXM_Both = True Then
+              SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " MEMBERKEY :" & tmpVal, 0
+              SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +k " & tmpVal, 0
+            Else
+              SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +k " & tmpVal, 0
+            End If
+            'send to server!
+            If tmpAccessLvl = 4 Then
+              SendToServer_ButOne "PROP " & Chan.Name & " MEMBERKEY :" & tmpVal, tmpSvrName, cptr.Nick
+            Else
+              SendToServer "PROP " & Chan.Name & " MEMBERKEY :" & tmpVal, cptr.Nick
+            End If
+            GenerateEvent "CHANNEL", "KEYWORD", Chan.Name, Chan.Name & " " & Replace(cptr.Prefix, ":", "") & " :" & Chan.Key
           Else
-            SendToServer "PROP " & Chan.Name & " CLIENT :" & tmpVal, cptr.Nick
+            SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
           End If
-        Else
-          SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
-        End If
-      Case "CREATION":
-        If tmpGod Then
-          tmpVal = parv(2)
-          .Prop_Account = tmpVal
-          SendToChanOwners Chan, cptr.Prefix & " PROP " & Chan.Name & " CREATION :" & tmpVal, 0
-          If tmpAccessLvl = 4 Then
-            SendToServer_ButOne "PROP " & Chan.Name & " CREATION :" & tmpVal, tmpSvrName, cptr.Nick
+        Case "CLIENT":
+          If (tmpOwner Or tmpHost) Then
+            tmpVal = parv(2)
+            .Prop_Client = tmpVal
+            SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " CLIENT :" & tmpVal, 0
+            If tmpAccessLvl = 4 Then
+              SendToServer_ButOne "PROP " & Chan.Name & " CLIENT :" & tmpVal, tmpSvrName, cptr.Nick
+            Else
+              SendToServer "PROP " & Chan.Name & " CLIENT :" & tmpVal, cptr.Nick
+            End If
           Else
-            SendToServer "PROP " & Chan.Name & " CREATION :" & tmpVal, cptr.Nick
+            SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
           End If
-        Else
-          SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
-        End If
-      Case "LANGUAGE":
-        If (tmpOwner Or tmpHost) Then
-          tmpVal = parv(2)
-          .Prop_Language = tmpVal
-          SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " LANGUAGE :" & tmpVal, 0
-          If tmpAccessLvl = 4 Then
-            SendToServer_ButOne "PROP " & Chan.Name & " LANGUAGE :" & tmpVal, tmpSvrName, cptr.Nick
+        Case "CREATION":
+          If tmpGod Then
+            tmpVal = parv(2)
+            .Prop_Account = tmpVal
+            SendToChanOwners Chan, cptr.Prefix & " PROP " & Chan.Name & " CREATION :" & tmpVal, 0
+            If tmpAccessLvl = 4 Then
+              SendToServer_ButOne "PROP " & Chan.Name & " CREATION :" & tmpVal, tmpSvrName, cptr.Nick
+            Else
+              SendToServer "PROP " & Chan.Name & " CREATION :" & tmpVal, cptr.Nick
+            End If
           Else
-            SendToServer "PROP " & Chan.Name & " LANGUAGE :" & tmpVal, cptr.Nick
+            SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
           End If
-        Else 'no permissions
-          SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
-        End If
-      Case "NAME": 'cannot set name
-        SendWsock cptr.index, IRCERR_BADPROPERTY & " " & cptr.Nick & " " & Chan.Name, TranslateCode(IRCERR_BADPROPERTY)
-      Case "OID": 'cannot set OID
-        SendWsock cptr.index, IRCERR_BADPROPERTY & " " & cptr.Nick & " " & Chan.Name, TranslateCode(IRCERR_BADPROPERTY)
-      Case "ONJOIN":
-        If (tmpOwner Or tmpHost) Then
-          tmpVal = parv(2)
-          .Prop_OnJoin = tmpVal
-          SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " ONJOIN :" & tmpVal, 0
-          If tmpAccessLvl = 4 Then
-            SendToServer_ButOne "PROP " & Chan.Name & " ONJOIN :" & tmpVal, tmpSvrName, cptr.Nick
+        Case "LANGUAGE":
+          If (tmpOwner Or tmpHost) Then
+            tmpVal = parv(2)
+            .Prop_Language = tmpVal
+            SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " LANGUAGE :" & tmpVal, 0
+            If tmpAccessLvl = 4 Then
+              SendToServer_ButOne "PROP " & Chan.Name & " LANGUAGE :" & tmpVal, tmpSvrName, cptr.Nick
+            Else
+              SendToServer "PROP " & Chan.Name & " LANGUAGE :" & tmpVal, cptr.Nick
+            End If
+          Else 'no permissions
+            SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
+          End If
+        Case "NAME": 'cannot set name
+          SendWsock cptr.index, IRCERR_BADPROPERTY & " " & cptr.Nick & " " & Chan.Name, TranslateCode(IRCERR_BADPROPERTY)
+        Case "OID": 'cannot set OID
+          SendWsock cptr.index, IRCERR_BADPROPERTY & " " & cptr.Nick & " " & Chan.Name, TranslateCode(IRCERR_BADPROPERTY)
+        Case "ONJOIN":
+          If (tmpOwner Or tmpHost) Then
+            tmpVal = parv(2)
+            .Prop_OnJoin = tmpVal
+            SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " ONJOIN :" & tmpVal, 0
+            If tmpAccessLvl = 4 Then
+              SendToServer_ButOne "PROP " & Chan.Name & " ONJOIN :" & tmpVal, tmpSvrName, cptr.Nick
+            Else
+              SendToServer "PROP " & Chan.Name & " ONJOIN :" & tmpVal, cptr.Nick
+            End If
           Else
-            SendToServer "PROP " & Chan.Name & " ONJOIN :" & tmpVal, cptr.Nick
+            SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
           End If
-        Else
-          SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
-        End If
-      Case "ONPART":
-        If (tmpOwner Or tmpHost) Then
-          tmpVal = parv(2)
-          .Prop_OnPart = tmpVal
-          SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " ONPART :" & tmpVal, 0
-          If tmpAccessLvl = 4 Then
-            SendToServer_ButOne "PROP " & Chan.Name & " ONPART :" & tmpVal, tmpSvrName, cptr.Nick
+        Case "ONPART":
+          If (tmpOwner Or tmpHost) Then
+            tmpVal = parv(2)
+            .Prop_OnPart = tmpVal
+            SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " ONPART :" & tmpVal, 0
+            If tmpAccessLvl = 4 Then
+              SendToServer_ButOne "PROP " & Chan.Name & " ONPART :" & tmpVal, tmpSvrName, cptr.Nick
+            Else
+              SendToServer "PROP " & Chan.Name & " ONPART :" & tmpVal, cptr.Nick
+            End If
           Else
-            SendToServer "PROP " & Chan.Name & " ONPART :" & tmpVal, cptr.Nick
+            SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
           End If
-        Else
-          SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
-        End If
-      Case "SUBJECT":
-        If (tmpOwner Or tmpHost) Then
-          tmpVal = parv(2)
-          .Prop_Subject = tmpVal
-          SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " SUBJECT :" & tmpVal, 0
-          If tmpAccessLvl = 4 Then
-            SendToServer_ButOne "PROP " & Chan.Name & " SUBJECT :" & tmpVal, tmpSvrName, cptr.Nick
+        Case "SUBJECT":
+          If (tmpOwner Or tmpHost) Then
+            tmpVal = parv(2)
+            .Prop_Subject = tmpVal
+            SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " SUBJECT :" & tmpVal, 0
+            If tmpAccessLvl = 4 Then
+              SendToServer_ButOne "PROP " & Chan.Name & " SUBJECT :" & tmpVal, tmpSvrName, cptr.Nick
+            Else
+              SendToServer "PROP " & Chan.Name & " SUBJECT :" & tmpVal, cptr.Nick
+            End If
           Else
-            SendToServer "PROP " & Chan.Name & " SUBJECT :" & tmpVal, cptr.Nick
+            SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
           End If
-        Else
-          SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
-        End If
-      Case "TOPIC":
-        If (tmpOwner Or tmpHost) Or Chan.IsTopicOps Then
-          tmpVal = parv(2)
-          If TopicLen > 0 Then
-            tmpVal = Left$(tmpVal, TopicLen)
-          End If
-          .Prop_Topic = tmpVal
-          .Topic = tmpVal
-          .TopicSetBy = cptr.Nick
-          .TopcSetAt = UnixTime
-          If IRCXM_Trans = True Then
-            SendToChan Chan, cptr.Prefix & " TOPIC " & .Name & " :" & tmpVal, 0
-          ElseIf IRCXM_Strict = True Then
-            SendToChanIRCX Chan, cptr.Prefix & " PROP " & Chan.Name & " TOPIC :" & tmpVal, 0
-            SendToChan1459 Chan, cptr.Prefix & " TOPIC " & .Name & " :" & tmpVal, 0
-          ElseIf IRCXM_Both = True Then
-            SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " TOPIC :" & tmpVal, 0
-            SendToChan Chan, cptr.Prefix & " TOPIC " & .Name & " :" & tmpVal, 0
+        Case "TOPIC":
+          If (tmpOwner Or tmpHost) Or Chan.IsTopicOps Then
+            tmpVal = parv(2)
+            If TopicLen > 0 Then
+              tmpVal = Left$(tmpVal, TopicLen)
+            End If
+            .Prop_Topic = tmpVal
+            .Topic = tmpVal
+            .TopicSetBy = cptr.Nick
+            .TopcSetAt = UnixTime
+            If IRCXM_Trans = True Then
+              SendToChan Chan, cptr.Prefix & " TOPIC " & .Name & " :" & tmpVal, 0
+            ElseIf IRCXM_Strict = True Then
+              SendToChanIRCX Chan, cptr.Prefix & " PROP " & Chan.Name & " TOPIC :" & tmpVal, 0
+              SendToChan1459 Chan, cptr.Prefix & " TOPIC " & .Name & " :" & tmpVal, 0
+            ElseIf IRCXM_Both = True Then
+              SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " TOPIC :" & tmpVal, 0
+              SendToChan Chan, cptr.Prefix & " TOPIC " & .Name & " :" & tmpVal, 0
+            Else
+              SendToChan Chan, cptr.Prefix & " TOPIC " & .Name & " :" & tmpVal, 0
+            End If
+            If tmpAccessLvl = 4 Then
+              SendToServer_ButOne "PROP " & Chan.Name & " TOPIC :" & tmpVal, tmpSvrName, cptr.Nick
+            Else
+              SendToServer "PROP " & Chan.Name & " TOPIC :" & tmpVal, cptr.Nick
+            End If
+            GenerateEvent "CHANNEL", "TOPIC", Chan.Name, Chan.Name & " " & Replace(cptr.Nick, ":", "") & " :" & tmpVal
           Else
-            SendToChan Chan, cptr.Prefix & " TOPIC " & .Name & " :" & tmpVal, 0
+            SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
           End If
-          If tmpAccessLvl = 4 Then
-            SendToServer_ButOne "PROP " & Chan.Name & " TOPIC :" & tmpVal, tmpSvrName, cptr.Nick
-          Else
-            SendToServer "PROP " & Chan.Name & " TOPIC :" & tmpVal, cptr.Nick
-          End If
-          GenerateEvent "CHANNEL", "TOPIC", Chan.Name, Chan.Name & " " & Replace(cptr.Nick, ":", "") & " :" & tmpVal
-        Else
-          SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
-        End If
-      Case Else:
-        SendWsock cptr.index, IRCERR_BADPROPERTY & " " & cptr.Nick & " " & Chan.Name, TranslateCode(IRCERR_BADPROPERTY)
-    End Select
-  End With
+        Case Else:
+          SendWsock cptr.index, IRCERR_BADPROPERTY & " " & cptr.Nick & " " & Chan.Name, TranslateCode(IRCERR_BADPROPERTY)
+      End Select
+    End With
+NextChannelPropValue:
+  Next 'chan list
 End If
 End Function
 Public Function m_knock(cptr As clsClient, sptr As clsClient, parv$()) As Long
@@ -2967,7 +3496,7 @@ Else
       parv(1) = Left$(parv(1), TopicLen)
     End If
     If Chan.IsTopicOps Then
-      If Not Chan.Member.Item(cptr.Nick).IsOp And Not Chan.Member.Item(cptr.Nick).IsHOp And Not Chan.Member.Item(cptr.Nick).IsOwner Then
+      If Not Chan.Member.Item(cptr.Nick).IsOp And Not Chan.Member.Item(cptr.Nick).IsOwner Then
         SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
         Exit Function
       End If
@@ -3244,6 +3773,8 @@ Else
     Exit Function
   End If
   Dim I&, Chan As clsChannel, RetVal$, x&, chans$(), Membrs() As clsChanMember, y&, z&
+  Dim UserPrivs As Long
+  
   chans = Split(parv(0), ",")
   For x = LBound(chans) To UBound(chans)
     Set Chan = Channels(chans(x))
@@ -3254,6 +3785,23 @@ Else
     Membrs = Chan.Member.Values
     RetVal = Space$(500)
     y = 0
+    
+    '                                     [NQOV]
+    'Normal = 0                           [0000]
+    'Normal + Voice = 1                   [0001]
+    'Normal + Host = 2                    [0010]
+    'Normal + Host + Voice = 3            [0011]
+    'Normal + Owner = 4                   [0100]
+    'Normal + Owner + Voice = 5           [0101]
+    'Normal + Owner + Host = 6            [0110]
+    'Normal + Owner + Host + Voice = 7    [0111]
+    
+    If Chan.Member.Item(cptr.Nick).IsVoice Then UserPrivs = UserPrivs + 1
+    If Chan.Member.Item(cptr.Nick).IsOp Then UserPrivs = UserPrivs + 2
+    If Chan.Member.Item(cptr.Nick).IsOwner Then UserPrivs = UserPrivs + 4
+    
+    
+    
     For I = LBound(Membrs) To UBound(Membrs) 'List all members of a chan -Dill
       With Membrs(I).Member
           y = y + 1
@@ -3277,27 +3825,35 @@ Else
             y = y + 1
             Mid$(RetVal, y, z) = .Nick
             y = y + z
-            
-          ElseIf Membrs(I).IsHOp Then
-            z = Len(.Nick)
-            Mid$(RetVal, y, 1) = "%"
-            y = y + 1
-            Mid$(RetVal, y, z) = .Nick
-            y = y + z
-            
           ElseIf Membrs(I).IsVoice Then
-            
-            z = Len(.Nick)
-            Mid$(RetVal, y, 1) = "+"
-            y = y + 1
-            Mid$(RetVal, y, z) = .Nick
-            y = y + z
-            
+            If (Not Chan.IsAuditorium) Or (UserPrivs > 1) Then
+              z = Len(.Nick)
+              Mid$(RetVal, y, 1) = "+"
+              y = y + 1
+              Mid$(RetVal, y, z) = .Nick
+              y = y + z
+            Else
+              'if it's auditorium, still tell them about themselves
+              If StrComp(UCase$(.Nick), UCase$(cptr.Nick)) = 0 Then
+                z = Len(.Nick)
+                Mid$(RetVal, y, 1) = "+"
+                y = y + 1
+                Mid$(RetVal, y, z) = .Nick
+                y = y + z
+              End If
+            End If
           Else
-            z = Len(.Nick)
-            Mid$(RetVal, y, z) = .Nick
-            y = y + z
-            
+            If (Not Chan.IsAuditorium) Or (UserPrivs > 1) Then
+              z = Len(.Nick)
+              Mid$(RetVal, y, z) = .Nick
+              y = y + z
+            Else
+              If StrComp(UCase$(.Nick), UCase$(cptr.Nick)) = 0 Then
+                z = Len(.Nick)
+                Mid$(RetVal, y, z) = .Nick
+                y = y + z
+              End If
+            End If
           End If
           If y > 450 Then 'in case it exceeds 512 bytes, directly send names reply -Dill
             RetVal = Trim$(RetVal)
@@ -3311,7 +3867,16 @@ Else
     Next I
     RetVal = Left$(RetVal, y - 1) 'remove leading/trailing spaces -Dill
     'if the buffer still contains char's, send em out -Dill
-    If Len(RetVal) > 0 Then SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " = " & Chan.Name, ":" & RetVal
+    Dim ChanStatus As String
+    If Chan.IsPrivate Then
+      ChanStatus = "*"
+    ElseIf ((Chan.IsSecret) Or (Chan.IsHidden)) Then
+      ChanStatus = "@"
+    'possibly pick another char for hidden?
+    Else
+      ChanStatus = "="
+    End If
+    If Len(RetVal) > 0 Then SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " " & ChanStatus & " " & Chan.Name, ":" & RetVal
 NextChan:
     SendWsock cptr.index, RPL_ENDOFNAMES & " " & cptr.Nick & " " & chans(x) & " :End of /NAMES list.", vbNullString
     RetVal = vbNullString
@@ -3617,7 +4182,16 @@ Public Function GetModes(Channel As clsChannel, Optional HideKey As Boolean = Fa
 Dim I&
 GetModes = Space$(30)
 I = 1
+'TODO: Put these in alphabetical order, lowercase first (i.e. abcdABCD)
 With Channel
+    If .IsCloneable Then
+        Mid$(GetModes, I, 1) = "d"
+        I = I + 1
+    End If
+    If .IsClone Then
+        Mid$(GetModes, I, 1) = "e"
+        I = I + 1
+    End If
     If .IsInviteOnly Then
         Mid$(GetModes, I, 1) = "i"
         I = I + 1
@@ -3648,6 +4222,10 @@ With Channel
     End If
     If .IsRegistered Then
         Mid$(GetModes, I, 1) = "r"
+        I = I + 1
+    End If
+    If .IsAuditorium Then
+        Mid$(GetModes, I, 1) = "x"
         I = I + 1
     End If
     If .IsOperOnly Then
@@ -3694,6 +4272,7 @@ Public Function GetModesX(Channel As clsChannel) As String
 Dim I&
 GetModesX = Space$(30)
 I = 1
+'TODO: Put these in alphabetical order, lowercase first (i.e. abcdABCD)
 With Channel
     If .IsInviteOnly Then
         Mid$(GetModesX, I, 1) = "i"
@@ -3725,6 +4304,10 @@ With Channel
     End If
     If .IsRegistered Then
         Mid$(GetModesX, I, 1) = "r"
+        I = I + 1
+    End If
+    If .IsAuditorium Then
+        Mid$(GetModesX, I, 1) = "x"
         I = I + 1
     End If
     If .IsOperOnly Then

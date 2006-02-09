@@ -14,7 +14,7 @@ Attribute VB_Name = "m_ircx_chan"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: m_ircx_chan.bas,v 1.14 2004/07/25 02:15:38 ziggythehamster Exp $
+' $Id: m_ircx_chan.bas,v 1.20 2004/08/08 06:54:14 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -75,6 +75,16 @@ Else
       SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , , parv(0))
       Exit Function
   End If
+  If InStr(1, parv(0), Chr(7)) > 0 Then
+      CurrentInfo = "illegal channel name"
+      SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , , parv(0))
+      Exit Function
+  End If
+  If InStr(1, parv(0), ",") > 0 Then
+      CurrentInfo = "illegal channel name"
+      SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , , parv(0))
+      Exit Function
+  End If
   If MaxChannelsPerUser > 0 Then
     If cptr.OnChannels.Count >= MaxChannelsPerUser Then
         'this could be turned into its own S: line thing
@@ -94,9 +104,29 @@ Else
     Chan.Name = parv(0)
     Chan.Prop_Creation = UnixTime
     Chan.Prop_Name = parv(0)
-    Chan.Member.Add ChanOwner, cptr
-    cptr.OnChannels.Add Chan, Chan.Name
-    
+    'quick mode scan for create flags
+    'set temp vars for use very soon
+    Dim JoinClient As Boolean
+    JoinClient = False
+    If IRCX_CreateJoin = True Then
+        Dim F As Long
+        If IRCX_CreateJoinReqOp = True And Not ((cptr.IsLocOperator) Or (cptr.IsGlobOperator)) Then
+            'if +c requires you to be IRC Operator, and you aren't, join!
+            JoinClient = True
+        Else
+          'either IRCX_CreateJoinReqOp is False, or it's true and the user is an IRC Operator
+          'let them selectively use +c
+          JoinClient = False
+          For F = 1 To Len(parv(1))
+              If Chr(cmCreateJoin) = Mid$(parv(1), F, 1) Then
+                JoinClient = True
+              End If
+          Next F
+        End If
+    Else
+        'autojoin everyone!
+        JoinClient = True
+    End If
     If UBound(parv) = 3 Then
       Call ParseModes(parv(1) & " " & parv(2) & " " & parv(3), Chan)
     ElseIf UBound(parv) = 2 Then
@@ -105,17 +135,23 @@ Else
       Call ParseModes(parv(1), Chan)
     End If
     SendWsock cptr.index, "CREATE " & parv(0) & " 0", vbNullString
-    SendWsock cptr.index, cptr.Prefix & " JOIN " & parv(0), vbNullString, , True
-    If cptr.IsIRCX Then
-      SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " = " & parv(0), ":." & cptr.Nick
-    Else
-      'why you'd be non-IRCX and send CREATE... i dunno
-      SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " = " & parv(0), ":@" & cptr.Nick
+    If JoinClient Then
+        Chan.Member.Add ChanOwner, cptr
+        cptr.OnChannels.Add Chan, Chan.Name
+        SendWsock cptr.index, cptr.Prefix & " JOIN " & parv(0), vbNullString, , True
+        If cptr.IsIRCX Then
+          SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " = " & parv(0), ":." & cptr.Nick
+        Else
+          'why you'd be non-IRCX and send CREATE... i dunno
+          SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " = " & parv(0), ":@" & cptr.Nick
+        End If
+        SendWsock cptr.index, SPrefix & " " & RPL_ENDOFNAMES & " " & cptr.Nick & " " & Chan.Name & " :End of /NAMES list.", vbNullString, , True
+        SendToServer "JOIN " & Chan.Name, cptr.Nick
     End If
-    SendWsock cptr.index, SPrefix & " " & RPL_ENDOFNAMES & " " & cptr.Nick & " " & Chan.Name & " :End of /NAMES list.", vbNullString, , True
-    SendToServer "JOIN " & Chan.Name, cptr.Nick
     GenerateEvent "CHANNEL", "CREATE", Chan.Name, Chan.Name & " +" & Split(GetModes(Chan), " ")(0) & " " & Replace(cptr.Prefix, ":", "")
-    GenerateEvent "MEMBER", "JOIN", Replace(cptr.Prefix, ":", ""), Chan.Name & " " & Replace(cptr.Prefix, ":", "") & " +q"
+    If JoinClient Then
+        GenerateEvent "MEMBER", "JOIN", Replace(cptr.Prefix, ":", ""), Chan.Name & " " & Replace(cptr.Prefix, ":", "") & " +q"
+    End If
   Else
     CurrentInfo = "channel exists"
     SendWsock cptr.index, IRCERR_CHANNELEXIST & " " & cptr.Nick, TranslateCode(IRCERR_CHANNELEXIST, , parv(0))
@@ -133,6 +169,7 @@ For A = 1 To Len(ModesArray(0))
   If Chr(cmModerated) = Mid$(ModesArray(0), A, 1) Then Chan.IsModerated = True
   If Chr(cmNoExternalMsg) = Mid$(ModesArray(0), A, 1) Then Chan.IsNoExternalMsgs = True
   If Chr(cmOpTopic) = Mid$(ModesArray(0), A, 1) Then Chan.IsTopicOps = True
+  If Chr(cmAuditorium) = Mid$(ModesArray(0), A, 1) Then Chan.IsAuditorium = True
   If Chr(cmHidden) = Mid$(ModesArray(0), A, 1) Then
     Chan.IsHidden = True
     Chan.IsSecret = False
@@ -299,3 +336,42 @@ nextmsg:
 End If
 End Function
 
+Public Function AuditoriumShowClients(Chan As clsChannel, cptr As clsClient)
+'This function's purpose is to notify a client that just got opped in a channel
+'that's auditorium about the other clients
+
+Dim A As Long
+Dim ChanUsers() As clsChanMember
+If GlobUsers.Count = 0 Then Exit Function
+If Chan.Member.Count = 0 Then Exit Function
+
+ChanUsers = Chan.Member.Values
+
+For A = 1 To Chan.Member.Count
+  If Not ((ChanUsers(A).IsOp) Or (ChanUsers(A).IsOwner)) Then
+    'they're on the same channel as us, and aren't owners or hosts
+    If StrComp(ChanUsers(A).Member.GUID, cptr.GUID) <> 0 Then
+      SendWsock cptr.index, "JOIN", ":" & Chan.Name, ChanUsers(A).Member.Prefix
+    End If
+  End If
+Next A
+Exit Function
+End Function
+
+Public Function AuditoriumHideClients(Chan As clsChannel, cptr As clsClient)
+Dim A As Long
+Dim ChanUsers() As clsChanMember
+If GlobUsers.Count = 0 Then Exit Function
+If Chan.Member.Count = 0 Then Exit Function
+
+ChanUsers = Chan.Member.Values
+
+For A = 1 To Chan.Member.Count
+  If Not ((ChanUsers(A).IsOp) Or (ChanUsers(A).IsOwner)) Then
+    'they're on the same channel as us, and aren't owners or hosts
+    If StrComp(ChanUsers(A).Member.GUID, cptr.GUID) <> 0 Then
+      SendWsock cptr.index, "PART", Chan.Name, ChanUsers(A).Member.Prefix
+    End If
+  End If
+Next A
+End Function

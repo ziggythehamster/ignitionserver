@@ -1,56 +1,42 @@
-		RELEASE NOTES FOR IGNITIONSERVER RELEASE: 0.3.3
-# $Id: releasenotes.txt,v 1.17 2004/07/25 01:36:35 ziggythehamster Exp $
+		RELEASE NOTES FOR IGNITIONSERVER RELEASE: 0.3.4
+# $Id: releasenotes.txt,v 1.21 2004/08/13 00:35:09 ziggythehamster Exp $
 
 
 Changes:
-Added MAXTARGETS=5 to the 005 reply
-Removed STD=i-d from the 005 reply (I have no clue what it means)
-Added some things to the 005 reply
-Cleaned up /prop a bit
-You cannot create channels with * or ?
-Winsock errors previously reported as "Unknown" are now reported properly per the Platform SDK's definition.
-ignitionServer now uses Winsock 2.0! Dumb mistake, but it should work fine now on newer systems.
-Code cleanup!
-Some Integers have been changed to Longs for speed (3-4KB of memory extra though)
-ignitionServer no longer uses Val() as an array
+Removed half-op entirely -- freed up memory (it wasn't supported to begin with)
+004 reply includes ignitionServer version number
+VERSION reply ends in .0 now (as denoted by RFC 1459)
 
 New Features include:
-DATA/REQUEST/REPLY is done! This means that Comic Chat functions properly now, and you can now proceed to use IRCX metadata :)
-User properties! GUID, Identity, Nick, and OID
-ignitionServer is now aware of the port clients connect on.
-Mostly working /event system. It's almost the same as the MS Exchange event system.
+IRCX Auditorium (+x). Possibly still buggy -- please file a bug report if it is!
+IRCX Clone/Cloneable (+d/+e). Should be working 100%.
 
 Bug Fixes:
 
-Bug #  | Bug Name
+Bug #   | Bug Name
 ---------------------
-984801 | "No O-Lines for your host" lacks nickname
-983820 | Mode bug
-       | "You have joined too many channels" output is wrong
-988403 | /prop doesn't allow for specific item retreival
-989095 | You can set mode +l 0
-988757 | new mode code has broken ban support
-989222 | /prop #Channel needs to return need more parameters
-       | Bans don't show up in XChat
-988749 | erroneous CRLF onjoin
-989161 | /userhost returns more than 5 results
-990475 | erroneous CRLF in /whois
-988705 | +hps mode problem
-989920 | +h cannot be set by links
-       | /join 0 does not work
-888693 | Wildcard /list didn't work
-994283 | You can send a blank message
-965947 | Some events need consistency
-       | You can create channels with ? or * in the name
+1001721 | property propragration happens twice
+1001722 | IRC Operators can change properties as if they were owners
+1001723 | cannot check properties from outside of channel
+988743  | +psh don't function properly
+1005367 | Auditorium users see erroneous quits
 
 Comments:
-ignitionServer 0.3.3 is VERY MUCH improved from the previous version with
-several new features, including the IRCX commands DATA, REQUEST, and REPLY.
-These commands allow for non-text data to be transmitted to channels, users,
-and other interested parties. These commands have traditionally been used
-by Microsoft Chat to send comic character data, but any client is welcome
-to add support for IRCX DATA/REQUEST/REPLY. There have also been several
-annoying bugs fixed, and I have officially deemed linking to be "alpha".
-No longer is it experimental :). Still, you shouldn't link to other servers
-unless you're willing to file bug reports, but it won't blow up if you do
-link servers.
+This version of ignitionServer is mainly a bugfix release,
+but we have also added IRCX auditorium and clone/cloneable.
+In a nutshell, these modes are used as follows:
+1) To make an auditorium, you must create the room with the
+   CREATE command and specify the proper modes. Basically,
+   /create #Channel xnt
+2) To make a cloneable channel, you must be an IRC Operator,
+   and you do it by going /mode #Channel +d.
+
+Yes, all users can create auditoriums. The IRCX draft doesn't
+specify whether or not it's operator-only. In an upcoming version,
+we will have a new security infrastructure that says what levels
+of users are required for what command/mode, and we will address
+this issue there.
+
+The /CREATE command does not properly function. This will be resolved
+in the next version. Also, linking does not work at all. This will also
+be resolved in the next version.

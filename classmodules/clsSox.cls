@@ -28,7 +28,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsSox.cls,v 1.10 2004/07/20 19:44:11 ziggythehamster Exp $
+' $Id: clsSox.cls,v 1.11 2004/08/08 00:40:35 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -366,7 +366,7 @@ Private Declare Function apiSocket Lib "WS2_32" Alias "socket" (ByVal af As Long
 Private Declare Function apiCloseSocket Lib "WS2_32" Alias "closesocket" (ByVal s As Long) As Long
 Private Declare Function apiBind Lib "WS2_32" Alias "bind" (ByVal s As Long, addr As typSocketAddr, ByVal namelen As Long) As Long
 Private Declare Function apiListen Lib "WS2_32" Alias "listen" (ByVal s As Long, ByVal backlog As Long) As Long
-Private Declare Function apiConnect Lib "WS2_32" Alias "connect" (ByVal s As Long, name As typSocketAddr, ByVal namelen As Long) As Long
+Private Declare Function apiConnect Lib "WS2_32" Alias "connect" (ByVal s As Long, Name As typSocketAddr, ByVal namelen As Long) As Long
 Private Declare Function apiAccept Lib "WS2_32" Alias "accept" (ByVal s As Long, addr As typSocketAddr, addrLen As Long) As Long
 Private Declare Function apiWSAAsyncSelect Lib "WS2_32" Alias "WSAAsyncSelect" (ByVal s As Long, ByVal hWnd As Long, ByVal wMsg As Long, ByVal lEvent As Long) As Long
 Private Declare Function apiRecv Lib "WS2_32" Alias "recv" (ByVal s As Long, buf As Any, ByVal buflen As Long, ByVal flags As Long) As Long
@@ -379,8 +379,8 @@ Private Declare Function apiNToHL Lib "WS2_32" Alias "ntohl" (ByVal netlong As L
 Private Declare Function apiNToHS Lib "WS2_32" Alias "ntohs" (ByVal netshort As Long) As Integer 'Network To Host Short
 Private Declare Function apiIPToNL Lib "WS2_32" Alias "inet_addr" (ByVal cp As String) As Long
 Private Declare Function apiNLToIP Lib "WS2_32" Alias "inet_ntoa" (ByVal inn As Long) As Long
-Private Declare Function apiGetHostName Lib "WS2_32" Alias "gethostname" (ByVal name As String, ByVal namelen As Long) As Long
-Private Declare Function api_getsockname Lib "ws2_32.dll" Alias "getsockname" (ByVal s As Long, ByRef name As typSocketAddr, ByRef namelen As Long) As Long
+Private Declare Function apiGetHostName Lib "WS2_32" Alias "gethostname" (ByVal Name As String, ByVal namelen As Long) As Long
+Private Declare Function api_getsockname Lib "ws2_32.dll" Alias "getsockname" (ByVal s As Long, ByRef Name As typSocketAddr, ByRef namelen As Long) As Long
 Private Declare Function apiShutDown Lib "WS2_32" Alias "shutdown" (ByVal s As Long, ByVal how As Long) As Long
 Private Declare Function WSAGetLastError Lib "WSOCK32" () As Long
 
@@ -925,7 +925,7 @@ End Sub
 
 Private Sub RaiseError(insox As Long, inCode As Long, inProcedure As String, inSnipet As String)   'Returns EXACTLY the same value as inError but raises the corresponding event if this is an error
     #If Debugging = 1 Then
-        SendSvrMsg "error..." & inSnipet & " " & inProcedure
+        SendSvrMsg "Winsock Error " & inSnipet & " " & inProcedure
     #End If
     Select Case inCode
         Case WSABASEERR: Call Sox_Error(insox, inCode, "General Winsock subsystem failure", inProcedure, inSnipet) 'Just sounds cool :)))

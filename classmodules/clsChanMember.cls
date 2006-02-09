@@ -28,7 +28,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsChanMember.cls,v 1.6 2004/06/26 07:01:11 ziggythehamster Exp $
+' $Id: clsChanMember.cls,v 1.7 2004/07/25 23:00:25 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -49,4 +49,3 @@ Public Member As clsClient
 Public IsOp As Boolean
 Public IsVoice As Boolean
 Public IsOwner As Boolean 'IRCX - Ziggy
-Public IsHOp As Boolean 'HalfOp seems to be an unwriten standard in IRC now...

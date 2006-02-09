@@ -1,0 +1,2715 @@
+<?xml version="1.0" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN"
+  "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd" >
+
+<book>
+  <bookinfo>
+    <legalnotice>
+      <para>
+         This is an INTERNET-DRAFT written by Dalen Abraham of Microsoft Corporation. It
+         has been translated into DocBook format by Keith Gable of The Ignition Project.
+      </para>
+      <para>
+         Copyright (c) 1998 Dalen Abraham. DocBook translation Copyright (c) 2004 Keith Gable.<sbr />
+         Permission is granted to copy, distribute and/or modify this document
+         under the terms of the GNU Free Documentation License, Version 1.2
+         or any later version published by the Free Software Foundation;
+         with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
+         Texts.  A copy of the license is included in the section entitled "GNU
+         Free Documentation License".
+      </para>
+    </legalnotice>
+    <authorgroup>
+       <author>
+         <firstname>Dalen</firstname>
+         <surname>Abraham</surname>
+       </author>
+       <editor>
+          <firstname>Keith</firstname>
+          <surname>Gable</surname>
+       </editor>
+    </authorgroup>
+    <copyright>
+      <year>1998</year>
+      <holder>Dalen Abraham</holder>
+    </copyright>
+  </bookinfo>
+  <title>IRCX Draft</title>
+  <titleabbrev>IRCX</titleabbrev>
+  <preface><title>Changes Made to the IRCX Draft</title>
+     <para>
+        In converting the IRCX Draft to DocBook format, I stumbled
+        upon several areas that the IRCX Draft was not clear on, or
+        did not provide an adequate example for, so I reworded it or added
+        a suitable example. I have also added notes to several sections to provide clarity and information
+        about current implementations of IRCX (IRCX is kind of old,
+        it came out in 1998, remember?). None of the commands have
+        been altered, changed, or updated, so this version of the
+        draft should be suitable for reference purposes. In fact,
+        it should be better than the IRCX draft, since I have added
+        a bunch of notes and changed the wording on a few things.
+     </para>
+     <para>
+         <note><title>A note about the License</title>
+           <para>
+              I have released this file under the GNU Free Documentation
+              License. This license only covers my modifications to the
+              IRCX draft and my conversion of it to DocBook format. It
+              does not cover the original IRCX draft. If you intend on
+              distributing this file, modifications of it, or generated
+              versions (this is DocBook, after all, you can generate about
+              a trillion formats :) ), please read the GFDL. In addition,
+              if you intend on changing parts of this file, you should
+              also read the GFDL. Please note that "this file" also includes
+              versions of this file (ircx-draft.xml) that have been generated
+              using xsltproc or a similar program. If you're viewing this file
+              in a "chunked" format (such as XHTML or HTML Help), "this file"
+              refers to all of the files.
+           </para>
+         </note>
+     </para>
+  </preface>
+  <preface><title>Status of this Memo</title>
+      <para>
+         This document is an Internet-Draft. Internet-Drafts are
+         working documents of the Internet Engineering Task Force
+         (IETF), its areas, and its working groups. Note that other
+         groups may also distribute working documents as Internet
+         Drafts.
+      </para>
+      <para>
+         Internet-Drafts are draft documents valid for a maximum of six
+         months and may be updated, replaced, or obsoleted by other
+         documents at any time. It is inappropriate to use Internet-
+         Drafts as reference material or to cite them other than as
+         "work in progress."
+      </para>
+      <para>
+         To view the entire list of current Internet-Drafts, please
+         check the "1id-abstracts.txt" listing contained in the
+         Internet-Drafts Shadow Directories on ftp.is.co.za (Africa),
+         ftp.nordu.net (Northern Europe), ftp.nis.garr.it (Southern
+         Europe), munnari.oz.au (Pacific Rim), ftp.ietf.org (US East
+         Coast), or ftp.isi.edu (US West Coast).    
+       </para>
+  </preface>
+
+  <preface><title>Abstract</title>
+      <para>
+         This document describes IRCX, a set of extensions to the
+         Internet Relay Chat (IRC) protocol defined in RFC 1459[1].
+         Only client-server interactions  are defined. The added
+         functionality includes user authentication for multiple
+         security providers, support  for  UNICODE[2]  characters,
+         multilayer  security,  and  a unified property mechanism.
+         Chat server implementations can support channel or server
+         services with full  control over all messages and events.
+         These services communicate with the core server over an
+         extended IRC connection.
+      </para>
+      <para>
+         All changes to the IRC protocol are designed such  that
+         existing clients  will continue to work against servers
+         implementing the extensions. Support for the extended protocol
+         can be queried by clients to take advantage of the added
+         functionality or to conform to the basic protocol as defined
+         in RFC1459.
+      </para>
+  </preface>
+
+  <chapter><title>Modified UTF8 Encoding of UNICODE characters</title>
+      <para>
+         Allowing UNICODE characters for all user visible strings
+         introduces a set of compatibility problems if the protocol
+         must be backward compatible. UTF8 encoding is used to convert
+         wide UNICODE characters into a string compatible with existing
+         IRC servers and clients.
+      </para>
+      <para>
+         To  permit  the full range of UNICODE characters, we must
+         introduce an additional post-processing step on the result of
+         an UTF8 translation.
+      </para>
+      <para>
+         Any string beginning with a '%' character (i.e. "reason"
+         strings within a REDIRECT command) will be interpreted as
+         UTF8-encoded UNICODE strings.
+      </para>
+      <para>
+         UNICODE characters encoded in UTF8 may use more bytes than an
+         ASCII character.  To ensure compatibility, UNICODE strings
+         such as nicknames and channel names must fit within the
+         standard length measured in bytes, not in characters.
+      </para>
+      <para>
+         The quoting character for the post-processing step is the '\'
+         character. All mappings are listed in the table below.
+         <table frame="all" pgwide="1">
+            <title>Character Quoting in UTF-8</title>
+            <tgroup cols="2" align="left" colsep="1" rowsep="1">
+               <thead>
+                  <row>
+                     <entry>Quoted Character</entry>
+                     <entry>Unquoted Character</entry>
+                  </row>
+               </thead>
+               <tbody>
+                  <row>
+                     <entry>\b</entry>
+                     <entry>" " (space, ASCII 32)</entry>
+                  </row>
+                  <row>
+                     <entry>\c</entry>
+                     <entry>"," (comma, ASCII 44)</entry>
+                  </row>
+                  <row>
+                     <entry>\\</entry>
+                     <entry>"\" (backslash, ASCII 92)</entry>
+                  </row>
+                  <row>
+                     <entry>\r</entry>
+                     <entry>CR (carriage return, ASCII 13)</entry>
+                  </row>
+                  <row>
+                     <entry>\n</entry>
+                     <entry>LF (line feed, ASCII 10)</entry>
+                  </row>
+                  <row>
+                     <entry>\t</entry>
+                     <entry>TAB (horizontal tab, ASCII 9)</entry>
+                  </row>
+               </tbody>
+            </tgroup>
+         </table>         
+      </para>
+      <para>
+         IRCX clients view UTF8-encoded UNICODE strings in their native
+         form.  So non-IRCX clients can inter-operate with UNICODE
+         nicks, UNICODE nicks are translated by the server into a
+         usable form before being sent to the non-IRCX client.  This
+         usable format is a simple hex format preceded by a '^'
+         character.  Non-IRCX clients can use this hex format nickname
+         to specify the IRCX/UNICODE user.
+      </para>
+  </chapter>
+  <chapter><title>Terms and Definitions</title>
+     <para>
+         Throughout this document we will use certain terms which are
+         defined in the following pages.
+     </para>
+     <para>
+         String lengths are indicated in "characters", referring to
+         ASCII characters, because even UNICODE strings must be encoded
+         in ASCII for the IRC protocol.
+         <table frame="all" pgwide="1">
+            <title>Definition of Terms</title>
+            <tgroup cols="2" align="left" colsep="1" rowsep="1">
+               <thead>
+                  <row>
+                     <entry>Term</entry>
+                     <entry>Definition</entry>
+                  </row>
+               </thead>
+               <tbody>
+                  <row>
+                     <entry>Chat Network</entry>
+                     <entry>A Chat Network is comprised  of  one  or  more servers linked together.</entry>
+                  </row>
+                  <row>
+                     <entry>Server</entry>
+                     <entry>A server is a single machine.</entry>
+                  </row>
+                  <row>
+                     <entry>Channel</entry>
+                     <entry>A channel (sometimes called a room or conference) is a conversation between one or more users.</entry>
+                  </row>
+                  <row>
+                     <entry>Member</entry>
+                     <entry>A member is a user that is part of a conversation in a channel.</entry>
+                  </row>
+                  <row>
+                     <entry>User</entry>
+                     <entry>A user is a client that makes a connection to the server.</entry>
+                  </row>
+                  <row>
+                     <entry>Objects</entry>
+                     <entry>An object is a general term for channels, users,  members (users in a channel), and
+                              servers.  The type of object can be determined from the first character of the object's name.</entry>
+                  </row>
+               </tbody>
+            </tgroup>
+         </table>
+      </para>      
+      <section><title>User Access Levels</title>
+         <para>
+            There are six user levels that define the ability of the user
+            to perform operations.  Some levels are determined on the
+            context  of the operation to be performed.
+            <table frame="all" pgwide="1">
+               <title>Definition of Client Levels</title>
+               <tgroup cols="2" align="left" colsep="1" rowsep="1">
+                  <thead>
+                     <row>
+                        <entry>Term</entry>
+                        <entry>Definition</entry>
+                     </row>
+                  </thead>
+                  <tbody>
+                     <row>
+                        <entry>Sysop Manager</entry>
+                        <entry>A Sysop Manager has full access to online commands.</entry>
+                     </row>
+                     <row>
+                        <entry>Sysop</entry>
+                        <entry>A Chat Sysop oversees and controls the chat network.</entry>
+                     </row>
+                     <row>
+                        <entry>Channel Owner</entry>
+                        <entry>A Channel Owner manages a channel and the channel hosts.</entry>
+                     </row>
+                     <row>
+                        <entry>Channel Host</entry>
+                        <entry>A Channel Host manages a channel. Also referred to as a channel operator.</entry>
+                     </row>
+                     <row>
+                        <entry>Channel Member</entry>
+                        <entry>A Channel Member is a member of a channel.</entry>
+                     </row>
+                     <row>
+                        <entry>Chat User</entry>
+                        <entry>A Chat User is a client connected to the server.</entry>
+                     </row>
+                  </tbody>
+               </tgroup>
+            </table>
+            
+            <note><title>Editor's Note</title>
+            <para>Current implementations equate "Administrator" with "Sysop Manager", which seems a more fitting term for this level. It should be
+                  acceptable to use the term "Administrator" instead of "Sysop Manager".</para>
+            </note>           
+         </para>         
+      </section>
+      <section><title>Prefixes</title>
+         <para>
+            Each object contains a unique prefix that identifies the type
+            of object.  By tagging UNICODE objects with a special prefix,
+            a client can easily decide whether to use standard ASCII or
+            UNICODE when sending a message to a user or channel.  The IRCX
+            client is responsible, when sending a UNICODE string, for
+            prefixing it with a '%' character so that other IRCX clients
+            can interpret it as UNICODE.
+            
+            <table frame="all" pgwide="1">
+               <title>Object identifiers</title>
+               <tgroup cols="2" align="left" colsep="1" rowsep="1">
+                  <thead>
+                     <row>
+                        <entry>Prefix</entry>
+                        <entry>Definition</entry>
+                     </row>
+                  </thead>
+                  <tbody>
+                     <row>
+                        <entry>#</entry>
+                        <entry>The '#' prefix identifies a RFC1459 global channel.</entry>
+                     </row>
+                     <row>
+                        <entry>&amp;</entry>
+                        <entry>The '&amp;' prefix identifies a RFC1459 local channel.</entry>
+                     </row>
+                     <row>
+                        <entry>%#</entry>
+                        <entry>The '%#' prefix identifies an extended global channel name (a modified UTF8-encoded UNICODE string).</entry>
+                     </row>
+                     <row>
+                        <entry>%&amp;</entry>
+                        <entry>The '%&amp;' prefix identifies an extended local channel name (a modified UTF8-encoded UNICODE string).</entry>
+                     </row>
+                     <row>
+                        <entry>%</entry>
+                        <entry>The '%' character followed by a space or comma can
+                              identify  the  last channel that this client
+                              specified and is a member of.  Its function is to
+                              optimize  server processing of multiple messages from
+                              a client to a channel.
+                        </entry>
+                     </row>
+                     <row>
+                        <entry>A to }</entry>
+                        <entry>The 'A' through '}' prefix identifies a standard RFC1459 nickname.</entry>
+                     </row>
+                     <row>
+                        <entry>'</entry>
+                        <entry>The ''' prefix identifies an extended IRCX nickname
+                              which  consists of a modified UTF8-encoded UNICODE
+                              string.  The ''' character followed by a space or
+                              comma is used to represent the local client
+                              connection. The characters following ''' can be '0'
+                              through '9', '-', and any character above 'A'.
+                        </entry>
+                     </row>
+                     <row>
+                        <entry>^</entry>
+                        <entry>The '^' prefix identifies a nickname which was
+                              translated from  UTF8 into hex characters so that the
+                              nickname can be viewed by  non-IRCX clients.  The
+                              characters following '^' can be any standard RFC1459
+                              nickname characters.
+                        </entry>
+                     </row>
+                     <row>
+                        <entry>0</entry>
+                        <entry>The '0' prefix identifies an internal object
+                              identifier  (OID).   The OID consists of the '0'
+                              prefix and eight hexadecimal characters. If not
+                              supported by the server, then OID must be returned as
+                              '0'.
+                        </entry>
+                     </row>
+                     <row>
+                        <entry>$</entry>
+                        <entry>The  '$' prefix identifies a server on the network.
+                              The '$' character followed by a space or comma  may
+                              be used to represent the local server the client is
+                              connected to.
+                        </entry>
+                     </row>
+                  </tbody>
+               </tgroup>
+            </table>
+         </para>         
+      </section>
+  </chapter>
+  <chapter><title>IRCX Client Messages</title>
+     <para>
+         This section details commands which have been added and
+         commands which have been changed from RFC1459.  Responses from
+         the server are discussed in greater detail in later sections.
+      </para>
+      <section><title>ACCESS command (new IRCX command)</title>
+         <para>
+            Create an "access entry" for an object to grant or deny access
+            to an object, including a channel, a user, or the server.
+            ACCESS LIST is used to list all access entries for an object
+            and CLEAR is used to clear all entries or all entries of the
+            same level.
+         </para>
+         <para>
+            Syntax 1:
+            <synopsis>ACCESS &lt;object&gt; LIST</synopsis>
+            Syntax 2:
+            <synopsis>ACCESS &lt;object&gt; ADD|DELETE &lt;level&gt; &lt;mask&gt; [&lt;timeout&gt; [:&lt;reason&gt;]]</synopsis>
+            Syntax 3:
+            <synopsis>ACCESS &lt;object&gt; CLEAR [&lt;level&gt;]</synopsis>
+         </para>
+         <section><title>Parameters</title>
+            <para><token>&lt;object&gt;</token> The object to which access is being granted or
+             limited.  Can be a channel name, nickname, $ or *.</para>
+            <para><token>&lt;level&gt;</token> The level of access being given or taken away.  Can be:
+               <table frame="all" pgwide="1">
+                  <title>Access Levels</title>
+                  <tgroup cols="2" align="left" colsep="1" rowsep="1">
+                     <thead>
+                        <row>
+                           <entry>Level</entry>
+                           <entry>Description</entry>
+                        </row>
+                     </thead>
+                     <tbody>
+                        <row>
+                           <entry>DENY</entry>
+                           <entry>Disallow access to an object that is accessible</entry>
+                        </row>
+                        <row>
+                           <entry>GRANT</entry>
+                           <entry>Allow access to an object that is inaccessible</entry>
+                        </row>
+                        <row>
+                           <entry>HOST</entry>
+                           <entry>Channel host access to specified channel</entry>
+                        </row>
+                        <row>
+                           <entry>OWNER</entry>
+                           <entry>Channel owner access to specified channel</entry>
+                        </row>
+                        <row>
+                           <entry>VOICE</entry>
+                           <entry>Voice access to specified channel</entry>
+                        </row>
+                     </tbody>
+                  </tgroup>
+               </table>
+            </para>
+            <para><token>&lt;mask&gt;</token> Mask to identify user by nickname, userid, host or
+             server characteristics.  Supports wildcards * and ?.</para>
+            <para><token>&lt;timeout&gt;</token> Minutes until the access entry is removed.  A value
+             of 0 indicates unlimited duration.</para>
+            <para><token>&lt;reason&gt;</token> Text reason shown when users are denied access due
+             to  the access entry.</para>
+         </section>
+         <section><title>Results</title>
+            <para>
+               IRCRPL_ACCESSADD<sbr />
+               IRCRPL_ACCESSDELETE<sbr />
+               IRCRPL_ACCESSSTART<sbr />
+               IRCRPL_ACCESSLIST<sbr />
+               IRCRPL_ACCESSEND<sbr />
+            </para>
+         </section>
+         <section><title>Possible Errors</title>
+            <para>
+               In this specification possible error messages are listed.<sbr />
+               IRCERR_BADLEVEL<sbr />
+               IRCERR_DUPACCESS<sbr />
+               IRCERR_MISACCESS<sbr />
+               IRCERR_TOOMANYACCESSES<sbr />
+               IRCERR_TOOMANYARGUMENTS<sbr />
+               IRCERR_BADCOMMAND<sbr />
+               IRCERR_NOTSUPPORTED<sbr />
+               IRCERR_NOACCESS<sbr />
+               <note><title>Editor's Note</title>
+                  <para>In this particular specification of IRCX, there was no error message
+                  specifically for telling a user that some entries couldn't be removed because
+                  they didn't have the proper authority to remove them. Current implementations
+                  use an error message from a previous version of the IRCX draft. The error
+                  message is defined as follows:</para>
+                  <para>922 - IRCERR_ACCESSSECURITY: 
+                  Some entires not cleared due to security</para>
+                  <para>The addition of this error message is entirely optional, however it is
+                  highly recommended this error message is used, to let the client know that
+                  some of the access entries they attempted to clear were not removed because
+                  they lacked the privileges to do so (see "Remarks" for more information).</para>
+               </note>
+            </para>
+         </section>
+         <section><title>Remarks</title>
+            <para>
+               An object with GRANT access entries but no DENY entries is
+               assumed to be off-limits to those users not covered by the
+               GRANT entries.  If there are multiple entries in the access
+               list, the list  is  processed in the following order:  OWNER,
+               HOST, VOICE, GRANT, DENY.
+            </para>
+            <para>
+               Hosts  and Owners may add and delete access entries for their
+               channel.  Hosts may not remove access entries added by owners.
+               Any user may add and delete access entries for themselves.
+               Sysops and sysop managers on a server may add and delete
+               access entries for that server or the entire network.
+            </para>
+            <para>
+               A user who has blocked another user does not get any messages
+               from the blocked user, including invites.
+            </para>
+         </section>
+         <section><title>Examples</title>
+            <para>
+               <example><title>Make a user, "piper", a channel host when they join the channel, "#mychan"</title>
+                  <command>ACCESS #mychan ADD HOST piper</command></example>
+            </para>
+            
+            <para>
+               <example><title>Grant normal access to the network to a few people but deny access to all others</title>
+                  <command>ACCESS * ADD DENY * :closed for private party</command><sbr />
+                  <command>ACCESS * ADD GRANT *.company.com :these people can get on</command></example>
+            </para>
+            
+            <para>
+               <example><title>Delete the DENY access record on the network that denies access to '*'</title>
+                  <command>ACCESS * DELETE DENY *</command>
+                  <note><para>(this doesn't delete other DENY access records such as '*.com')</para></note>   
+               </example>
+            </para>
+            
+            <para>
+               <example><title>Clear all DENY-level entries on the local server</title>
+                  <command>ACCESS $ CLEAR DENY</command></example>
+            </para>
+            
+            <para>
+               <example><title>Clear all access entries of any level for a channel</title>
+                  <command>ACCESS #mychan CLEAR</command></example>
+            </para>
+         </section>
+      </section>
+      <section><title>AUTH Command (new IRCX command)</title>
+         <para>
+            Authenticate the client using an SASL[4] authentication
+            mechanism.
+         </para>
+         <para>
+            Syntax:
+            <synopsis>AUTH &lt;name&gt; &lt;seq&gt; [:&lt;parameter&gt;]</synopsis>
+         </para>
+         <section><title>Parameters</title>
+            <para><token>&lt;name&gt;</token> The name of the SASL mechanism to use for authentication.</para>
+            <para><token>&lt;seq&gt;</token> The sequence is a value of 'I' or 'S'. The 'I' value
+               is specified for the initial AUTH message and the 'S' value is
+               specified  for all  subsequent  AUTH  messages.   If the
+               client specifies '*' for the sequence, the server will abort
+               the authentication sequence and return
+               IRCERR_AUTHENTICATIONFAILED.</para>
+            <para><token>&lt;parameter&gt;</token> This is optional data sent as an argument with
+               the AUTH messages.  The content depends on the authentication
+               mechanism being used.  All content must use standard escaping
+               formats (e.g. \r for carriage return) to comply with IRC
+               message format restrictions.</para>
+         </section>
+         <section><title>Results</title>
+            <para>AUTH message</para>
+         </section>
+         <section><title>Possible Errors</title>
+            <para>
+               ERR_NEEDMOREPARAMS<sbr />
+               IRCERR_ALREADYAUTHENTICATED<sbr />
+               IRCERR_ALREADYREGISTERED<sbr />
+               IRCERR_AUTHENTICATIONFAILED<sbr />
+               IRCERR_AUTHENTICATIONSUSPENDED<sbr />
+               IRCERR_BADCOMMAND<sbr />
+               IRCERR_UNKNOWNPACKAGE<sbr />
+            </para>
+         </section>
+         <section><title>Remarks</title>
+            <para>
+               If the server is known to support IRCX with specific SASL
+               mechanism(s), then the first message from an IRCX-compliant
+               client must be the AUTH command (if authentication is to be
+               used), before the USER and NICK  commands.  Use MODE ISIRCX to
+               determine if the server supports IRCX.
+            </para>
+         </section>
+         <section><title>Example</title>
+            <para>
+               <example><title>Authentication Example</title>
+                  <para>
+                     Client: <command>AUTH NTLM I :&lt;data&gt;</command><sbr />
+                     Server: <command>AUTH NTLM S :&lt;data&gt;</command><sbr />
+                     Client: <command>AUTH NTLM S :&lt;data&gt;</command><sbr />
+                     Server: <command>AUTH NTLM * userid@domain 03FA4534C</command>
+                  </para>
+               </example>
+               <note><title>Editor's Note</title>
+                  <para>The IRCX draft does not make this clear, however, the server's AUTH
+                        response <emphasis>must not</emphasis> contain the server's prefix.</para>
+               </note>
+            </para>
+         </section>
+      </section>
+      <section><title>CREATE (new IRCX command)</title>
+         <para>Create a new channel and/or join an existing channel.</para>
+         <para>
+            Syntax:
+            <synopsis>Syntax: CREATE &lt;channel&gt; [&lt;modes&gt; [&lt;modeargs&gt;]]</synopsis>
+         </para>
+         <section><title>Parameters</title>
+            <para><token>&lt;channel&gt;</token> The name of the channel.</para>
+            <para><token>&lt;modes&gt;</token> Initial channel modes, not separated by spaces (like
+                  MODE command).  Includes mode 'e' to force a clone of a
+                  clonable channel.</para>
+            <para><token>&lt;modeargs&gt;</token> Optional mode arguments, separated by spaces, in
+                  the  same order as the modes.  For the mode 'l' the mode
+                  argument is the maximum number of members in the channel.
+                  For the mode 'k' the mode argument is  the  channel
+                  keyword.  These are the only modes that require mode
+                  arguments.</para>
+         </section>
+         <section><title>Results</title>
+            <para>
+               CREATE message<sbr />
+               JOIN message<sbr />
+               RPL_TOPIC<sbr />
+               RPL_NAMEPLY<sbr />
+               RPL_ENDOFNAMES<sbr />
+            </para>
+         </section>
+         <section><title>Possible Errors</title>
+            <para>
+               ERR_CHANNELEXIST<sbr />
+               ERR_ALREADYONCHANNEL<sbr />
+               ERR_NEEDMOREPARAMS<sbr />
+               ERR_INVITEONLYCHAN<sbr />
+               ERR_CHANNELISFULL<sbr />
+               ERR_BANNEDFROMCHAN<sbr />
+               ERR_BADCHANNELKEY<sbr />
+               ERR_TOOMANYCHANNELS<sbr />
+               ERR_UNKNOWNCOMMAND<sbr />
+            </para>
+         </section>
+         <section><title>Remarks</title>
+            <para>
+               The CREATE command provides a method to specify channel
+               properties at creation time, and also provides a method (flag
+               'c') to create and join a channel only if it does not already
+               exist.  If user is  not  in IRCX mode, server returns
+               ERR_UNKNOWNCOMMAND.
+            </para>
+         </section>
+         <section><title>Example</title>
+            <para>
+               This example shows the creation of a moderated (m) channel
+               with the following properties and modes:  its topic can only
+               be changed by an owner or host (t = TOPICOP), messages from
+               outside the channel are blocked (n = NOEXTERN), it is limited
+               to 50 members (l 50), it has a member key which is 'password'
+               (k password), and it will be created only if it doesn't
+               already exist (c = CREATE).
+               <example><title>Creation Example</title>
+                  <para>
+                     Client: <command>CREATE #MyChannel tnmlkc 50 password</command><sbr />
+                     Server: <command>:&lt;server&gt; CREATE #MyChannel 048532944</command>
+                  </para>
+               </example>
+               <note><title>Editor's Note</title>
+                  <para>This example has been altered slightly from the original IRCX draft's
+                        example to provide clarity.</para>
+               </note>
+            </para>
+         </section>
+         <para>
+            <note><title>Editor's Note</title>
+               <para>
+                  The IRCX draft does not explain CREATE clearly enough, so it is necessary to
+                  further explain the purpose of this command. When a client uses the CREATE
+                  command, the server should either make the user join that channel (if it
+                  exists already), or create and join the channel. If there is a member key set on the
+                  channel and a user tries to use CREATE to join it, they must have specified a key. If not,
+                  ERR_BADCHANNELKEY should be returned. If a user is attempting to CREATE a
+                  channel that already exists, and has specified modes, the server
+                  <emphasis>must not</emphasis> apply these modes to the channel. In addition,
+                  if a user attempts to join a channel using the CREATE command and fails,
+                  the proper error message should be sent.
+               </para>
+               <para>
+                  When a user CREATEs a channel that doesn't already exist, all modes specified in
+                  the command are applied to the channel (assuming the user has permission to apply
+                  said modes).
+               </para>
+               <para>
+                  Every CREATE message should result in that user JOINing the channel (and getting a JOIN reply). The only case
+                  where this may not be true is if the 'c' flag is passed as a mode. When this happens,
+                  a JOIN reply will only occur if the channel does not already exist. If the channel exists and
+                  this mode was passed, ERR_CHANNELEXIST should be returned.
+               </para>
+            </note>
+         </para>
+      </section>
+      <section><title>DATA / REQUEST / REPLY (new IRCX command)</title>
+         <para>
+            Used to send tagged data, requests or replies.  The syntax for
+            each is the same, but clients can use REQUEST to indicate that
+            a REPLY is desired, and use REPLY to indicate that a REQUEST
+            was issued.  If user is not in IRCX mode, server returns
+            ERR_UNKNOWNCOMMAND.
+         </para>
+         <para>
+            Syntax:
+            <synopsis>DATA &lt;target&gt; &lt;tag&gt; :&lt;message&gt;</synopsis>
+            <synopsis>REQUEST &lt;target&gt; &lt;tag&gt; :&lt;message&gt;</synopsis>
+            <synopsis>REPLY &lt;target&gt; &lt;tag&gt; :&lt;message&gt;</synopsis>
+         </para>
+         <section><title>Parameters</title>
+            <para><token>&lt;target&gt;</token> The target for the data. Target can be a nick, list
+                  of nicks, channel, list of channels, or channel followed
+                  by a list  of some members of the channel.  This definition for &lt;target&gt; will be used throughout
+                  this document.</para>
+            <para><token>&lt;tag&gt;</token> Text field that clients use to know how to interpret
+                  the  data.  Valid characters are [A..z], [0..9] and
+                  period (.).  The first character must be one of [A..z].
+                  Maximum 15 characters.  If the tag  begins with ADM, SYS,
+                  OWN or HST then the originator must have appropriate
+                  privileges (Sysop Manager, Sysop, Channel Owner or
+                  Channel Host.  Channel Owner &amp; Host apply to the channel
+                  the message is being sent to.)  The server itself can
+                  send tags beginning with these reserved strings.</para>
+            <para><token>&lt;message&gt;</token> Payload or data for the message, ending with a
+                  newline. Any newlines or other control characters within
+                  the body of the message must be escaped.</para>
+         </section>
+         <section><title>Results</title>
+            <para>DATA message</para>
+         </section>
+         <section><title>Possible Errors</title>
+            <para>ERR_UNKNOWNCOMMAND</para>
+         </section>
+         <section><title>Remarks</title>
+            <para>
+               REPLY and REQUEST may be used to replace "DATA".  IRCX servers
+               should not send DATA commands to clients that have not
+               indicated that they support IRCX. Clients should only process
+               DATA messages if they know and support the tag used.
+            </para>
+            <para>
+               Prefixes should indicate the organization that specified them,
+               when appropriate.  For example:  MYORG.AVATAR could be a tag
+               used by MyOrg, as would be all MYORG.* tags.
+            </para>
+         </section>
+         <section><title>Example</title>
+            <para>
+               <example><title>Sending ad banners from server sysop to channel, "#Channel"</title>
+                  <para><command>DATA #Channel SYS.AD.SMALL :&lt;url-stuff&gt;</command></para></example>
+            </para>
+         </section>
+      </section>
+      <section><title>EVENT (new IRCX command)</title>
+         <para>
+            Add/Change/Delete event logging to the client connection.  The
+            list of event types and the way masks are applied is not
+            specified here.
+         </para>
+         <para>
+            Syntax 1: <synopsis>EVENT [ADD | DELETE] &lt;event&gt; [&lt;mask&gt;]</synopsis>
+            Syntax 2: <synopsis>EVENT LIST [&lt;event&gt;]</synopsis>
+         </para>
+         <section><title>Parameters</title>
+            <para><token>&lt;event&gt;</token> Type of event, such as CHANNEL, MEMBER, SERVER, CONNECTION, SOCKET or USER.</para>
+            <para><token>&lt;mask&gt;</token> Optional mask for applying a selection criteria per event.</para>
+         </section>
+         <section><title>Results</title>
+            <para>
+               IRCRPL_EVENTADD<sbr />
+               IRCRPL_EVENTDEL<sbr />
+               IRCRPL_EVENTSTART<sbr />
+               IRCRPL_EVENTLIST<sbr />
+               IRCRPL_EVENTEND<sbr />
+            </para>
+         </section>
+         <section><title>Possible Errors</title>
+            <para>
+               ERR_NEEDMOREPARAMS<sbr />
+               ERR_NOPRIVILEGES<sbr />
+               IRCERR_BADFUNCTION<sbr />
+               IRCERR_EVENTDUP<sbr />
+               IRCERR_EVENTMIS<sbr />
+               IRCERR_NOSUCHEVENT<sbr />
+               IRCERR_TOOMANYEVENTS<sbr />
+            </para>
+         </section>
+         <section><title>Remarks</title>
+            <para>
+               The EVENT command can be used by other server implementations
+               to define the events that a sysop manager or sysop of the
+               server wishes to be notified of.  Only sysop managers and/or
+               sysops are allowed to receive event messages.
+            </para>
+         </section>
+         <section><title>Examples</title>
+            <para>
+               <example><title>Add channel events</title>
+                  <para>Client: <command>EVENT ADD CHANNEL</command><sbr />
+                        Server: <command>:&lt;server&gt; 806 &lt;nick&gt; CHANNEL *!*@*$*</command></para>
+               </example>
+               
+               <example><title>List all events with no active events returned</title>
+                  <para>Client: <command>EVENT LIST</command><sbr />
+                        Server: <command>:&lt;server&gt; 808 &lt;nick&gt; :Start of events</command></para>
+               </example>
+            </para>
+         </section>
+      </section>
+      <section><title>IRCX (new IRCX command)</title>
+         <para>
+            Enables IRCX mode and displays IRCX status.  Use MODE ISIRCX
+            first to see if the server supports IRCX.
+         </para>
+         <para>Syntax: <synopsis>IRCX</synopsis></para>
+         <section><title>Parameters</title>
+            <para>None.</para>
+         </section>
+         <section><title>Results</title>
+            <para>IRCRPL_IRCX</para>
+         </section>
+         <section><title>Example</title>
+            <para>
+               <example><title>Enable IRCX for the connection on a server that supports IRCX and three authentication packages</title>
+                  <para>Client: <command>IRCX</command><sbr />
+                  Server: <command>:&lt;server&gt; 800 &lt;nick&gt; 1 0 NTLM,DPA,ANON 512 *</command></para>
+               </example>
+               <note><title>Editor's Note</title>
+                  <para>The IRCX command differs from MODE ISIRCX in that the IRCX command enables IRCX. MODE ISIRCX only checks if IRCX is
+                  supported by the server. If IRCX is not supported by the server, the server will return "You have not registered" (if it is
+                  done before registering your connection as a user) or "Not enough parameters" (if you have been known as a user to the server).
+                  If IRCX is supported, the server will send the IRCRPL_IRCX reply. If you have previously turned IRCX on, the "enabled" flag will
+                  be 1. Otherwise, it will be 0. This is important to note: you <emphasis>must not</emphasis> enable IRCX with MODE ISIRCX.</para>
+               </note>
+            </para>
+         </section>
+      </section>
+      <section><title>ISIRCX (new IRCX command)</title>
+         <para>
+            Queries whether or not the server supports the Extended
+            RFC1459 protocol (IRCX).  Server response is same as for IRCX
+            message.
+         </para>
+         <para>Use ISIRCX after logging into the server.</para>
+         <para>Syntax: <synopsis>ISIRCX</synopsis></para>
+         <section><title>Parameters</title>
+            <para>None.</para>
+         </section>
+         <section><title>Results</title>
+            <para>IRCRPL_IRCX</para>
+         </section>
+         <section><title>Example</title>
+            <para>
+               <example><title>Check the server's IRCX support on a server that does not support authentication, before the user has enabled IRCX</title>
+                  <para>Client: <command>ISIRCX</command><sbr />
+                        Server: <command>:&lt;server&gt; 800 &lt;nick&gt; 0 0 ANON 512 *</command></para>
+               </example>
+            </para>
+            <note><title>Editor's Note</title>
+               <para>This example was not in the IRCX draft. I have added it to clarify the differences between IRCX and MODE ISIRCX / ISIRCX.</para>
+            </note>
+         </section>
+      </section>
+      <section><title>LISTX (new IRCX command)</title>
+         <para>
+            Extended version of the LIST command that returns  additional
+            channel properties.   Channels  with  extended names will be
+            returned, even to non-IRCX clients.  Some channel modes and
+            the PICS rating string are included with the result.  Only the
+            channel modes that do not define an additional argument
+            (TOPICOP, NOEXTERN, etc.) are included in the &lt;modes&gt; field.
+            Clients should use the query limit to avoid overloading the
+            client or having the connection dropped by the server.
+         </para>
+         <para>
+            Syntax 1: <synopsis>LISTX [&lt;channel list&gt;]</synopsis>
+            Syntax 2: <synopsis>LISTX &lt;query list&gt; [&lt;query limit&gt;]</synopsis>
+         </para>
+         <section><title>Parameters</title>
+            <para>
+               <token>&lt;channel list&gt;</token>  A list of channels may be specified in order
+                  to  find the PICS ratings or modes of those channels.  If
+                  no channels are specified, the server will send the
+                  entire matching list of channels.
+            </para>
+            <para>
+               <token>&lt;query list&gt;</token>  One or more query terms separated by spaces or
+                  commas.
+               <table frame="all" pgwide="1">
+                  <title>Query terms for LIST command</title>
+                  <tgroup cols="2" align="left" colsep="1" rowsep="1">
+                     <thead>
+                        <row>
+                           <entry>Query Term</entry>
+                           <entry>Description</entry>
+                        </row>
+                     </thead>
+                     <tbody>
+                        <row>
+                           <entry>&lt;#</entry>
+                           <entry>Select channels with less than # members.</entry>
+                        </row>
+                        <row>
+                           <entry>&gt;#</entry>
+                           <entry>Select channels with more than # members.</entry>
+                        </row>
+                        <row>
+                           <entry>C&lt;#</entry>
+                           <entry>Select channels created less than # minutes ago.</entry>
+                        </row>
+                        <row>
+                           <entry>C&gt;#</entry>
+                           <entry>Select channels created greater than # minutes ago.</entry>
+                        </row>
+                        <row>
+                           <entry>L=&lt;mask&gt;</entry>
+                           <entry>Select channels with language property matching the mask string.</entry>
+                        </row>
+                        <row>
+                           <entry>N=&lt;mask&gt;</entry>
+                           <entry>Select channels with name matching the mask string.</entry>
+                        </row>
+                        <row>
+                           <entry>R=0</entry>
+                           <entry>Select unregistered channels.</entry>
+                        </row>
+                        <row>
+                           <entry>R=1</entry>
+                           <entry>Select registered channels.</entry>
+                        </row>
+                        <row>
+                           <entry>S=&lt;mask&gt;</entry>
+                           <entry>Select channels with subject matching the mask string.</entry>
+                        </row>
+                        <row>
+                           <entry>T&lt;#</entry>
+                           <entry>Select channels with a topic changed less than # minutes ago.</entry>
+                        </row>
+                        <row>
+                           <entry>T&gt;#</entry>
+                           <entry>Select channels with a topic changed greater than # minutes ago.</entry>
+                        </row>
+                        <row>
+                           <entry>T=&lt;mask&gt;</entry>
+                           <entry>Select channels that topic matches the mask string.</entry>
+                        </row>
+                        <row>
+                           <entry>&lt;query limit&gt;</entry>
+                           <entry>Maximum number of channels to be returned.</entry>
+                        </row>
+                        <row>
+                           <entry>&lt;mask&gt;</entry>
+                           <entry>Sequence of characters that is used to select
+                              a matching  channel  name  or  topic.   The
+                              character * and ? are used for wildcard
+                              searches.</entry>
+                        </row>
+                     </tbody>
+                  </tgroup>
+               </table>
+            </para>
+         </section>
+         <section><title>Results</title>
+            <para>
+               IRCRPL_LISTXSTART<sbr />
+               IRCRPL_LISTXLIST<sbr />
+               IRCRPL_LISTXPICS<sbr />
+               IRCRPL_LISTXTRUNC<sbr />
+               IRCRPL_LISTXEND<sbr />
+            </para>
+         </section>
+         <section><title>Remarks</title>
+            <para>
+               To compose a mask, use this character escaping scheme.
+               <table frame="all" pgwide="1"><title>Character escaping in mask-string</title>
+                  <tgroup cols="2" align="left" colsep="1" rowsep="1">
+                     <thead>
+                        <row>
+                           <entry>Escaped Character</entry>
+                           <entry>Description</entry>
+                        </row>
+                     </thead>
+                     <tbody>
+                        <row>
+                           <entry>\b</entry>
+                           <entry>For " " blank</entry>
+                        </row>
+                        <row>
+                           <entry>\c</entry>
+                           <entry>for ","</entry>
+                        </row>
+                        <row>
+                           <entry>\\</entry>
+                           <entry>for "\"</entry>
+                        </row>
+                        <row>
+                           <entry>\*</entry>
+                           <entry>for "*" (not wildcard)</entry>
+                        </row>
+                        <row>
+                           <entry>\?</entry>
+                           <entry>for "?" (not wildcard)</entry>
+                        </row>
+                     </tbody>
+                  </tgroup>
+               </table>
+            </para>
+            <para>
+               The PICS property is only returned if not null.
+            </para>
+            <para>
+               A record limit of '0' (zero) or blank will be interpreted as
+               unlimited.
+            </para>
+         </section>
+      </section>
+      <section><title>MODE (extension to RFC1459 command)</title>
+         <para>
+            MODE command can now be used for new user or channel modes
+            (see later sections).  In addition, the special syntax "MODE
+            ISIRCX" can be used to help clients find out whether a server
+            supports IRCX prior to logging into the server.
+         </para>
+         <para>Syntax: <synopsis>MODE ISIRCX</synopsis></para>
+         <section><title>Parameters</title>
+            <para>
+               None in this context (checking IRCX status). For a full list of
+               the original modes and parameters, see RFC 1459 (IRC).
+            </para>
+         </section>
+         <section><title>Results</title>
+            <para>
+               MODE message<sbr />
+               IRCRPL_IRCX
+            </para>
+         </section>
+         <section><title>Remarks</title>
+            <para>
+               The ISIRCX mode (must be in capital letters) is only
+               functional before the user has registered with the server.
+               IRCX servers respond with IRCRPL_IRCX  and  non-IRCX  servers
+               should return an error code.  This allows unregistered users
+               to query whether the server supports IRCX.
+            </para>
+            <para>
+               See RFC1459 for more details on the original MODE command and
+               its parameters.
+            </para>
+         </section>
+         <note><title>Editor's Note</title>
+            <para>This command should only be used to see if the server supports IRCX. It should not enable IRCX.</para>
+         </note>
+      </section>
+      <section><title>NOTICE (extension to RFC1459 command)</title>
+         <para>
+            Sends a notice to a channel or user.  In RFC1459 a notice
+            could only be sent to a channel or a list of users.  Now a
+            notice can be sent to a list of users within the context of a
+            channel.  As before, users will not get the list of users that
+            received the notice.
+         </para>
+         <para>
+            Syntax 1 (RFC 1459 defined):
+            <synopsis>NOTICE &lt;target&gt; :&lt;message&gt;</synopsis>
+            Syntax 2 (IRCX extension):
+            <synopsis>NOTICE &lt;channel&gt; &lt;nickname list&gt; :&lt;message&gt;</synopsis>
+         </para>
+         <section><title>Results</title>
+            <para>
+               Same as defined in RFC1459, but with the additional
+               functionality  of sending to a list of nicknames within the
+               context of a channel.
+            </para>
+         </section>
+         <note><title>Editor's Note</title>
+            <para>This form of NOTICE is like the IRCX WHISPER command. The IRCX draft is not clear about how this
+                  command should function, however I believe that (in order to be compatible with RFC 1459 clients), the
+                  recepients receive the NOTICE as if it got sent to the entire channel.
+                  <example><title>Possible way to handle a "contextual NOTICE"</title>
+                     <para>Client: <command>NOTICE #Channel piper,Jackie,WiZ :Hey guys!</command><sbr />
+                           Server (to recepients): <command>:Username!Ident@Hostname NOTICE #Channel :Hey guys!</command>
+                     </para>
+                  </example>
+            </para>
+            <para>However, a server developer could make the recepients receive the NOTICE with the channel and their nickname in it.
+                  The IRCX draft isn't exactly clear about this. It could also be possible to use the "fallback" that the WHISPER
+                  command calls for: send the extended version if the client supports IRCX, otherwise lose the context and send it
+                  normally.</para>
+         </note>         
+      </section>
+      <section><title>PRIVMSG (extension to RFC1459 command)</title>
+         <para>
+            Sends a message to a channel or user.  PRIVMSG is extended in
+            the same way as NOTICE.
+         </para>
+         <para>
+            Syntax 1 (RFC 1459 defined):
+            <synopsis>PRIVMSG &lt;target&gt; :&lt;message&gt;</synopsis>
+            Syntax 2 (IRCX extension):
+            <synopsis>PRIVMSG &lt;channel&gt; &lt;nickname list&gt; :&lt;message&gt;</synopsis>
+         </para>
+         <section><title>Results</title>
+            <para>
+               Same as defined in RFC1459, but with the additional
+               functionality of sending to a list of nicknames within the
+               context of a channel.
+            </para>
+         </section>
+         <note><title>Editor's Note</title>
+            <para>This form of PRIVMSG is like the IRCX WHISPER command. As with NOTICE, the IRCX draft is not clear about how this
+                  command should function. In order to be compatible with RFC 1459 clients, I believe the
+                  recepients receive the PRIVMSG as if it got sent to the entire channel.
+                  <example><title>Possible way to handle a "contextual PRIVMSG"</title>
+                     <para>Client: <command>PRIVMSG #Channel Romeo,Juliet :Thou shalt not marry!</command><sbr />
+                           Server (to recepients): <command>:Username!Ident@Hostname PRIVMSG #Channel :Thou shalt not marry!</command>
+                     </para>
+                  </example>
+            </para>
+            <para>Because the IRCX draft isn't very clear about this command, a server developer could send the PRIVMSG to the recepients
+                  with both the channel and nickname in the message. It could also be possible to use the "fallback" that the WHISPER
+                  command calls for: send the extended version if the client supports IRCX, otherwise lose the context and send it
+                  normally.</para>
+         </note>           
+      </section>
+      <section><title>PROP (new IRCX command)</title>
+         <para>Add, change or delete a channel data property.</para>
+         <para>Syntax 1 (query a property): <synopsis>PROP &lt;channel&gt; &lt;property&gt;[,&lt;property&gt;]</synopsis></para>
+         <para>Syntax 2 (set or change a property): <synopsis>PROP &lt;channel&gt; &lt;property&gt; :&lt;data&gt;</synopsis></para>
+         <para>Syntax 3 (delete a property): <synopsis>PROP &lt;channel&gt; &lt;property&gt; :</synopsis></para>
+         <section><title>Results</title>
+            <para>
+               PROP message<sbr />
+               IRCRPL_PROPLIST<sbr />
+               IRCRPL_PROPEND<sbr />
+            </para>
+         </section>
+         <section><title>Possible Errors</title>
+            <para>
+               IRCERR_BADCOMMAND<sbr />
+               IRCERR_BADPROPERTY<sbr />
+               IRCERR_SECURITY<sbr />
+               IRCERR_NOSUCHOBJECT<sbr />
+               IRCERR_TOOMANYARGUMENTS<sbr />
+               IRCERR_BADVALUE<sbr />
+            </para>
+         </section>
+         <section><title>Remarks</title>
+            <para>The PROP command provides a new method for manipulating string
+            and numeric properties of channels.  If an optional channel
+            property is not supported on the server, the server should
+            return IRCERR_BADPROPERTY.</para>
+            
+            <para>See later sections for definitions of channel properties. <!-- TODO: Name the section by number and link to it --></para>
+         </section>
+         <section><title>Examples</title>
+            <para>
+               <example><title>Check two properties</title>
+                  <para>Client: <command>PROP #MyChan TOPIC,ONJOIN</command><sbr />
+                        Server: <command>:&lt;server&gt; 818 &lt;nick&gt; #MyChan TOPIC :This is the topic of my channel</command><sbr />
+                        Server: <command>:&lt;server&gt; 818 &lt;nick&gt; #MyChan ONJOIN :Welcome to my channel!</command><sbr />
+                        Server: <command>:&lt;server&gt; 819 &lt;nick&gt; #MyChan :End of properties</command></para>
+               </example>
+               <example><title>Change the TOPIC property</title>
+                  <para>Client: <command>PROP #MyChannel TOPIC :Change my channel topic</command><sbr />
+                        Server: <command>:User!Ident@Host PROP #MyChannel TOPIC :Change my channel topic</command></para>
+               </example>
+               <note><title>Editor's Note</title>
+                  <para>The second example was changed in order to clarify that the client who set the property should have
+                        his/her prefix at the beginning of the response.</para>
+               </note>
+            </para>
+         </section>
+      </section>
+      <section><title>WHISPER (new IRCX command)</title>
+         <para>
+            Whisper to member(s) in a channel.         
+         </para>
+         <para>Syntax: <synopsis>WHISPER &lt;channel&gt; &lt;nick-list&gt; :&lt;message&gt;</synopsis></para>
+         <section><title>Results</title>
+            <para>WHISPER message</para>
+         </section>
+         <section><title>Possible Errors</title>
+            <para>
+               ERR_UNKNOWNCOMMAND<sbr />
+               ERR_CANNOTSENDTOCHAN<sbr />
+               ERR_USERNOTINCHANNEL<sbr />
+               ERR_NEEDMOREPARAMS<sbr />
+               ERR_NOTONCHANNEL<sbr />
+               ERR_TOOMANYTARGETS<sbr />
+               ERR_NOSUCHNICK<sbr />
+               ERR_NOSUCHCHANNEL<sbr />
+               IRCERR_NOWHISPER          
+            </para>
+         </section>
+         <section><title>Remarks</title>
+            <para>
+               The purpose of the WHISPER command is to whisper to one or
+               more members in a channel within the context of that channel.
+               The sender and all recipients must be in the channel
+               specified.  A whisper is different from a privmsg in that it
+               includes both a user list and a channel name, indicating that
+               the message is private but has a context.
+            </para>
+            <para>
+               IRCX clients should display the WHISPER message within the
+               context (possibly a window) of the specified channel.  Non-
+               IRCX clients receive a PRIVMSG with the content of the whisper
+               (losing the context of the whisper). Only one whisper will be
+               sent per nick.  A user may whisper to themselves.
+            </para>
+            <para>
+               The channel mode 'w' will disable whispers between ordinary
+               members of the channel (but not whispers from or to channel
+               operators).     
+            </para>
+         </section>
+         <section><title>Examples</title>
+            <para>
+               <example><title>Send a WHSIPER to a user who is using IRCX</title>
+                  <para>Client: <command>WHISPER #Channel peter :Psst...</command><sbr />
+                        Server (to peter): <command>:User!Ident@Hostname WHISPER #Chanel peter :Psst...</command></para>
+               </example>
+               <example><title>Send a WHISPER to a user who is not using IRCX</title>
+                  <para>Client: <command>WHISPER #Channel J9 :Hello</command><sbr />
+                        Server (to J9): <command>:User!Ident@Hostname PRIVMSG J9 :Hello</command></para>
+               </example>
+               <note><title>Editor's Note</title>
+                  <para>These examples have been added to illustrate what is meant in the "Remarks"
+                  section.</para>
+               </note>
+            </para>
+         </section>
+      </section>
+   </chapter>
+   <chapter><title>IRCX Server Messages</title>
+      <para>
+         This section summarizes new extended messages which can be
+         sent from the server.
+      </para>
+      <section><title>AUTH (new IRCX message)</title>
+         <para>
+            Negotiates authentication with client or informs client that
+            authorization was successful.
+         </para>
+         <para>Syntax 1 (negotiating authorization): <synopsis>AUTH &lt;name&gt; S [:&lt;parameter&gt;]</synopsis></para>
+         <para>Syntax 2 (authorization successful): <synopsis>AUTH &lt;name&gt; * &lt;ident&gt; &lt;oid&gt;</synopsis></para>
+         <section><title>Parameters</title>
+            <para>
+               <token>&lt;name&gt;</token>  The name of the SASL mechanism to use for
+               authentication.
+            </para>
+            <para>
+               <token>&lt;ident&gt;</token>   The ident is the userid@domain of the authenticated
+               client account.  It is returned on the final response from the
+               server (Syntax 2) when authentication is successful.
+            </para>
+            <para>
+               <token>&lt;oid&gt;</token>  The OID is the internal object identifier assigned to
+               the client connection. If not supported by the server, then
+               OID must be returned as '0'.
+            </para>
+            <para>
+               &lt;parameter&gt;  This is optional data sent as an argument with
+               the AUTH messages.
+            </para>
+         </section>
+         <section><title>Remarks</title>
+            <para>
+               The server will send the syntax 2 form when the authentication
+               process is complete or a numeric error reply.
+            </para>
+         </section>
+         <note><title>Editor's Note</title>
+            <para>The AUTH server message does not have a prefix. For a full explaination,
+            see the note on the AUTH client message page.</para>
+         </note>
+      </section>
+      <section><title>CLONE (new IRCX message)</title>
+         <para>Informs the hosts and owners in a CLONEABLE channel that a new CLONE channel was created.</para>
+         <para>Syntax: <command>CLONE &lt;channel-name&gt; &lt;oid&gt;</command></para>
+         <section><title>Parameters</title>
+            <para>
+               <token>&lt;channel-name&gt;</token> The name of the created CLONE channel.
+            </para>
+            <para>
+               <token>&lt;oid&gt;</token>  The object identifier for this new CLONE channel.  The
+               value is implementation-dependent and must equal 0 if not
+               supported.
+            </para>
+         </section>
+         <section><title>Remarks</title>
+            <para>
+               The CLONE message can be sent at anytime to the hosts/owners
+               of a CLONEABLE channel to inform them that a new CLONE channel
+               was created. This message is intended to be used by a custom
+               application to automatically  join the new CLONE channel.  A
+               non-IRCX client will not get this message.
+            </para>
+         </section>
+         <section><title>Example</title>
+            <para>
+               <example><title>A clone of #MyChat is created</title>
+                  <para>Server: <command>:&lt;server&gt; CLONE #MyChat1 034F8FF32</command></para>
+               </example>
+               <note><title>Editor's Note</title>
+                  <para>The IRCX draft does not say if the server's prefix comes before the CLONE message
+                  (as shown in the example). It can be assumed that it should, because RFC 1459 requires
+                  all commands begin with a prefix, except for PING/PONG. IRCX requires that AUTH not
+                  have a prefix, because AUTH happens before registering as a user.</para>
+                  <para>Client developers should expect to see CLONE with and without a prefix, because
+                  the IRCX draft is unclear whether or not it requires a prefix. Server developers should
+                  send the message with a prefix in order to follow the IRC RFC.</para>
+               </note>
+            </para>
+         </section>
+      </section>
+      <section><title>CREATE (new IRCX message)</title>
+         <para>
+            Informs the client that a new channel was created.   Response
+            to the CREATE command.
+         </para>
+         <para>Syntax: <synopsis>CREATE &lt;channel-name&gt; &lt;oid&gt;</synopsis></para>
+         <para><token>&lt;channel-name&gt;</token> The name of the created channel.</para>
+         <para><token>&lt;oid&gt;</token> The object identifier for this new channel.  The value
+            is implementation- dependent and must equal 0 if not
+            supported.
+         </para>
+         <section><title>Remarks</title>
+            <para>
+               The CREATE message is sent in response to a CREATE command
+               sent by the client application if the channel specified did
+               not previously exist and was created by the server.
+            </para>
+         </section>
+         <section><title>Example</title>
+            <para>
+               <example><title>#MyChat1 was created</title>
+                  <para>Server: <command>:&lt;server&gt; CREATE #MyChat1 034F8FF32</command></para>
+               </example>
+            </para>
+         </section>
+         <note><title>Editor's Notes</title>
+            <para>The CREATE message should only be generated if a new channel was created with the CREATE command,
+                  <emphasis>not</emphasis> if the user uses CREATE to join a channel. The JOIN message should also be
+                  sent after this, along with the standard JOIN-related replies (NAMES, for example).</para>
+         </note>
+      </section>
+      <section><title>DATA / REQUEST / REPLY (new IRCX messages)</title>
+         <para>
+            The DATA message (could be REQUEST or REPLY also)  is
+            forwarded from another user or sent by the server.  The
+            payload or message should be interpreted according to the tag.
+            If the tag is unknown, the message may be discarded.
+         </para>
+         <para>Syntax 1: <synopsis>:&lt;sender&gt; DATA &lt;target&gt; &lt;tag&gt; :&lt;message&gt;</synopsis>
+         <synopsis>:&lt;sender&gt; REQUEST &lt;target&gt; &lt;tag&gt; :&lt;message&gt;</synopsis>
+         <synopsis>:&lt;sender&gt; REPLY &lt;target&gt; &lt;tag&gt; :&lt;message&gt;</synopsis></para>
+         <para>
+            If the DATA, REQUEST or REPLY message is sent to a number of
+            members within a channel, the receiving user will see  the
+            channel name and their own nick in the message as follows:
+         </para>
+         <para>Syntax 2: <synopsis>:&lt;sender&gt; DATA &lt;channel&gt; &lt;nick&gt; &lt;tag&gt; :&lt;message&gt;</synopsis>
+               <synopsis>:&lt;sender&gt; REQUEST &lt;channel&gt; &lt;nick&gt; &lt;tag&gt; :&lt;message&gt;</synopsis>
+               <synopsis>:&lt;sender&gt; REPLY &lt;channel&gt; &lt;nick&gt; &lt;tag&gt; :&lt;message&gt;</synopsis></para>
+         <note><title>Editor's Note</title>
+            <para>These are not the original syntaxes listed in the IRCX draft, however, it would seem they made a typographical
+                  error in the draft. Originally, the commands (DATA/REQUEST/REPLY) had a colon before them. However, this is
+                  technically illegal, and the official Microsoft client (Comic Chat) won't even accept the command with the colon
+                  at the beginning. Elsewhere in this document, the DATA/REQUEST/REPLY commands return responses without the colons
+                  (except for the examples in this section). Client developers should expect to see either one, however, server
+                  developers should send the "legal" version (the version here, and what appears to be the only version supported by
+                  Microsoft Exchange Chat Service and Microsoft Comic Chat, which can be assumed to be the official IRCX server/client).</para>
+            <para>Additionally, it does not seem that Microsoft Comic Chat does Syntax 2 properly. It crashes consistantly when it is sent
+                  a message using Syntax 2. Because of this, the server should do something similar to the "extended" PRIVMSG/NOTICE
+                  commands (or WHISPER). Either drop the channel or drop the nickname (it may make more sense to do one or the other, depending on your
+                  view of the situation). This, however, is only a recommendation. The official IRCX draft makes no requirement of this,
+                  and you are free to support Syntax 2 as it is in this draft. However, because Microsoft abandoned the effort to make IRCX
+                  an IETF standard, it could be assumed that they either ditched Syntax 2 altogether, or supports it differently (by dropping
+                  the channel name or the nickname).</para>
+         </note>               
+         <section><title>Parameters</title>
+            <para><token>&lt;sender&gt;</token> May be a user or a server.</para>
+            <para><token>&lt;target&gt;</token> Channel and/or nick list as defined above.</para>
+            <para><token>&lt;tag&gt;</token> Identifying tag.</para>
+            <para><token>&lt;message&gt;</token> Payload.</para>
+         </section>
+         <section><title>Remarks</title>
+            <para>
+               The tag indicates what to do with the message.  Tag types may
+               be specified by administrators, client developers, server
+               developers etc.
+            </para>
+            <para>
+               A tag beginning with SYS can only be from a sysop, sysop
+               manager or  the server.   A tag beginning with ADM can only be
+               from a sysop manager or the server.
+            </para>
+            <para>
+               DATA message functionality is different from client-to-client
+               messaging in several respects.  First, we encourage groups to
+               define their own tags and data formats for special purposes,
+               for example to indicate details for a user's avatar in
+               graphical chats, or to indicate that an ad banner or image
+               should be downloaded.  Second, the DATA  message is more
+               appropriate for content that may go to several users, for
+               example all users in a channel.  Third, the DATA message may
+               come from the server.  Fourth, the SYS and ADM prefixes are
+               specified so that important tags may be reserved for sysops,
+               sysop managers and the server itself, with the server
+               responsible for verifying the sender before forwarding the
+               DATA message.
+            </para>
+         </section>
+      </section>
+      <section><title>EVENT (new IRCX message)</title>
+         <para>
+            Notifies the client of an event.  These events are intended
+            for sysops and sysop managers, and are sent in addition to IRC
+            events.
+         </para>
+         <para>Syntax: <synopsis>:&lt;server&gt; EVENT &lt;time-stamp&gt; &lt;object&gt; &lt;event type&gt; &lt;parameters&gt;</synopsis></para>
+         <section><title>Parameters</title>
+            <para>
+               <token>&lt;time-stamp&gt;</token> The number of elapsed seconds from midnight
+               (00:00:00) January  1, 1970 (coordinated universal time) until
+               the time that the event occurred on the server.
+            </para>
+            <para>
+               <token>&lt;object&gt;</token> Objects can be Channel, Member, User, Connection,
+               Socket or Server.
+            </para>
+            <para>
+               <token>&lt;event type&gt;</token> Event type varies depending on the object.  For
+               example, events for channels can be Create, Destroy, Topic
+               change, Mode change, Collision.
+            </para>
+            <para>
+               <token>&lt;parameters&gt;</token> Vary depending on event type.
+            </para>
+         </section>
+         <section><title>Example</title>
+            <para>
+               This example is the event generated when a user logs onto
+               server, "chat1" with the nickname, "john", showing the user's
+               info including IP address and port.
+            </para>
+            <para>
+               <example><title>Event generated when a user logs on</title>
+                  <para>Server: <command>:chat1 EVENT 946080000 USER LOGON john!jsmith@uw.edu 192.29.93.93:1111</command></para>
+                  <para>(note that this isn't the set of parameters for reporting a user logon that is supported in Microsoft Exchange - since
+                        there is no standard set of parameters, each vendor could do their parameters differently, and you are free to do so)</para>
+               </example>
+            </para>
+         </section>
+         <note><title>Editor's Note</title>
+            <para>Again, the IRCX draft does not specify whether or not a prefix should be expected for this command. Through various tests,
+                  it seems it would be okay to assume that IRCX clients do expect a prefix for this command. Server developers should send
+                  a prefix to maintain proper support for RFC 1459. However, client developers should expect this command with and without
+                  a prefix.</para>
+         </note>         
+      </section>
+      <section><title>KNOCK (new IRCX message)</title>
+         <para>
+            Informs the owners and hosts of a channel that a user has
+            tried to enter the channel and could not (could be because of
+            a full channel, keyword wrong, user ban, or other reasons).
+            This message is only sent to the IRCX owners and hosts of the
+            channel.
+         </para>
+         <para>Syntax: <synopsis>:&lt;user&gt; KNOCK &lt;channel&gt; &lt;reason&gt;</synopsis></para>
+         <section><title>Parameters</title>
+            <para>
+               <token>&lt;user&gt;</token> User field is of the format nick!userid@host.
+            </para>
+            <para>
+               <token>&lt;channel&gt;</token> Name of the channel that the user tried to enter.
+            </para>
+            <para>
+               <token>&lt;reason&gt;</token> Reason that the user received when they tried to
+               join the channel.
+            </para>
+         </section>
+         <section><title>Remarks</title>
+            <para>A KNOCK message will not be sent to a non-IRCX client.</para>
+         </section>
+      </section>
+      <section><title>REDIRECT (new IRCX message)</title>
+         <para>
+            Informs the client that they need to connect to another
+            server.
+         </para>
+         <para>Syntax: <synopsis>:&lt;server&gt; REDIRECT &lt;server-list&gt; :&lt;reason&gt;</synopsis></para>
+         <section><title>Parameters</title>
+            <para>
+               <token>&lt;server-list&gt;</token>  The  server list is a comma separated list of
+               host:port pairs.  The server list can be specified either as
+               a  fully-qualified domain name or by the IP address in quad-
+               dotted notation.
+            </para>
+            <para>
+               <token>&lt;reason&gt;</token>  The redirect reason is an implementation-dependent
+               string which can optionally be displayed to the client.
+            </para>
+         </section>
+         <section><title>Remarks</title>
+            <para>
+               The REDIRECT message can be sent to the client at any time to
+               request that the client disconnect and reconnect to another
+               server specified in the list.  The REDIRECT message is
+               generally sent when a server is to be shutdown.
+            </para>
+            <para>
+               A REDIRECT message will not be sent to a non-IRCX client.
+            </para>
+         </section>
+         <section><title>Example</title>
+            <para>
+               <example><title>Redirect Example</title>
+                  <para>Server: <command>:&lt;server&gt; REDIRECT chat.corp.net:6667,134.9.3.3:6667 :Server full.</command></para>
+               </example>
+            </para>
+         </section>
+         <note><title>Editor's Note</title>
+            <para>The IRCX draft does not specify if the REDIRECT message requires a prefix. Server developers should send
+                  the REDIRECT message with a prefix. Client developers should expect it either way.</para>
+         </note>
+      </section>
+      <section><title>WHISPER (new IRCX message)</title>
+         <para>A whisper from another channel member.</para>
+         <para>Syntax: <synopsis>:&lt;sender&gt; WHISPER &lt;channel&gt; &lt;nick list&gt; :&lt;text&gt;</synopsis></para>
+         <section><title>Parameters</title>
+            <para><token>&lt;sender&gt;</token> The nick-name of the person that sent the whisper.</para>
+            <para><token>&lt;channel&gt;</token> The channel that the message is sent to.</para>
+            <para><token>&lt;nick list&gt;</token> The list of nicknames of channel members that will receive the whisper.</para>
+            <para><token>&lt;text&gt;</token> The content of the whisper.</para>
+         </section>
+         <section><title>Remarks</title>
+            <para>
+               The server may transform a WHISPER into a PRIVMSG for clients
+               that do not support IRCX.
+            </para>
+         </section>
+         <section><title>Example</title>
+            <para>
+               <example><title>Whisper Message Example</title>
+                  <para>Server: <command>:Joe!~joe@localhost WHISPER #test Jill :Test whisper.</command></para>
+               </example>
+            </para>
+         </section>
+         <note><title>Editor's Note</title>
+            <para>If a whisper is being sent to multiple people, you may want to make the server supress the nicknames
+                  other than the person getting the message.</para>
+         </note>
+      </section>
+   </chapter>
+   <chapter><title>User Modes and Properties</title>
+      <para>
+         These are new user modes and properties that have been added.
+         The MODE command as defined in RFC1459 is used to add or
+         remove modes.
+      </para>
+      <section><title>OWNER (IRCX +q)</title>
+         <para>
+            The OWNER mode indicates that the user is an owner of a
+            channel.  Only a channel owner can give OWNER mode to another
+            member of that channel, but any owner may remove OWNER mode
+            from themselves.
+         </para>
+         <para>
+            Clients in IRCX mode see owner nicknames with a '.'  prefix
+            and  continue  to  see  hosts  with  a '@' prefix (in results
+            from NAMES, WHO, WHOIS and other commands which list
+            nicknames).
+         </para>
+         <para>
+            Note that HOST mode uses +o, which was  "operator"  mode  in
+            RFC1459.  Syntax for these modes is the same as "operator"
+            mode:
+         </para>
+         <para>
+            <synopsis>MODE &lt;channel&gt; { + | - }q &lt;nick&gt;</synopsis>
+         </para>
+         <note><title>Editor's Note</title>
+            <para>This is not a "user mode", such as +i (invisible) or +z (gag). This is a channel
+                  user level flag, like +o (operator/host) or +v (voice). The IRCX draft does not
+                  make this clear.</para>
+         </note>
+      </section>
+      <section><title>GAG (IRCX +z)</title>
+         <para>
+            The GAG mode is applied by a sysop or sysop manager on a user
+            and may not be removed except by a sysop or sysop manager.
+            The user may not be notified when this mode is applied because
+            the mode can be a more effective tool for keeping order if the
+            user doesn't know exactly when it is applied.
+         </para>
+         <para>
+            The server will discard all messages from a user with GAG mode
+            to any other user or to any channel.
+         </para>
+         <para><synopsis>MODE &lt;nick&gt; { + | - }z</synopsis></para>
+      </section>
+   </chapter>
+   <chapter><title>Channel Modes and Properties</title>
+      <para>
+         New modes and properties have been added to channels.
+      </para>
+      <para>
+         Channels support four mutually exclusive states of visibility:
+         public, private, hidden, and secret.  The visibility of a
+         channel affects which modes and properties are available to a
+         client.
+      </para>
+      <section><title>Modes</title>
+         <para>
+            Each channel object contains a number of binary mode settings
+            that can be queried and optionally updated via the RFC1459
+            MODE command.
+         </para>
+         <section><title>PUBLIC (RFC1459 default)</title>
+            <para>
+               The channel is public and all information about the channel
+               (except for text messages) can be queried  by  non-members.
+               PUBLIC mode is mutually exclusive with the PRIVATE, HIDDEN and
+               SECRET modes.
+            </para>
+            <para>
+               This mode may be set and queried by sysop managers, owners and
+               hosts of the channel.  It may be queried by sysops, members of
+               the channel, and users.
+            </para>
+            <note><title>Editor's Note</title>
+               <para>The "PUBLIC" mode is not actually a mode, but an absence of the modes
+               +h, +p, and +s.</para>
+            </note>
+         </section>
+         <section><title>PRIVATE (RFC1459 +p)</title>
+            <para>
+               The channel is private and only the name, number of members
+               and PICS property can be queried  by  non-members.  PRIVATE
+               mode is mutually exclusive with the PUBLIC, HIDDEN and SECRET
+               modes.
+            </para>
+            <para>
+               This mode may be set by sysop managers, owners and hosts of
+               the channel.  It may be not be queried by sysops or users.
+            </para>
+         </section>
+         <section><title>HIDDEN (IRCX +h)</title>
+            <para>
+               The channel is hidden and cannot be located by enumeration
+               queries from non-members. HIDDEN mode is mutually exclusive
+               with  the  PUBLIC, PRIVATE, and SECRET modes.  The purpose of
+               the new HIDDEN channel mode is to permit the existence of
+               channels that cannot be found using the standard  LIST
+               command, but whose properties can be queried if the exact
+               channel name is known.  Thus a HIDDEN channel is the same as
+               a PUBLIC channel except that it cannot be enumerated by using
+               a LIST or LISTX command.
+            </para>
+            <para>
+               This mode may be set and queried like PUBLIC mode.
+            </para>
+         </section>
+         <section><title>SECRET (RFC1459 +s)</title>
+            <para>
+               The channel is secret and cannot by located by any query from
+               non-members.  SECRET mode is mutually exclusive with the
+               PUBLIC, PRIVATE, and HIDDEN modes.
+            </para>
+            <para>
+               This mode may be set and queried like PRIVATE mode.
+            </para>
+         </section>
+         <section><title>MODERATED (RFC1459 +m)</title>
+            <para>
+               Normally, new channel members may speak.  In MODERATED  mode
+               however, new channel members may not speak by default.  This
+               is achieved by giving all new members the '-v' mode (no voice)
+               for that channel.  Usually -v mode has no effect, but in a
+               MODERATED channel it does.
+            </para>
+            <para>
+               This mode may be set and queried by sysop managers, owners and
+               hosts of the channel.  It may be queried by sysops and members
+               of the channel.  Users may query this mode if the channel is
+               PUBLIC or HIDDEN.
+            </para>
+         </section>
+         <section><title>NOEXTERN (RFC1459 +n)</title>
+            <para>
+               NOEXTERN  mode  blocks  messages  from  non-members to the
+               channel. A sysop manager can still send a message to the
+               channel.
+            </para>
+            <para>
+               This mode may be set and queried like MODERATED mode.
+            </para>
+         </section>
+         <section><title>TOPICOP (RFC1459 +t)</title>
+            <para>
+               TOPICOP mode permits only channel owners and hosts to change
+               the channel topic property.
+            </para>
+            <para>
+               This mode may be set and queried like MODERATED mode.
+            </para>
+         </section>
+         <section><title>INVITE (RFC1459 +i)</title>
+            <para>
+               INVITE mode permits only invited users to enter the channel.
+               Only owners and hosts can issue an invitation when this mode
+               is on.
+            </para>
+            <para>
+               This mode may be set and queried like MODERATED mode.
+            </para>
+         </section>
+         <section><title>KNOCK (IRCX +u)</title>
+            <para>
+               The KNOCK extended mode causes a KNOCK message to be sent to
+               owners and hosts of the channel if a user attempts to join a
+               channel and the server denies entrance.
+            </para>
+            <para>
+               This mode may be set and queried like MODERATED mode.
+            </para>
+         </section>
+         <section><title>NOFORMAT (IRCX +f)</title>
+            <para>
+               The NOFORMAT channel mode is an indication to the client
+               application not to format text received from  the  channel.
+            </para>
+            <para>
+               Normally clients will prefix text messages with "x said y" or
+               "x whispers to y  and  x", if the NOFORMAT mode is set then
+               just the raw text should be displayed moving to the next line
+               at the end of the message.  The client should not echo text
+               sent by the client.  This is to permit custom applications to
+               control the formatting to clients.  Clients may want to inform
+               users that messages can be spoofed with this mode.
+            </para>
+            <para>
+               This mode can only be set by sysop managers.  It can be read
+               by sysop managers, sysops, owners, hosts and members of the
+               channel.  It can be read by users if the channel is PUBLIC or
+               HIDDEN.
+            </para>
+         </section>
+         <section><title>NOWHISPER (IRCX +w)</title>
+            <para>
+               The NOWHISPER channel mode will prevent all messages sent to
+               specific nicknames within the context of that channel.
+            </para>
+            <para>
+               This channel mode may be set and read by sysop managers and
+               owners.  It can be read by sysops, hosts and members of the
+               channel.  It can be read by other users if the channel is
+               PUBLIC or HIDDEN.
+            </para>
+         </section>
+         <section><title>AUDITORIUM (IRCX +x)</title>
+            <para>
+               The AUDITORIUM channel mode restricts visibility and messaging
+               within a channel.  Members will only see themselves and the
+               hosts/owners in the channel.  Any message sent by a member
+               will only be received by the hosts and owners.  Hosts and
+               owners will see all members in the channel and messages from a
+               host or owner are seen by all channel members.  Ordinary
+               members will not receive JOIN/PART messages from other
+               members.  This mode is designed for channels with so many
+               members that they do not want to see each other.  Note that
+               auditorium mode may only be set at channel creation time using
+               the CREATE command.
+            </para>
+            <para>
+               This mode may be set and read by sysop managers, sysops, and
+               owners.  It may be read by hosts and members of the channel.
+               It can be read by other users if the channel is PUBLIC or
+               HIDDEN.
+            </para>
+         </section>
+         <section><title>REGISTERED (IRCX +r)</title>
+            <para>
+               The channel is registered by the administrator of the chat
+               network. The registration procedure is not defined here.  Only
+               the server or server administrator can set this mode.
+            </para>
+            <para>
+               It can be read by sysop managers, sysops, owners, hosts, and
+               members of the channel.  It can be read by users if the
+               channel is PUBLIC or HIDDEN.
+            </para>
+         </section>
+         <section><title>SERVICE (IRCX +z)</title>
+            <para>
+               A service is monitoring/controlling the channel.  This is an
+               indication  to  the client that message traffic sent to the
+               channel is being monitored by a Chat Service which does not
+               appear as a member in the channel.
+            </para>
+            <para>
+               This mode can only be set by the Chat Server.  It can be read
+               by sysop managers, sysops, owners, hosts and members of the
+               channel.  It can be read by users if the channel is PUBLIC or
+               HIDDEN.
+            </para>
+         </section>
+         <section><title>AUTHONLY (IRCX +a)</title>
+            <para>
+               The AUTHONLY channel mode permits channel access only to users
+               who have been authenticated by the server.  Note that an
+               authenticated user is any user that was successfully
+               authenticated with the PASS command or the AUTH command.
+            </para>
+            <para>
+               This mode can be set and read by sysop managers or owners of
+               the channel.  It can be read by sysops, hosts and members of
+               the channel.  It can be read by users if the channel is PUBLIC
+               or HIDDEN.
+            </para>
+         </section>
+         <section><title>CLONEABLE (IRCX +d)</title>
+            <para>
+               The CLONEABLE channel mode defines a channel that creates new
+               clone channels if the parent channel is full.  A clone channel
+               is created with the same name as the parent cloneable channel
+               with a numeric suffix starting at 1, ranging to 99.  It is not
+               valid to set the CLONEABLE channel mode of a parent channel
+               that ends with a numeric character.   The clone channel
+               inherits modes and properties from the parent channel when it
+               is set up.  When a clone channel is created, any channel  that
+               has the same name is removed.  This prevents channel takeover
+               of a clone channel.
+            </para>
+            <para>
+               It is advised that only sysop be allowed to set cloneable mode
+               on a channel.  The mode may be read by sysops, owners, hosts
+               and members of the channel. It may be read by users if the
+               channel is PUBLIC or HIDDEN.
+            </para>
+         </section>
+         <section><title>CLONE (IRCX +e)</title>
+            <para>
+               The CLONE channel mode defines a channel that was created by
+               the server when a parent CLONEABLE channel becomes full.
+               Users should usually join the parent channel, although a user
+               may join a clone channel that is not full.  A sysop manager
+               can set up a clone channel but only when the channel is being
+               created.
+            </para>
+            <para>
+               This mode can be set by the sysop manager and read like the
+               SERVICE mode.
+            </para>
+         </section>
+      </section>
+      <section><title>Properties</title>
+         <para>
+            Each channel object contains a number of properties that can
+            be queried and optionally updated via the IRCX PROP command.
+            Owners and hosts may update a property for their own channel.
+            Sysop Managers and Sysops can use the PROP command on a
+            channel only by becoming host/owner of that channel.  Users
+            and members can read properties only.
+         </para>
+         <section><title>OID (Read Only)</title>
+            <para>
+               The OID channel property is the internal object identifier for
+               the channel.  As a shortcut, the OID can be optionally used
+               in place of the  full  string  name  of a channel.  If the OID
+               is set to "0", then this feature is not supported on the
+               server.
+            </para>
+            <para>
+               This property may be read by all users, except by ordinary
+               users when the channel is SECRET or PRIVATE.
+            </para>
+         </section>
+         <section><title>NAME (Read Only)</title>
+            <para>
+               The NAME channel property is the name of the channel (limited
+               to 63 characters, including 1 or 2 characters for channel
+               prefix).  Valid characters are as defined in RFC1459.
+            </para>
+            <para>
+               This property may be set and read like the OID property.
+            </para>
+         </section>
+         <section><title>CREATION (Read Only)</title>
+            <para>
+               The CREATION channel property is the time that the channel
+               was created, in number of seconds elapsed since midnight
+               (00:00:00), January 1, 1970, (coordinated universal time).
+            </para>
+            <para>
+               This property may be set and read like the OID property.
+            </para>
+         </section>
+         <section><title>LANGUAGE</title>
+            <para>
+               The LANGUAGE channel property is the preferred language type.
+               The LANGUAGE property is a string limited to 31 characters.
+               We recommend following the guidelines of RFC1766[6] to form
+               well-understood language-defining strings.
+            </para>
+            <para>
+               This property may be set and read by sysop managers, owners
+               and hosts of the channel.  It may be read by sysop managers,
+               sysops and members.  It may be read by users if the channel is
+               PUBLIC or HIDDEN.
+            </para>
+         </section>
+         <section><title>OWNERKEY (Write Only)</title>
+            <para>
+               The OWNERKEY channel property is the owner keyword that will
+               provide owner access when entering the channel.  The OWNERKEY
+               property is limited to 31 characters.
+            </para>
+            <para>
+               This property may be set by the sysop manager or channel
+               owner.  It may never be read.
+            </para>
+         </section>
+         <section><title>HOSTKEY (Write Only)</title>
+            <para>
+               The HOSTKEY channel property is the host keyword that will
+               provide host (channel op) access when entering the channel.
+               The HOSTKEY property is limited to 31 characters.
+            </para>
+            <para>
+               This property may be set and read like the OWNERKEY property.
+            </para>
+         </section>
+         <section><title>MEMBERKEY (Write Only)</title>
+            <para>
+               The MEMBERKEY channel property is the keyword required to
+               enter the channel.  The MEMBERKEY property is limited to 31
+               characters.  This is backwards-compatible with RFC1459 because
+               users can still use the MODE command as an alternative way to
+               set this property.
+            </para>
+            <para>
+               This property may be set and read like the OWNERKEY property.
+            </para>
+         </section>
+         <section><title>PICS</title>
+            <para>
+               The PICS channel property is the current PICS rating of the
+               channel. Chat clients that are PICS enabled can use this
+               property to determine if the channel is appropriate for the
+               user.  The PICS property is limited  to 255 characters.  The
+               format for this field is defined by PICS (see
+               http://www.w3.org).
+            </para>
+            <para>
+               This property may be set by sysop managers and read by all.
+               It may not be read by ordinary users if the channel is SECRET.
+            </para>
+         </section>
+         <section><title>TOPIC</title>
+            <para>
+               The TOPIC channel property is the current topic of the
+               channel.  The TOPIC property is limited to 160 characters.
+            </para>
+            <para>
+               This property may be set and read by sysop managers, owners
+               and hosts of the channel.  It may be read by sysops and
+               members of the channel.  It may be read by users if the
+               channel is PUBLIC or HIDDEN.
+            </para>
+         </section>
+         <section><title>SUBJECT</title>
+            <para>
+               The SUBJECT channel property is a string that can contain
+               subject keywords for search engines.  The SUBJECT property is
+               limited to 31 characters.
+            </para>
+            <para>
+               This property may be set and read like the TOPIC property.
+            </para>
+         </section>
+         <section><title>CLIENT</title>
+            <para>
+               The CLIENT channel property contains client-specified
+               information.  The format is not defined by the server.  The
+               CLIENT property is limited to 255 characters.
+            </para>
+            <para>
+               This property may be set and read like the TOPIC property.
+            </para>
+         </section>
+         <section><title>ONJOIN</title>
+            <para>
+               The ONJOIN channel property contains a string to be sent (via
+               PRIVMSG) to a user after the user has joined the channel.  The
+               channel name is displayed as the sender of the message. Only
+               the user joining the channel will see this message.  Multiple
+               lines can be generated by embedding '\n' in the string.  The
+               ONJOIN property is limited to 255 characters.
+            </para>
+            <para>
+               This property may be set and read by sysop managers, owners
+               and hosts of the channel. It may additionally  be read by
+               sysops.
+            </para>
+         </section>
+         <section><title>ONPART</title>
+            <para>
+               The ONPART channel property contains a string that is sent
+               (via NOTICE) to a user after they have parted from the
+               channel.  The channel name is displayed as the sender of the
+               message.  Only the user parting the channel will see this
+               message.  Multiple lines can be generated  by  embedding '\n'
+               in the string.  The ONPART property is limited to 255
+               characters.
+            </para>
+            <para>
+               This property may be set and read like the ONJOIN property.
+            </para>
+         </section>
+         <note><title>Editor's Note</title>
+            <para>ONJOIN should appear as a PRIVMSG from the channel to the channel (<command>:#Channel PRIVMSG #Channel :Welcome!</command>).
+            ONPART should appear as a NOTICE from the channel to the user (<command>:#Channel NOTICE UserName :Goodbye!</command>).</para>
+         </note>
+         <section><title>LAG</title>
+            <para>
+               The LAG channel property contains a numeric value between 0 to
+               2 seconds.  The server will add an artificial delay of that
+               length between subsequent messages from the same member.  All
+               messages to the channel are affected.
+            </para>
+            <para>
+               This property may be set and read by sysop managers and
+               owners.  It can additionally be read by sysops, hosts, and
+               members of the channel.  It can be read by users if the
+               channel is PUBLIC or HIDDEN.
+            </para>
+            <note><title>Editor's Note</title>
+               <para>The LAG property is used to prevent people from flooding the
+               channel. Basically, the user's messages (if there are more than one)
+               will be lagged by the number set in the LAG property. This is an
+               excellent way to prevent people from doing massive floods, which
+               occasionally will crash clients.</para>
+            </note>
+         </section>
+         <section><title>ACCOUNT</title>
+            <para>
+               The  ACCOUNT channel property contains an implementation-
+               dependent string for attaching a security account.  This
+               controls access to the channel  using the native OS security
+               system.  The ACCOUNT property is limited to 31 characters.
+            </para>
+            <para>
+               This property may be set by sysop managers. It can only be
+               read by sysop managers, sysops and owners of the channel.
+            </para>
+         </section>
+         <section><title>CLIENTGUID</title>
+            <para>
+               The CLIENTGUID channel property contains a GUID that defines
+               the client protocol to be used within the channel.
+            </para>
+            <para>
+               This property may be set and read like the LAG property.
+            </para>
+         </section>
+         <section><title>SERVICEPATH</title>
+            <para>
+               The SERVICEPATH channel property contains the path of a server
+               side extension that is used to control the channel operation.
+               Details are implementation-dependent.
+            </para>
+            <para>
+               This property may be set and read like the LAG property.
+            </para>
+         </section>
+      </section>
+   </chapter>
+   <chapter><title>IRCX Command Responses</title>
+      <para>
+         The new extended IRCX numeric replies follow the same
+         convention as IRC replies, with a specific range for command
+         responses and another range for error results.  The IRCX
+         command responses are in the range of 800 to 899 and 900 to
+         999 for the error results.
+      </para>
+      <section><title>Command Replies</title>
+         <section><title>800 - IRCRPL_IRCX</title>
+            <para><synopsis>&lt;state&gt; &lt;version&gt; &lt;package-list&gt; &lt;maxmsg&gt; &lt;option-list&gt;</synopsis></para>
+            <para>
+               The response to the IRCX and ISIRCX commands.  The <token>&lt;state&gt;</token>
+               indicates if the client has IRCX mode enabled (0 for disabled,
+               1 for enabled).  The <token>&lt;version&gt;</token> is the version of the IRCX
+               protocol starting at 0.   The <token>&lt;package-list&gt;</token> contains a list
+               of authentication packages supported by the server.  The
+               package name of "ANON" is reserved to indicate that anonymous
+               connections are permitted.  The <token>&lt;maxmsg&gt;</token> defines the maximum
+               message size permitted, with the standard being 512. The
+               <token>&lt;option-list&gt;</token> contains a list of options supported by the
+               server; these are implementation-dependent.  If no options are
+               available, the  '*'  character is used.
+            </para>
+         </section>
+         <section><title>801 - IRCRPL_ACCESSADD</title>
+            <para><synopsis>&lt;object&gt; &lt;level&gt; &lt;mask&gt; &lt;timeout&gt; &lt;user&gt; :&lt;reason&gt;</synopsis></para>
+            <para>
+               Response to a successful ACCESS ADD command.  The <token>&lt;object&gt;</token> is
+               the name of the object to which the access restrictions apply
+               (i.e. channel name or user name).  The <token>&lt;level&gt;</token> is the level of
+               access being added (i.e. GRANT, DENY).  The <token>&lt;mask&gt;</token> is the
+               selection mask.  If no mask is provided in the ACCESS command,
+               then the default mask of *!*@*$* is used.  The <token>&lt;timeout&gt;</token> is
+               the amount of time this access entry will last.  The <token>&lt;user&gt;</token> is
+               the one who added the new ACCESS record.  The <token>&lt;reason&gt;</token> is the
+               reason supplied in the ACCESS ADD command.
+            </para>
+         </section>
+         <section><title>802 - IRCRPL_ACCESSDELETE</title>
+            <para><synopsis>&lt;object&gt; &lt;level&gt; &lt;mask&gt;</synopsis></para>
+            <para>
+               Response to a successful ACCESS DELETE command.  See reply
+               801 for explanation of the fields.
+            </para>
+         </section>
+         <section><title>803 - IRCRPL_ACCESSSTART</title>
+            <para><synopsis>&lt;object&gt; :Start of access entries</synopsis></para>
+            <para>
+               Beginning of a list of access entries.  <token>&lt;object&gt;</token> is the object
+               to which the access restrictions apply (i.e. channel name or
+               user name).  The next message will be an IRCRPL_ACCESSLIST or
+               IRCRPL_ACCESSEND reply.
+            </para>
+         </section>
+         <section><title>804 - IRCRPL_ACCESSLIST</title>
+            <para><synopsis>&lt;object&gt; &lt;level&gt; &lt;mask&gt; &lt;timeout&gt; &lt;user&gt; :&lt;reason&gt;</synopsis></para>
+            <para>
+               One entry in a list of access entries.  See reply 801 for
+               explanation of the fields.
+            </para>
+         </section>
+         <section><title>805 - IRCRPL_ACCESSEND</title>
+            <para><synopsis>&lt;object&gt; :End of access entries</synopsis></para>
+            <para>
+               End of a list of access entries. See reply 803 for explanation
+               of the field. This reply will always follow an
+               IRCRPL_ACCESSSTART or IRCRPL_ACCESSLIST reply.
+            </para>
+         </section>
+         <section><title>806 - IRCRPL_EVENTADD</title>
+            <para><synopsis>&lt;event&gt; &lt;mask&gt;</synopsis></para>
+            <para>
+               The acknowledgment response to the EVENT ADD command. The
+               <token>&lt;event&gt;</token> contains the name of the event added. The <token>&lt;mask&gt;</token> is
+               the selection mask.  If no mask is provided in the EVENT
+               command, then the default mask of *!*@*$* is used.
+            </para>
+         </section>
+         <section><title>807 - IRCRPL_EVENTDEL</title>
+            <para><synopsis>&lt;event&gt; &lt;mask&gt;</synopsis></para>
+            <para>
+               The acknowledgment response to the EVENT DELETE command.  The
+               <token>&lt;event&gt;</token> contains the name of the deleted event.  The <token>&lt;mask&gt;</token> is
+               the selection mask.  If no mask is provided in the EVENT
+               command, then the default mask of *!*@*$* is used.
+            </para>
+         </section>
+         <section><title>808 - IRCRPL_EVENTSTART</title>
+            <para><synopsis>:Start of events</synopsis></para>
+            <para>
+               Response to the EVENT LIST <token>&lt;event&gt;</token> message that indicates the
+               start of the event list.
+            </para>
+         </section>
+         <section><title>809 - IRCRPL_EVENTLIST</title>
+            <para><synopsis>&lt;event&gt; &lt;mask&gt;</synopsis></para>
+            <para>
+               Response to the EVENT LIST <token>&lt;event&gt;</token> message that displays a
+               list of current events that the client is interested in.
+            </para>
+         </section>
+      </section>
+   </chapter>
+   <!-- this goes at the end -->
+   <appendix id="gfdl">
+      <title>GNU Free Documentation License</title>
+      <subtitle>Version 1.2, November 2002</subtitle>
+         <blockquote id="fsf-copyright">
+      <title>FSF Copyright note</title>
+         <para>
+      Copyright (C) 2000,2001,2002  Free Software Foundation, Inc.
+      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+      Everyone is permitted to copy and distribute verbatim copies
+      of this license document, but changing it is not allowed.
+      </para>
+      </blockquote>
+         <section id="gfdl-0">
+      <title>PREAMBLE</title>
+         <para>
+      The purpose of this License is to make a manual, textbook, or
+      other functional and useful document "free" in the sense of freedom: to
+      assure everyone the effective freedom to copy and redistribute it, with
+      or without modifying it, either commercially or noncommercially.
+      Secondarily, this License preserves for the author and publisher a way
+      to get credit for their work, while not being considered responsible for
+      modifications made by others.
+      </para>
+         <para>
+      This License is a kind of "copyleft", which means that derivative
+      works of the document must themselves be free in the same sense.  It
+      complements the GNU General Public License, which is a copyleft license
+      designed for free software.
+      </para>
+         <para>
+      We have designed this License in order to use it for manuals for
+      free software, because free software needs free documentation: a free
+      program should come with manuals providing the same freedoms that the
+      software does.  But this License is not limited to software manuals; it
+      can be used for any textual work, regardless of subject matter or
+      whether it is published as a printed book.  We recommend this License
+      principally for works whose purpose is instruction or reference.
+      </para>
+      </section>
+         <section id="gfdl-1">
+      <title>APPLICABILITY AND DEFINITIONS</title>
+         <para id="gfdl-doc">
+      This License applies to any manual or other work, in
+      any medium, that contains a notice placed by the copyright holder saying
+      it can be distributed under the terms of this License.  Such a notice
+      grants a world-wide, royalty-free license, unlimited in duration, to use
+      that work under the conditions stated herein.  The "Document", below,
+      refers to any such manual or work.  Any member of the public is a
+      licensee, and is addressed as "you".  You accept the license if you
+      copy, modify or distribute the work in a way requiring permission under
+      copyright law.
+      </para>
+         <para id="gfdl-mod-ver">
+      A "Modified Version" of the Document means any
+      work containing the Document or a portion of it, either copied verbatim,
+      or with modifications and/or translated into another language.
+      </para>
+         <para id="gfdl-secnd-sect">
+      A "Secondary Section" is a named appendix or
+      a front-matter section of the Document that deals exclusively with the
+      relationship of the publishers or authors of the Document to the
+      Document's overall subject (or to related matters) and contains nothing
+      that could fall directly within that overall subject.  (Thus, if the
+      Document is in part a textbook of mathematics, a Secondary Section may
+      not explain any mathematics.)  The relationship could be a matter of
+      historical connection with the subject or with related matters, or of
+      legal, commercial, philosophical, ethical or political position
+      regarding them.
+      </para>
+         <para id="gfdl-inv-sect">
+      The "Invariant Sections" are certain Secondary
+      Sections whose titles are designated, as being those of Invariant
+      Sections, in the notice that says that the Document is released under
+      this License.  If a section does not fit the above definition of
+      Secondary then it is not allowed to be designated as Invariant.  The
+      Document may contain zero Invariant Sections.  If the Document does not
+      identify any Invariant Sections then there are none.
+      </para>
+         <para id="gfdl-cov-text">
+      The "Cover Texts" are certain short passages of
+      text that are listed, as Front-Cover Texts or Back-Cover Texts, in the
+      notice that says that the Document is released under this License.  A
+      Front-Cover Text may be at most 5 words, and a Back-Cover Text may be at
+      most 25 words.
+      </para>
+         <para id="gfdl-transparent">
+      A "Transparent" copy of the Document means a
+      machine-readable copy, represented in a format whose specification is
+      available to the general public, that is suitable for revising the
+      document straightforwardly with generic text editors or (for images
+      composed of pixels) generic paint programs or (for drawings) some widely
+      available drawing editor, and that is suitable for input to text
+      formatters or for automatic translation to a variety of formats suitable
+      for input to text formatters.  A copy made in an otherwise Transparent
+      file format whose markup, or absence of markup, has been arranged to
+      thwart or discourage subsequent modification by readers is not
+      Transparent.  An image format is not Transparent if used for any
+      substantial amount of text.  A copy that is not "Transparent" is called
+      "Opaque".
+      </para>
+         <para>
+      Examples of suitable formats for Transparent copies include plain
+      ASCII without markup, Texinfo input format, LaTeX input format, SGML or
+      XML using a publicly available DTD, and standard-conforming simple HTML,
+      PostScript or PDF designed for human modification.  Examples of
+      transparent image formats include PNG, XCF and JPG.  Opaque formats
+      include proprietary formats that can be read and edited only by
+      proprietary word processors, SGML or XML for which the DTD and/or
+      processing tools are not generally available, and the machine-generated
+      HTML, PostScript or PDF produced by some word processors for output
+      purposes only.
+      </para>
+         <para id="gfdl-title-page">
+      The "Title Page" means, for a printed book,
+      the title page itself, plus such following pages as are needed to hold,
+      legibly, the material this License requires to appear in the title page.
+      For works in formats which do not have any title page as such, "Title
+      Page" means the text near the most prominent appearance of the work's
+      title, preceding the beginning of the body of the text.
+      </para>
+         <para id="gfdl-entitled">
+      A section "Entitled XYZ" means a named subunit
+      of the Document whose title either is precisely XYZ or contains XYZ in
+      parentheses following text that translates XYZ in another language.
+      (Here XYZ stands for a specific section name mentioned below, such as
+      "Acknowledgements", "Dedications", "Endorsements", or "History".)  To
+      "Preserve the Title" of such a section when you modify the Document
+      means that it remains a section "Entitled XYZ" according to this
+      definition.
+      </para>
+         <para>
+      The Document may include Warranty Disclaimers next to the notice
+      which states that this License applies to the Document.  These Warranty
+      Disclaimers are considered to be included by reference in this License,
+      but only as regards disclaiming warranties: any other implication that
+      these Warranty Disclaimers may have is void and has no effect on the
+      meaning of this License.
+      </para>
+      </section>
+         <section id="gfdl-2">
+      <title>VERBATIM COPYING</title>
+         <para>
+      You may copy and distribute the Document in any medium, either
+      commercially or noncommercially, provided that this License, the
+      copyright notices, and the license notice saying this License applies to
+      the Document are reproduced in all copies, and that you add no other
+      conditions whatsoever to those of this License.  You may not use
+      technical measures to obstruct or control the reading or further copying
+      of the copies you make or distribute.  However, you may accept
+      compensation in exchange for copies.  If you distribute a large enough
+      number of copies you must also follow the conditions in section 3.
+      </para>
+         <para>
+      You may also lend copies, under the same conditions stated above,
+      and you may publicly display copies.
+      </para>
+      </section>
+         <section id="gfdl-3">
+      <title>COPYING IN QUANTITY</title>
+         <para>
+      If you publish printed copies (or copies in media that commonly
+      have printed covers) of the Document, numbering more than 100, and the
+      Document's license notice requires Cover Texts, you must enclose the
+      copies in covers that carry, clearly and legibly, all these Cover Texts:
+      Front-Cover Texts on the front cover, and Back-Cover Texts on the back
+      cover.  Both covers must also clearly and legibly identify you as the
+      publisher of these copies.  The front cover must present the full title
+      with all words of the title equally prominent and visible.  You may add
+      other material on the covers in addition.  Copying with changes limited
+      to the covers, as long as they preserve the title of the Document and
+      satisfy these conditions, can be treated as verbatim copying in other
+      respects.
+      </para>
+         <para>
+      If the required texts for either cover are too voluminous to fit
+      legibly, you should put the first ones listed (as many as fit
+      reasonably) on the actual cover, and continue the rest onto adjacent
+      pages.
+      </para>
+         <para>
+      If you publish or distribute Opaque copies of the Document
+      numbering more than 100, you must either include a machine-readable
+      Transparent copy along with each Opaque copy, or state in or with each
+      Opaque copy a computer-network location from which the general
+      network-using public has access to download using public-standard
+      network protocols a complete Transparent copy of the Document, free of
+      added material.  If you use the latter option, you must take reasonably
+      prudent steps, when you begin distribution of Opaque copies in quantity,
+      to ensure that this Transparent copy will remain thus accessible at the
+      stated location until at least one year after the last time you
+      distribute an Opaque copy (directly or through your agents or retailers)
+      of that edition to the public.
+      </para>
+         <para>
+      It is requested, but not required, that you contact the authors of
+      the Document well before redistributing any large number of copies, to
+      give them a chance to provide you with an updated version of the
+      Document.
+      </para>
+      </section>
+         <section id="gfdl-4">
+      <title>MODIFICATIONS</title>
+         <para>
+      You may copy and distribute a Modified Version of the Document
+      under the conditions of sections 2 and 3 above, provided that you
+      release the Modified Version under precisely this License, with the
+      Modified Version filling the role of the Document, thus licensing
+      distribution and modification of the Modified Version to whoever
+      possesses a copy of it.  In addition, you must do these things in the
+      Modified Version:
+      </para>
+         <orderedlist id="gfdl-modif-cond" numeration="upperalpha">
+      <title>GNU FDL Modification Conditions</title>
+         <listitem>
+         <simpara>
+      Use in the Title Page (and on the covers, if any) a
+        title distinct from that of the Document, and from those of previous
+        versions (which should, if there were any, be listed in the History
+        section of the Document).  You may use the same title as a previous
+        version if the original publisher of that version gives permission.
+      </simpara>
+      </listitem>
+         <listitem>
+         <simpara>
+      List on the Title Page, as authors, one or more
+        persons or entities responsible for authorship of the modifications in
+        the Modified Version, together with at least five of the principal
+        authors of the Document (all of its principal authors, if it has fewer
+        than five), unless they release you from this requirement.
+      </simpara>
+      </listitem>
+         <listitem>
+         <simpara>
+      State on the Title page the name of the publisher of
+        the Modified Version, as the publisher.
+      </simpara>
+      </listitem>
+         <listitem>
+         <simpara>
+      Preserve all the copyright notices of the Document.
+      </simpara>
+      </listitem>
+         <listitem>
+         <simpara>
+      Add an appropriate copyright notice for your
+        modifications adjacent to the other copyright notices.
+      </simpara>
+      </listitem>
+         <listitem>
+         <simpara>
+      Include, immediately after the copyright notices, a
+        license notice giving the public permission to use the Modified
+        Version under the terms of this License, in the form shown in the
+        
+      <link linkend="gfdl-addendum">Addendum</link>
+       below.
+      </simpara>
+      </listitem>
+         <listitem>
+         <simpara>
+      Preserve in that license notice the full lists of
+        Invariant Sections and required Cover Texts given in the Document's
+        license notice.
+      </simpara>
+      </listitem>
+         <listitem>
+      <simpara>Include an unaltered copy of this License.
+      </simpara>
+      </listitem>
+         <listitem>
+         <simpara>
+      Preserve the section Entitled "History", Preserve its
+        Title, and add to it an item stating at least the title, year, new
+        authors, and publisher of the Modified Version as given on the Title
+        Page.  If there is no section Entitled "History" in the Document,
+        create one stating the title, year, authors, and publisher of the
+        Document as given on its Title Page, then add an item describing the
+        Modified Version as stated in the previous sentence.
+      </simpara>
+      </listitem>
+         <listitem>
+         <simpara>
+      Preserve the network location, if any, given in the
+        Document for public access to a Transparent copy of the Document, and
+        likewise the network locations given in the Document for previous
+        versions it was based on.  These may be placed in the "History"
+        section.  You may omit a network location for a work that was
+        published at least four years before the Document itself, or if the
+        original publisher of the version it refers to gives permission.
+      </simpara>
+      </listitem>
+         <listitem>
+         <simpara>
+      For any section Entitled "Acknowledgements" or
+        "Dedications", Preserve the Title of the section, and preserve in the
+        section all the substance and tone of each of the contributor
+        acknowledgements and/or dedications given therein.
+      </simpara>
+      </listitem>
+         <listitem>
+         <simpara>
+      Preserve all the Invariant Sections of the Document,
+        unaltered in their text and in their titles.  Section numbers or the
+        equivalent are not considered part of the section titles.
+      </simpara>
+      </listitem>
+         <listitem>
+         <simpara>
+      Delete any section Entitled "Endorsements".
+        Such a section may not be included in the Modified Version.
+      </simpara>
+      </listitem>
+         <listitem>
+         <simpara>
+      Do not retitle any existing section to be Entitled
+        "Endorsements" or to conflict in title with any Invariant Section.
+      </simpara>
+      </listitem>
+         <listitem>
+      <simpara>Preserve any Warranty Disclaimers.
+      </simpara>
+      </listitem>
+      </orderedlist>
+         <para>
+      If the Modified Version includes new front-matter sections or
+      appendices that qualify as Secondary Sections and contain no material
+      copied from the Document, you may at your option designate some or all
+      of these sections as invariant.  To do this, add their titles to the
+      list of Invariant Sections in the Modified Version's license notice.
+      These titles must be distinct from any other section titles.
+      </para>
+         <para>
+      You may add a section Entitled "Endorsements", provided it
+      contains nothing but endorsements of your Modified Version by various
+      parties--for example, statements of peer review or that the text has
+      been approved by an organization as the authoritative definition of a
+      standard.
+      </para>
+         <para>
+      You may add a passage of up to five words as a Front-Cover Text,
+      and a passage of up to 25 words as a Back-Cover Text, to the end of the
+      list of Cover Texts in the Modified Version.  Only one passage of
+      Front-Cover Text and one of Back-Cover Text may be added by (or through
+      arrangements made by) any one entity.  If the Document already includes
+      a cover text for the same cover, previously added by you or by
+      arrangement made by the same entity you are acting on behalf of, you may
+      not add another; but you may replace the old one, on explicit permission
+      from the previous publisher that added the old one.
+      </para>
+         <para>
+      The author(s) and publisher(s) of the Document do not by this
+      License give permission to use their names for publicity for or to
+      assert or imply endorsement of any Modified Version.
+      </para>
+      </section>
+         <section id="gfdl-5">
+      <title>COMBINING DOCUMENTS</title>
+         <para>
+      You may combine the Document with other documents released under
+      this License, under the terms defined in 
+      <link linkend="gfdl-4">section
+      4</link>
+       above for modified versions, provided that you include in the
+      combination all of the Invariant Sections of all of the original
+      documents, unmodified, and list them all as Invariant Sections of your
+      combined work in its license notice, and that you preserve all their
+      Warranty Disclaimers.
+      </para>
+         <para>
+      The combined work need only contain one copy of this License, and
+      multiple identical Invariant Sections may be replaced with a single
+      copy.  If there are multiple Invariant Sections with the same name but
+      different contents, make the title of each such section unique by adding
+      at the end of it, in parentheses, the name of the original author or
+      publisher of that section if known, or else a unique number.  Make the
+      same adjustment to the section titles in the list of Invariant Sections
+      in the license notice of the combined work.
+      </para>
+         <para>
+      In the combination, you must combine any sections Entitled
+      "History" in the various original documents, forming one section
+      Entitled "History"; likewise combine any sections Entitled
+      "Acknowledgements", and any sections Entitled "Dedications".  You must
+      delete all sections Entitled "Endorsements".
+      </para>
+      </section>
+         <section id="gfdl-6">
+      <title>COLLECTIONS OF DOCUMENTS</title>
+         <para>
+      You may make a collection consisting of the Document and other
+      documents released under this License, and replace the individual copies
+      of this License in the various documents with a single copy that is
+      included in the collection, provided that you follow the rules of this
+      License for verbatim copying of each of the documents in all other
+      respects.
+      </para>
+         <para>
+      You may extract a single document from such a collection, and
+      distribute it individually under this License, provided you insert a
+      copy of this License into the extracted document, and follow this
+      License in all other respects regarding verbatim copying of that
+      document.
+      </para>
+      </section>
+         <section id="gfdl-7">
+      <title>AGGREGATION WITH INDEPENDENT WORKS</title>
+         <para>
+      A compilation of the Document or its derivatives with other
+      separate and independent documents or works, in or on a volume of a
+      storage or distribution medium, is called an "aggregate" if the
+      copyright resulting from the compilation is not used to limit the legal
+      rights of the compilation's users beyond what the individual works
+      permit.  When the Document is included in an aggregate, this License does
+      not apply to the other works in the aggregate which are not themselves
+      derivative works of the Document.
+      </para>
+         <para>
+      If the Cover Text requirement of section 3 is applicable to these
+      copies of the Document, then if the Document is less than one half of
+      the entire aggregate, the Document's Cover Texts may be placed on covers
+      that bracket the Document within the aggregate, or the electronic
+      equivalent of covers if the Document is in electronic form.  Otherwise
+      they must appear on printed covers that bracket the whole
+      aggregate.
+      </para>
+      </section>
+         <section id="gfdl-8">
+      <title>TRANSLATION</title>
+         <para>
+      Translation is considered a kind of modification, so you may
+      distribute translations of the Document under the terms of section 4.
+      Replacing Invariant Sections with translations requires special
+      permission from their copyright holders, but you may include
+      translations of some or all Invariant Sections in addition to the
+      original versions of these Invariant Sections.  You may include a
+      translation of this License, and all the license notices in the
+      Document, and any Warranty Disclaimers, provided that you also include
+      the original English version of this License and the original versions
+      of those notices and disclaimers.  In case of a disagreement between the
+      translation and the original version of this License or a notice or
+      disclaimer, the original version will prevail.
+      </para>
+         <para>
+      If a section in the Document is Entitled "Acknowledgements",
+      "Dedications", or "History", the requirement (section 4) to Preserve its
+      Title (section 1) will typically require changing the actual
+      title.
+      </para>
+      </section>
+         <section id="gfdl-9">
+      <title>TERMINATION</title>
+         <para>
+      You may not copy, modify, sublicense, or distribute the Document
+      except as expressly provided for under this License.  Any other attempt
+      to copy, modify, sublicense or distribute the Document is void, and will
+      automatically terminate your rights under this License.  However,
+      parties who have received copies, or rights, from you under this License
+      will not have their licenses terminated so long as such parties remain
+      in full compliance.
+      </para>
+      </section>
+         <section id="gfdl-10">
+      <title>FUTURE REVISIONS OF THIS LICENSE</title>
+         <para>
+      The Free Software Foundation may publish new, revised versions of
+      the GNU Free Documentation License from time to time.  Such new versions
+      will be similar in spirit to the present version, but may differ in
+      detail to address new problems or concerns.  See
+      http://www.gnu.org/copyleft/.
+      </para>
+         <para>
+      Each version of the License is given a distinguishing version
+      number.  If the Document specifies that a particular numbered version of
+      this License "or any later version" applies to it, you have the option
+      of following the terms and conditions either of that specified version
+      or of any later version that has been published (not as a draft) by the
+      Free Software Foundation.  If the Document does not specify a version
+      number of this License, you may choose any version ever published (not
+      as a draft) by the Free Software Foundation.
+      </para>
+      </section>
+         <section id="gfdl-addendum">
+         <title>
+      ADDENDUM: How to use this License for
+        your documents
+      </title>
+         <para>
+      To use this License in a document you have written, include a copy
+      of the License in the document and put the following copyright and
+      license notices just after the title page:
+      </para>
+         <blockquote id="copyright-sample">
+      <title>Samle Invariant Sections list</title>
+         <para>
+      
+          Copyright (c)  YEAR  YOUR NAME.
+          Permission is granted to copy, distribute and/or modify this document
+          under the terms of the GNU Free Documentation License, Version 1.2
+          or any later version published by the Free Software Foundation;
+          with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+          A copy of the license is included in the section entitled "GNU
+          Free Documentation License".
+      </para>
+      </blockquote>
+         <para>
+      If you have Invariant Sections, Front-Cover Texts and Back-Cover
+      Texts, replace the "with...Texts." line with this:
+      </para>
+         <blockquote id="inv-cover-sample">
+      <title>Sample Invariant Sections list</title>
+         <para>
+      
+          with the Invariant Sections being LIST THEIR TITLES, with the
+          Front-Cover Texts being LIST, and with the Back-Cover Texts being LIST.
+      </para>
+      </blockquote>
+         <para>
+      If you have Invariant Sections without Cover Texts, or some other
+      combination of the three, merge those two alternatives to suit the
+      situation.
+      </para>
+         <para>
+      If your document contains nontrivial examples of program code, we
+      recommend releasing these examples in parallel under your choice of free
+      software license, such as the GNU General Public License, to permit
+      their use in free software.
+      </para>
+      </section>
+      </appendix>   
+</book>

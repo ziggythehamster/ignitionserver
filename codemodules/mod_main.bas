@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_main"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_main.bas,v 1.29 2004/07/21 06:13:45 ziggythehamster Exp $
+' $Id: mod_main.bas,v 1.31 2004/08/08 21:14:32 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -193,7 +193,18 @@ For tmpN = LBound(tmpU) To UBound(tmpU)
   'aren't dead... oh, and don't care about servers
   If (tmpU(tmpN).WaitingForPong = True) And (tmpU(tmpN).AccessLevel < 4) And (tmpU(tmpN).Class = ClassID) Then
     For x = 1 To tmpU(tmpN).OnChannels.Count
-      SendToChan tmpU(tmpN).OnChannels.Item(x), tmpU(tmpN).Prefix & " QUIT :Ping Timeout", vbNullString
+      If tmpU(tmpN).OnChannels.Item(x).IsAuditorium Then
+          If ((tmpU(tmpN).OnChannels.Item(x).Member.Item(tmpU(tmpN).Nick).IsOp) Or (tmpU(tmpN).OnChannels.Item(x).Member.Item(tmpU(tmpN).Nick).IsOwner)) Then
+            SendToChan tmpU(tmpN).OnChannels.Item(x), tmpU(tmpN).Prefix & " QUIT :Ping Timeout", vbNullString
+          Else
+            'the person wasn't a host/owner, so only the hosts/owners know about him/her
+            SendToChanOps tmpU(tmpN).OnChannels.Item(x), tmpU(tmpN).Prefix & " QUIT :Ping Timeout", vbNullString
+          End If
+      Else
+          SendToChan tmpU(tmpN).OnChannels.Item(x), tmpU(tmpN).Prefix & " QUIT :Ping Timeout", vbNullString
+      End If
+          
+      'SendToChan tmpU(tmpN).OnChannels.Item(x), tmpU(tmpN).Prefix & " QUIT :Ping Timeout", vbNullString
     Next x
     If tmpU(tmpN).Hops = 0 Then
       SendToServer "QUIT :Ping Timeout", tmpU(tmpN).Nick
@@ -514,7 +525,7 @@ Do
                     Else
                       SendWsock .index, SPrefix & " 003 " & .Nick & " :This server was (re)started " & StartUpDate, vbNullString, , True
                     End If
-                    SendWsock .index, SPrefix & " 004 " & .Nick & " " & ServerName & " ignitionServer " & UserModes & " " & ChanModes, vbNullString, , True
+                    SendWsock .index, SPrefix & " 004 " & .Nick & " " & ServerName & " ignitionServer-" & AppVersion & " " & UserModes & " " & ChanModes, vbNullString, , True
                     If MaxChannelsPerUser > 0 Then
                       SendWsock .index, SPrefix & " 005 " & .Nick & " IRCX CHANTYPES=# CHANLIMIT=#:" & MaxChannelsPerUser & " NICKLEN=" & NickLen & " PREFIX=(qov).@+ CHANMODES=" & ChanModesX & " NETWORK=" & Replace(IRCNet, " ", "_") & " CASEMAPPING=ascii CHARSET=ascii MAXTARGETS=5 MAXCLONES=" & MaxConnectionsPerIP & " :are supported by this server", vbNullString, , True
                     Else

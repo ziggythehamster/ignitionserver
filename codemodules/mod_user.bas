@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_user"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_user.bas,v 1.35 2004/07/21 05:18:57 ziggythehamster Exp $
+' $Id: mod_user.bas,v 1.40 2004/08/08 21:14:32 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -362,13 +362,12 @@ Else
   cptr.Nick = parv(0)
   cptr.Prefix = ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host
   
-  Dim WasOwner As Boolean, WasOp As Boolean, WasHOp As Boolean, WasVoice As Boolean
+  Dim WasOwner As Boolean, WasOp As Boolean, WasVoice As Boolean
   Dim tmpData As Long
   For m_nick = 1 To cptr.OnChannels.Count
        With cptr.OnChannels.Item(m_nick).Member
          WasOwner = .Item(tempVar).IsOwner
          WasOp = .Item(tempVar).IsOp
-         WasHOp = .Item(tempVar).IsHOp
          WasVoice = .Item(tempVar).IsVoice
          tmpData = 0
          If WasOwner Then tmpData = 6
@@ -414,8 +413,21 @@ If cptr.AccessLevel = 4 Then
         If AscW(CStr(I)) = 35 Then
             Set Chan = Channels(CStr(I))
             If Chan Is Nothing Then GoTo NextCmd
-            If SendToChan(Chan, sptr.Prefix & " " & cmd & " " & Chan.Name & " :" & parv(1), cptr.Nick) Then
-                SendToServer_ButOne cmd & " " & Chan.Name & " :" & parv(1), cptr.ServerName, sptr.Nick
+            If Chan.IsAuditorium Then
+              If ((Chan.Member.Item(sptr.Nick).IsOwner) Or (Chan.Member.Item(sptr.Nick).IsOp)) Then
+                If SendToChan(Chan, sptr.Prefix & " " & cmd & " " & Chan.Name & " :" & parv(1), cptr.Nick) Then
+                  SendToServer_ButOne cmd & " " & Chan.Name & " :" & parv(1), cptr.ServerName, sptr.Nick
+                End If
+              Else
+                'not +qo
+                If SendToChanOps(Chan, sptr.Prefix & " " & cmd & " " & Chan.Name & " :" & parv(1), cptr.Nick) Then
+                  SendToServer_ButOne cmd & " " & Chan.Name & " :" & parv(1), cptr.ServerName, sptr.Nick
+                End If
+              End If
+            Else
+              If SendToChan(Chan, sptr.Prefix & " " & cmd & " " & Chan.Name & " :" & parv(1), cptr.Nick) Then
+                  SendToServer_ButOne cmd & " " & Chan.Name & " :" & parv(1), cptr.ServerName, sptr.Nick
+              End If
             End If
         Else
             Set Recp = GlobUsers(CStr(I))
@@ -474,7 +486,7 @@ Else
             End If
             If .IsModerated Then
               Set ChM = .Member.Item(cptr.Nick)
-              If Not (ChM.IsVoice Or ChM.IsHOp Or ChM.IsOp Or ChM.IsOwner) Then
+              If Not (ChM.IsVoice Or ChM.IsOp Or ChM.IsOwner) Then
                   SendWsock cptr.index, ERR_CANNOTSENDTOCHAN, cptr.Nick & " " & TranslateCode(ERR_CANNOTSENDTOCHAN, , .Name)
                   Set ChM = Nothing
                   GoTo nextmsg
@@ -486,9 +498,24 @@ Else
                 GoTo nextmsg
             End If
             'Deliver the message -Dill
-            If SendToChan(Chan, cptr.Prefix & cmd & .Name & " :" & parv(1), cptr.Nick) Then
-                SendToServer Trim$(cmd) & " " & .Name & " :" & parv(1), cptr.Nick
+            If Chan.IsAuditorium Then
+              If ((Chan.Member.Item(cptr.Nick).IsOwner) Or (Chan.Member.Item(cptr.Nick).IsOp)) Then
+                If SendToChan(Chan, cptr.Prefix & cmd & Chan.Name & " :" & parv(1), cptr.Nick) Then
+                  SendToServer Trim$(cmd) & " " & .Name & " :" & parv(1), cptr.Nick
+                End If
+              Else
+                'not +qo
+                If SendToChanOps(Chan, cptr.Prefix & cmd & Chan.Name & " :" & parv(1), cptr.Nick) Then
+                  SendToServer Trim$(cmd) & " " & .Name & " :" & parv(1), cptr.Nick
+                End If
+              End If
+            Else
+              'not auditorium
+              If SendToChan(Chan, cptr.Prefix & cmd & .Name & " :" & parv(1), cptr.Nick) Then
+                  SendToServer Trim$(cmd) & " " & .Name & " :" & parv(1), cptr.Nick
+              End If
             End If
+           
         End With
         'reset idle time
         cptr.Idle = UnixTime
@@ -551,7 +578,7 @@ Public Function m_who(cptr As clsClient, sptr As clsClient, parv$()) As Long
 On Error Resume Next
 Dim I&, x&, lastchan$, Chan As clsChannel, ChanMember As clsClient, ret As Long, Clients() As clsClient, ChM() As clsChanMember, ExtraInfo$
 If cptr.AccessLevel = 4 Then
-'todo: /who from server
+'TODO: /who from server (is this even possible)
 Else
     Dim OperOnly As Boolean
     If Len(parv(0)) = 0 Then  'if no mask is given, complain -Dill
@@ -571,6 +598,13 @@ Else
         If Chan Is Nothing Then
             SendWsock cptr.index, SPrefix & " " & 315 & " " & cptr.Nick & " " & parv(0) & " :End of /WHO list.", vbNullString, , True
             Exit Function
+        End If
+        'if channel is private or secret, send nothing unless cptr is a member
+        If Not cptr.IsOnChan(Chan.Name) Then
+          If (Chan.IsPrivate) Or (Chan.IsSecret) Then
+            SendWsock cptr.index, SPrefix & " " & 315 & " " & cptr.Nick & " " & parv(0) & " :End of /WHO list.", vbNullString, , True
+            Exit Function
+          End If
         End If
         ChM = Chan.Member.Values
         For I = LBound(ChM) To UBound(ChM)
@@ -594,8 +628,6 @@ Else
                     End If
                 ElseIf ChM(I).IsOp And Not ChM(I).IsOwner Then  '// don't send erroneous chars
                     ExtraInfo = ExtraInfo & "@"
-                'ElseIf ChM(I).IsHOp Then '// kill this bugger :D
-                '    ExtraInfo = ExtraInfo & "%"
                 ElseIf ChM(I).IsVoice And Not ChM(I).IsOwner And Not ChM(I).IsOp Then
                     ExtraInfo = ExtraInfo & "+"
                 End If
@@ -623,11 +655,41 @@ SkipUserInChannel:
                         Exit Function
                     End If
                 End If
+                'TODO: clean up this code a little (lot?)
                 If UCase$(Replace(Clients(I).Prefix, ":", "")) Like UCase$(CreateMask(Replace(parv(0), ":", ""))) Then
                     If Clients(I).OnChannels.Count > 0 And Not Clients(I).IsInvisible Then
-                        'if the client is invisible, don't tell them the bloody channel!
-                        lastchan = Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name & " "
+                        If Not ((Channels(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name).IsSecret) Or (Channels(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name).IsPrivate)) Then
+                          'not private/secret
+                          lastchan = Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name & " "
+                        Else
+                          'private/secret
+                          lastchan = "* "
+                        End If
                     ElseIf Clients(I).OnChannels.Count > 0 And cptr.OnChannels.Count > 0 And Clients(I).IsInvisible Then
+                        If Not ((Channels(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name).IsSecret) Or (Channels(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name).IsPrivate)) Then
+                          'the channel is not private/secret
+                          If cptr.IsOnChan(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name) Then
+                            lastchan = Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name & " "
+                          Else
+                            lastchan = "* "
+                          End If
+                        Else
+                          'the channel is private/secret
+                          If cptr.IsOnChan(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name) Then
+                            lastchan = Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name & " "
+                          Else
+                            lastchan = "* "
+                          End If
+                        End If
+                    ElseIf Channels(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name).IsSecret Then
+                        'if the channel is secret, only show it in a /who if the user is on the channel
+                        If cptr.IsOnChan(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name) Then
+                          lastchan = Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name & " "
+                        Else
+                          lastchan = "* "
+                        End If
+                    ElseIf Channels(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name).IsPrivate Then
+                        'same thing with private
                         If cptr.IsOnChan(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name) Then
                           lastchan = Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name & " "
                         Else
@@ -901,7 +963,19 @@ On Error Resume Next
 If cptr.AccessLevel = 4 Then
     Dim I As Long
     For I = 1 To sptr.OnChannels.Count
-        SendToChan sptr.OnChannels.Item(I), sptr.Prefix & " QUIT :" & parv(0), vbNullString
+      'if the channel is auditorium, only send the quit to everyone
+      'if everyone saw this person to begin with
+      If sptr.OnChannels.Item(I).IsAuditorium Then
+          If ((sptr.OnChannels.Item(I).Member.Item(sptr.Nick).IsOp) Or (sptr.OnChannels.Item(I).Member.Item(sptr.Nick).IsOwner)) Then
+            SendToChan sptr.OnChannels.Item(I), sptr.Prefix & " QUIT :" & parv(0), vbNullString
+          Else
+            'the person wasn't a host/owner, so only the hosts/owners know about him/her
+            SendToChanOps sptr.OnChannels.Item(I), sptr.Prefix & " QUIT :" & parv(0), vbNullString
+          End If
+      Else
+          SendToChan sptr.OnChannels.Item(I), sptr.Prefix & " QUIT :" & parv(0), vbNullString
+      End If
+      'SendToChan sptr.OnChannels.Item(I), sptr.Prefix & " QUIT :" & parv(0), vbNullString
     Next I
     KillStruct sptr.Nick
     SendToServer_ButOne "QUIT " & sptr.Nick & " :" & parv(0), cptr.ServerName, sptr.Nick
@@ -920,18 +994,26 @@ Else
     'like on freenode :)
     If Len(parv(0)) > 0 Then QuitText = """" & parv(0) & """"
     Msg = cptr.Prefix & " QUIT :" & QuitText & vbCrLf
-    For y = 1 To cptr.OnChannels.Count
-        x = cptr.OnChannels.Item(y).Member.Values
-        For I = LBound(x) To UBound(x)
-            If x(I).Member.Hops = 0 Then
-                With x(I).Member
-                    .SendQ = .SendQ & Msg
-                    ColOutClientMsg.Add .index
-                End With
-            End If
-        Next I
-        cptr.OnChannels.Item(y).Member.Remove cptr.Nick
-    Next
+    If cptr.OnChannels.Count > 0 Then
+      For y = 1 To cptr.OnChannels.Count
+          x = cptr.OnChannels.Item(y).Member.Values
+          
+          'if the channel is auditorium, only send the quit to everyone
+          'if everyone saw this person to begin with
+          If cptr.OnChannels.Item(y).IsAuditorium Then
+              If ((cptr.OnChannels.Item(y).Member.Item(cptr.Nick).IsOp) Or (cptr.OnChannels.Item(y).Member.Item(cptr.Nick).IsOwner)) Then
+                SendToChan cptr.OnChannels.Item(y), Replace(Msg, vbCrLf, vbNullString), 0   'Notify all channelmembers -Dill
+              Else
+                'the person wasn't a host/owner, so only the hosts/owners know about him/her
+                SendToChanOps cptr.OnChannels.Item(y), Replace(Msg, vbCrLf, vbNullString), 0   'Notify all ops
+              End If
+          Else
+              SendToChan cptr.OnChannels.Item(y), Replace(Msg, vbCrLf, vbNullString), 0   'Notify all channelmembers -Dill
+          End If
+          
+          cptr.OnChannels.Item(y).Member.Remove cptr.Nick
+      Next
+    End If
     m_error cptr, "Closing Link: (" & QuitText & ")" 'confirm the quit and disconnect the client -Dill
     If Len(cptr.Nick) > 0 Then
       'if there's no nick, don't waste other server's time
@@ -1664,7 +1746,7 @@ Else
             End If
             If .IsModerated Then
               Set ChM = .Member.Item(cptr.Nick)
-              If Not (ChM.IsVoice Or ChM.IsHOp Or ChM.IsOp Or ChM.IsOwner) Then
+              If Not (ChM.IsVoice Or ChM.IsOp Or ChM.IsOwner) Then
                   SendWsock cptr.index, ERR_CANNOTSENDTOCHAN, cptr.Nick & " " & TranslateCode(ERR_CANNOTSENDTOCHAN, , .Name)
                   Set ChM = Nothing
                   GoTo nextmsg

@@ -166,7 +166,7 @@ Begin VB.Form frmMain
    End
    Begin VB.Label lblServerTitle 
       BackStyle       =   0  'Transparent
-      Caption         =   "ignitionServer 0.3.3"
+      Caption         =   "ignitionServer 0.3.4"
       BeginProperty Font 
          Name            =   "Tahoma"
          Size            =   8.25
@@ -235,7 +235,7 @@ Attribute VB_Exposed = False
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
 '
 '
-' $Id: frmMain.frm,v 1.9 2004/07/04 04:49:14 ziggythehamster Exp $
+' $Id: frmMain.frm,v 1.10 2004/07/25 21:32:01 ziggythehamster Exp $
 '
 '
 'This program is free software.

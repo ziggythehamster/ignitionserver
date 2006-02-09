@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_list"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_list.bas,v 1.49 2004/07/25 01:36:35 ziggythehamster Exp $
+' $Id: mod_list.bas,v 1.57 2004/08/13 00:35:08 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -37,7 +37,7 @@ Option Explicit
 Public Const MaxTrafficRate As Long = 100
 
 '-=BUILD DATE=-
-Public Const BuildDate As String = "20040725"
+Public Const BuildDate As String = "20040813"
 
 #Const Debugging = 0
 
@@ -99,6 +99,10 @@ Public QuitLen As Long
 Public MaxWhoLen As Long
 Public MaxListLen As Long
 Public MaxMsgsInQueue As Long
+
+'ircx create join behavior
+Public IRCX_CreateJoin As Boolean
+Public IRCX_CreateJoinReqOp As Boolean
 
 'registered channel mode
 Public RegChanMode_Always As Boolean
@@ -707,6 +711,9 @@ Public Const cmOwner As Long = 113            '+q / owner
 Public Const cmVoice As Long = 118            '+v / voice
 
 'Lowercase
+Public Const cmCreateJoin As Long = 99            '+c / join after create (join flag, not a true mode)
+Public Const cmCloneable As Long = 100        '+d / cloneable
+Public Const cmClone As Long = 101            '+e / clone
 Public Const cmHidden As Long = 104           '+h / hidden
 Public Const cmInviteOnly As Long = 105       '+i / invite only
 Public Const cmKey As Long = 107              '+k / password

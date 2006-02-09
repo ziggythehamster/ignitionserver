@@ -6,7 +6,7 @@
 # DG = DigiGuy (digi_guy@users.sourceforge.net)
 # AW = Airwalk (airwalk@ignition-project.com)
 #
-# $Id: changelog.txt,v 1.110 2004/07/25 01:36:34 ziggythehamster Exp $
+# $Id: changelog.txt,v 1.148 2004/08/13 00:35:08 ziggythehamster Exp $
 #
 ### Project Start ###
 #
@@ -509,3 +509,60 @@ Zg - [21-Jul] - More channel events :)
 Zg - [21-Jul] - Fixed bug #965947 (some events need consistency)
 Zg - [25-Jul] - Preparing for release...
 Zg - [25-Jul] - Fixed bug where you could create a channel with ? or * in the name
+#
+### RELEASE - 0.3.3 - BETA 3 ###
+#
+Zg - [25-Jul] - Version rollup
+Zg - [25-Jul] - Removed Half-Op entirely. We'll never use it, and it doesn't work anyways. Added plus: Saved a few KB of memory
+Zg - [25-Jul] - Began adding support for IRCX auditorium.
+Zg - [26-Jul] - Auditorium is now working, to an extent. Things to do: do PRIVMSG/NOTICE properly, keep double mode sends from occuring
+Zg - [27-Jul] - More Auditorium Stuff!
+Zg - [27-Jul] - Sadly, auditorium is currently broken.
+Zg - [27-Jul] - Auditorium appears to be completely working! Probably need to mess with /who and /whois so users don't appear (shouldn't this go with the +hps bug?)
+Zg - [1-Aug] - Worked on the new XML configuration format
+Zg - [1-Aug] - Clone is now working, to an extent (still tweaking for full effect)
+Zg - [1-Aug] - Modified 004 reply to contain the version of ignitionServer -- for stats programs and such
+Zg - [1-Aug] - VERSION reply now ends in .0
+Zg - [2-Aug] - More work on clone/cloneable. When a clone is created, the properties are propragrated (need to do access lists).
+Zg - [2-Aug] - Fixed bug #1001721 (property propragration happens twice)
+Zg - [2-Aug] - Fixed bug #1001722 (IRC Operators can change properties as if they were owners)
+Zg - [3-Aug] - Completed task #99517 (IRCX cloning - +d/+e)
+Zg - [3-Aug] - Added docs/security to the repository; contains security issues, fixes, etc. More of an informational thing than anything.
+Zg - [5-Aug] - It's August, stupid!
+Zg - [7-Aug] - Hidden, private, and secret now are handled properly with /who.
+Zg - [7-Aug] - /names does +hps properly now
+Zg - [7-Aug] - Work on the format of the XML configuration file -- sadly, the new XML configuration system won't be making it to the next release :( let's try 0.3.5 :P
+Zg - [7-Aug] - Changed the SendQ to be a *bit* more realistic, and to actually have an effect on operations. Basically, 20*512 for clients, 30*512 for opers and 60*512 for opers. That allows for a whole 20 or 30 lines to be in a user's queue at any given time. That's plenty enough.
+Zg - [7-Aug] - More work on the format of the XML configuration file
+Zg - [7-Aug] - Parse error? Huh?
+Zg - [8-Aug] - /whois now honors +phs :)
+Zg - [8-Aug] - /prop honors +phs
+Zg - [8-Aug] - Fixed bug #1001723 (cannot check properties from outside of channel)
+Zg - [8-Aug] - Fixed bug #988743 (+psh don't function properly)
+Zg - [8-Aug] - IRC Operators can now see the channels users are on inside a /whois
+Zg - [8-Aug] - Worked on release notes
+Zg - [8-Aug] - Fixed bug #1005339 (^G allowed in channel names)
+AW - [8-Aug] - Fixed bug #997729 (add X:CREATEMODE)
+AW - [8-Aug] - Removed more halfop code
+Zg - [8-Aug] - Worked on XML Configuration File some more
+Zg - [8-Aug] - Fixed a small bug; X:CREATEMODE now behaves properly
+Zg - [8-Aug] - When the user sends a /quit message in an auditorium, it's handled properly
+Zg - [8-Aug] - Error messages and socket closes are now handled properly in auditoriums
+Zg - [8-Aug] - Ping Timeout QUITs are now handled properly in auditoriums
+Zg - [8-Aug] - Fixed bug #1005367 (auditorium users see erroneous quits)
+Zg - [8-Aug] - More release notes stuff
+Zg - [9-Aug] - It got really annoying trying to use the IRCX Draft for reference, so I'm in the process of translating it to DocBook format. That will make it much simpler to use for reference.
+Zg - [9-Aug] - Some more work on translating the IRCX Draft into DocBook format
+Zg - [9-Aug] - Created a batch file to generate XHTML files with xsltproc
+Zg - [9-Aug] - More commands into DocBook, added some editor's notes
+Zg - [9-Aug] - Few more commands added into the DocBook file
+Zg - [9-Aug] - Added more commands to the IRCX Draft DocBook
+Zg - [9-Aug] - Changed the encoding to UTF-8 in the DocBook
+Zg - [11-Aug] - Quite a few more entries in the DocBook
+Zg - [11-Aug] - Finished the message section of the IRCX Draft DocBook
+Zg - [11-Aug] - Mostly done with the Modes section of the IRCX Draft DocBook port
+Zg - [12-Aug] - Lots more work on the DocBook... I *hope* that the stupid thing will start looking right on SF
+Zg - [12-Aug] - Removed X:CREATEMODE from the config files and stuff because /create is done wrong.
+Zg - [12-Aug] - Updated the MigWiz Config Template
+Zg - [12-Aug] - Updated Release Notes too
+Zg - [13-Aug] - ignitionServer's currently passing QA tests, time to take -cvs from the name

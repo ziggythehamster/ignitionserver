@@ -14,7 +14,7 @@ Attribute VB_Name = "modSox"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: modSox.bas,v 1.15 2004/07/21 05:18:56 ziggythehamster Exp $
+' $Id: modSox.bas,v 1.16 2004/08/08 21:14:32 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -63,18 +63,26 @@ If cptr.AccessLevel < 4 Then
     If cptr.SentQuit Then Exit Sub
     With cptr
         Msg = .Prefix & " QUIT :Client Exited"
-        For y = 1 To .OnChannels.Count
-            x = .OnChannels.Item(y).Member.Values
-            For z = LBound(x) To UBound(x)
-                With x(z).Member
-                    If .Hops = 0 Then
-                        .SendQ = .SendQ & Msg & vbCrLf
-                        ColOutClientMsg.Add .index
-                    End If
-                End With
-            Next z
-            .OnChannels.Item(y).Member.Remove .Nick
-        Next y
+        If cptr.OnChannels.Count > 0 Then
+          For y = 1 To cptr.OnChannels.Count
+              x = cptr.OnChannels.Item(y).Member.Values
+              
+              'if the channel is auditorium, only send the quit to everyone
+              'if everyone saw this person to begin with
+              If cptr.OnChannels.Item(y).IsAuditorium Then
+                  If ((cptr.OnChannels.Item(y).Member.Item(cptr.Nick).IsOp) Or (cptr.OnChannels.Item(y).Member.Item(cptr.Nick).IsOwner)) Then
+                    SendToChan cptr.OnChannels.Item(y), Replace(Msg, vbCrLf, vbNullString), 0   'Notify all channelmembers -Dill
+                  Else
+                    'the person wasn't a host/owner, so only the hosts/owners know about him/her
+                    SendToChanOps cptr.OnChannels.Item(y), Replace(Msg, vbCrLf, vbNullString), 0   'Notify all ops
+                  End If
+              Else
+                  SendToChan cptr.OnChannels.Item(y), Replace(Msg, vbCrLf, vbNullString), 0   'Notify all channelmembers -Dill
+              End If
+              
+              cptr.OnChannels.Item(y).Member.Remove cptr.Nick
+          Next
+        End If
         SendToServer "QUIT :Client Exited", .Nick
         KillStruct .Nick
         .IsKilled = True
@@ -90,7 +98,19 @@ Else
     For I = LBound(User) To UBound(User)
         If User(I).FromLink Is cptr Then
             For z = 1 To User(I).OnChannels.Count
-                SendToChan User(I).OnChannels.Item(z), User(I).Prefix & " QUIT :" & ServerName & " " & cptr.ServerName, vbNullString
+            
+              'account for auditorium
+              If User(I).OnChannels.Item(z).IsAuditorium Then
+                  If ((User(I).OnChannels.Item(z).Member.Item(User(I).Nick).IsOp) Or (User(I).OnChannels.Item(z).Member.Item(User(I).Nick).IsOwner)) Then
+                    SendToChan User(I).OnChannels.Item(z), User(I).Prefix & " QUIT :" & ServerName & " " & cptr.ServerName, vbNullString
+                  Else
+                    'the person wasn't a host/owner, so only the hosts/owners know about him/her
+                    SendToChanOps User(I).OnChannels.Item(z), User(I).Prefix & " QUIT :" & ServerName & " " & cptr.ServerName, vbNullString
+                  End If
+              Else
+                  SendToChan User(I).OnChannels.Item(z), User(I).Prefix & " QUIT :" & ServerName & " " & cptr.ServerName, vbNullString
+              End If
+              'SendToChan User(I).OnChannels.Item(z), User(I).Prefix & " QUIT :" & ServerName & " " & cptr.ServerName, vbNullString
             Next z
             KillStruct User(I).Nick
             SendToServer "QUIT :" & ServerName & " " & cptr.ServerName, User(I).Nick
@@ -321,18 +341,26 @@ Set cptr = Users(insox)
 If cptr Is Nothing Then Exit Sub
 With cptr
     Msg = .Prefix & " QUIT :Socket Error: " & inDescription
-    For y = 1 To .OnChannels.Count
-        x = .OnChannels.Item(y).Member.Values
-        For z = LBound(x) To UBound(x)
-            With x(z).Member
-                If .Hops = 0 Then
-                    .SendQ = .SendQ & Msg & vbCrLf
-                    ColOutClientMsg.Add .index
-                End If
-            End With
-        Next z
-        .OnChannels.Item(y).Member.Remove .Nick
-    Next y
+    If cptr.OnChannels.Count > 0 Then
+      For y = 1 To cptr.OnChannels.Count
+          x = cptr.OnChannels.Item(y).Member.Values
+          
+          'if the channel is auditorium, only send the quit to everyone
+          'if everyone saw this person to begin with
+          If cptr.OnChannels.Item(y).IsAuditorium Then
+              If ((cptr.OnChannels.Item(y).Member.Item(cptr.Nick).IsOp) Or (cptr.OnChannels.Item(y).Member.Item(cptr.Nick).IsOwner)) Then
+                SendToChan cptr.OnChannels.Item(y), Replace(Msg, vbCrLf, vbNullString), 0   'Notify all channelmembers -Dill
+              Else
+                'the person wasn't a host/owner, so only the hosts/owners know about him/her
+                SendToChanOps cptr.OnChannels.Item(y), Replace(Msg, vbCrLf, vbNullString), 0   'Notify all ops
+              End If
+          Else
+              SendToChan cptr.OnChannels.Item(y), Replace(Msg, vbCrLf, vbNullString), 0   'Notify all channelmembers -Dill
+          End If
+          
+          cptr.OnChannels.Item(y).Member.Remove cptr.Nick
+      Next
+    End If
     SendToServer "QUIT :Socket Error: " & inDescription, .Nick
     GenerateEvent "USER", "DISCONNECT", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " :Socket Error: " & inDescription
     GenerateEvent "USER", "LOGOFF", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "")

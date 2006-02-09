@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_serv"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_serv.bas,v 1.27 2004/07/21 06:13:45 ziggythehamster Exp $
+' $Id: mod_serv.bas,v 1.28 2004/08/01 10:46:12 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -79,13 +79,13 @@ If cptr.AccessLevel = 4 Then
     Dim Target As clsClient
     Set Target = Servers(parv(0))
     If Target.ServerName = ServerName Then
-        SendWsock cptr.index, RPL_VERSION & " " & sptr.Nick & " ignitionServer-" & AppVersion & "." & BuildDate & " " & ServerName, ":" & AppComments
+        SendWsock cptr.index, RPL_VERSION & " " & sptr.Nick & " ignitionServer-" & AppVersion & "." & BuildDate & ".0" & " " & ServerName, ":" & AppComments
     Else
         SendWsock Target.FromLink.index, "VERSION", ":" & Target.ServerName, ":" & sptr.Nick
     End If
 Else
     If Len(parv(0)) = 0 Then
-        SendWsock cptr.index, RPL_VERSION & " " & cptr.Nick & " ignitionServer-" & AppVersion & "." & BuildDate & " " & ServerName, ":" & AppComments
+        SendWsock cptr.index, RPL_VERSION & " " & cptr.Nick & " ignitionServer-" & AppVersion & "." & BuildDate & ".0" & " " & ServerName, ":" & AppComments
     Else
         Set sptr = GetServer(parv(0))
         If sptr Is Nothing Then

@@ -14,7 +14,7 @@ Attribute VB_Name = "m_nonstandard"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: m_nonstandard.bas,v 1.4 2004/07/21 03:13:00 ziggythehamster Exp $
+' $Id: m_nonstandard.bas,v 1.5 2004/08/08 06:01:10 airwalklogik Exp $
 '
 '
 'This program is free software.
@@ -181,32 +181,6 @@ For I = 1 To Len(parv(1))
                         SendWsock cptr.index, ERR_USERNOTINCHANNEL & " " & cptr.Nick, TranslateCode(ERR_USERNOTINCHANNEL, parv(Inc), Chan.Name)
                     End If
             End Select
-        'Case cmHOp
-        '    Inc = Inc + 1
-        '    Select Case SetMode
-        '        Case True
-        '            Set ChM = Chan.Member.Item(parv(Inc))
-        '            If Not ChM Is Nothing Then
-        '                If Not ChM.IsHOp Then
-        '                    NewModes = NewModes & "H"
-        '                    Param = Param & parv(Inc) & " "
-        '                    ChM.IsHOp = True
-        '                End If
-        '            Else
-        '                SendWsock cptr.index, ERR_USERNOTINCHANNEL & " " & cptr.Nick, TranslateCode(ERR_USERNOTINCHANNEL, parv(Inc), Chan.Name)
-        '            End If
-        '        Case False
-        '            Set ChM = Chan.Member.Item(parv(Inc))
-        '            If Not ChM Is Nothing Then
-        '                If ChM.IsHOp Then
-        '                    NewModes = NewModes & "H"
-        '                    Param = Param & parv(Inc) & " "
-        '                    ChM.IsHOp = False
-        '                End If
-        '            Else
-        '                SendWsock cptr.index, ERR_USERNOTINCHANNEL & " " & cptr.Nick, TranslateCode(ERR_USERNOTINCHANNEL, parv(Inc), Chan.Name)
-        '            End If
-        '    End Select
         Case cmVoice
             Inc = Inc + 1
             Select Case SetMode

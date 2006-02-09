@@ -14,7 +14,7 @@ Attribute VB_Name = "modConf"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: modConf.bas,v 1.20 2004/07/21 03:13:00 ziggythehamster Exp $
+' $Id: modConf.bas,v 1.21 2004/08/08 06:01:10 airwalklogik Exp $
 '
 '
 'This program is free software.
@@ -443,6 +443,20 @@ Select Case UCase$(Flag)
                         SVSN_NickServ = Line(2)
                     ElseIf UCase$(Line(1)) = "CHANSERV" Then
                         SVSN_ChanServ = Line(2)
+                    End If
+                ElseIf UCase$(Section) = "CREATEMODE" Then
+                    If Line(1) = "0" Then
+                        IRCX_CreateJoin = False
+                        IRCX_CreateJoinReqOp = False
+                    ElseIf Line(1) = "1" Then
+                        IRCX_CreateJoin = True
+                        IRCX_CreateJoinReqOp = False
+                    ElseIf Line(1) = "2" Then
+                        IRCX_CreateJoin = True
+                        IRCX_CreateJoinReqOp = True
+                    Else
+                        IRCX_CreateJoin = False
+                        IRCX_CreateJoinReqOp = False
                     End If
                 End If
               'Everything else is ignored -Dill

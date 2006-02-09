@@ -14,7 +14,7 @@ Attribute VB_Name = "m_extracommands"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: m_extracommands.bas,v 1.9 2004/07/21 03:13:00 ziggythehamster Exp $
+' $Id: m_extracommands.bas,v 1.10 2004/07/25 23:00:25 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -154,13 +154,12 @@ User.Nick = parv(1)
 'USER NICK HostMask NewNick
 GenerateEvent "USER", "NICK", Replace(tmpPrefix, ":", ""), Replace(tmpPrefix, ":", "") & " " & cptr.Nick
 User.Prefix = ":" & User.Nick & "!" & User.User & "@" & User.Host
-Dim WasOwner As Boolean, WasOp As Boolean, WasHOp As Boolean, WasVoice As Boolean
+Dim WasOwner As Boolean, WasOp As Boolean, WasVoice As Boolean
 Dim tmpData As Long
 For NickX = 1 To User.OnChannels.Count
      With User.OnChannels.Item(NickX).Member
        WasOwner = .Item(tempVar).IsOwner
        WasOp = .Item(tempVar).IsOp
-       WasHOp = .Item(tempVar).IsHOp
        WasVoice = .Item(tempVar).IsVoice
        tmpData = 0
        If WasOwner Then tmpData = 6
