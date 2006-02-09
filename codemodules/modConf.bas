@@ -7,10 +7,13 @@ Attribute VB_Name = "modConf"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
-'Contact information: Keith Gable (Ziggy) <ziggy@silentsoft.net>
-'                     Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
+'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
+'
+' $Id: modConf.bas,v 1.3 2004/05/28 20:20:54 ziggythehamster Exp $
+'
 '
 'This program is free software.
 'You can redistribute it and/or modify it under the terms of the
@@ -34,23 +37,23 @@ Public KLine() As KLines
 Public QLine() As QLines
 Public PLine() As PLines
 Public OLine() As OLines
-Public CLine() As CLines
-Public NLine() As NLines
+Public LLine() As LLines
+'Public CLine() as CLines - Coming Soon! - DG
 Public VLine() As VLines
 
 Public Sub Rehash(Flag As String)
-Dim Line() As String, Char As String, Temp As String, ff As Integer: ff = FreeFile
+Dim Line() As String, Char As String, Temp As String, FF As Integer: FF = FreeFile
 Select Case Flag
     Case vbNullString
         ReDim ILine(1): ReDim YLine(1)
         ReDim ZLine(1): ReDim KLine(1)
         ReDim QLine(1): ReDim OLine(1)
-        ReDim NLine(1): ReDim CLine(1)
+        ReDim LLine(1) ': ReDim CLine(1) - This is coming soon! -DG
         ReDim VLine(1): ReDim PLine(1)
         If Dir(App.Path & "\ircx.conf") <> vbNullString Then
-          Open App.Path & "\ircx.conf" For Input As ff
-          Do While Not EOF(ff)
-            Line Input #ff, Temp
+          Open App.Path & "\ircx.conf" For Input As FF
+          Do While Not EOF(FF)
+            Line Input #FF, Temp
             Char = Left$(Temp, 1)
             Temp = Mid$(Temp, 3)
             Select Case Char
@@ -98,25 +101,15 @@ Select Case Flag
                     .AccessFlag = Line(3)
                     .ConnectionClass = CLng(Line(4))
                 End With
-              Case "C"    'Networked -Dill
-                ' "Host Mask" is unsupport right now,
-                'i have no idea what the hell it is used for. -Dill
+              Case "L"  'Link Line -ZG
+                        'Ziggy: With this line we don't need C/N lines so lets do away with them! - DG
                 Line = Split(Temp, ":")
-                ReDim Preserve CLine(UBound(CLine) + 1)
-                With CLine(UBound(CLine))
+                ReDim Preserve LLine(UBound(LLine) + 1)
+                With LLine(UBound(LLine))
                     .Host = Line(0)
                     .Pass = Line(1)
                     .Server = Line(2)
                     If Not Len(Line(3)) = 0 Then .Port = CInt(Line(3))
-                    .ConnectionClass = Line(4)
-                End With
-              Case "N"    'Networked -Dill
-                Line = Split(Temp, ":")
-                ReDim Preserve NLine(UBound(NLine) + 1)
-                With NLine(UBound(NLine))
-                    .Host = Line(0)
-                    .Pass = Line(1)
-                    .Server = Line(2)
                     .ConnectionClass = Line(4)
                 End With
               Case "K"    'Local bans -Dill
@@ -197,9 +190,9 @@ Select Case Flag
                     Die = False
                   End If
                 ElseIf UCase(Section) = "OFFLINEMODE" Then
-                    If Line(1) = "0" Or Line(1) = "off" Then
+                    If Line(1) = "0" Or UCase(Line(1)) = "OFF" Then
                         OfflineMode = False
-                    ElseIf Line(1) = "1" Or Line(1) = "on" Then
+                    ElseIf Line(1) = "1" Or UCase(Line(1)) = "OFF" Then
                         OfflineMode = True
                     Else
                         OfflineMode = False
@@ -208,6 +201,50 @@ Select Case Flag
                     OfflineMessage = Line(1)
                 ElseIf UCase(Section) = "CNOTICE" Then
                     CustomNotice = Line(1)
+                ElseIf UCase(Section) = "MASKDNS" Then
+                    If Line(1) = "0" Then
+                      MaskDNS = False
+                      MaskDNSMD5 = False
+                      MaskDNSHOST = False
+                    ElseIf Line(1) = "1" Then
+                      MaskDNS = True
+                      MaskDNSMD5 = True
+                      MaskDNSHOST = False
+                    ElseIf Line(1) = "2" Then
+                      MaskDNS = True
+                      MaskDNSMD5 = False
+                      MaskDNSHOST = True
+                    Else
+                      MaskDNS = False
+                    End If
+                ElseIf UCase(Section) = "HOSTMASK" Then
+                    HostMask = Line(1)
+                ElseIf UCase(Section) = "SERVERLOCATION" Then
+                    ServerLocation = Line(1)
+                ElseIf UCase(Section) = "CRYPT" Then
+                    If Line(1) = "0" Or UCase(Line(1)) = "OFF" Then
+                        Crypt = False
+                        MD5Crypt = False
+                    ElseIf UCase(Line(1)) = "MD5" Then
+                        Crypt = True
+                        MD5Crypt = True
+                    End If
+                ElseIf UCase(Section) = "ALLOWMULTIPLE" Then
+                  If Line(1) = "0" Or UCase(Line(1)) = "OFF" Then
+                    AllowMultiple = False
+                  ElseIf Line(1) = "1" Or UCase(Line(1)) = "ON" Then
+                    AllowMultiple = True
+                  Else
+                    AllowMultiple = False
+                  End If
+                ElseIf UCase(Section) = "REMOTEPASS" Then
+                  RemotePass = Line(1)
+                ElseIf UCase(Section) = "SVSNICK" Then
+                    If UCase(Line(1)) = "NICKSERV" Then
+                        SVSN_NickServ = Line(2)
+                    ElseIf UCase(Line(1)) = "CHANSERV" Then
+                        SVSN_ChanServ = Line(2)
+                    End If
                 End If
               'Everything else is ignored -Dill
             End Select
@@ -216,7 +253,7 @@ Select Case Flag
           SendSvrMsg "ircx.conf file is missing - quitting"
           Terminate
         End If
-        Close ff
+        Close FF
     Case "-MOTD"
         GetMotD
     Case "-GC"
@@ -237,26 +274,26 @@ End Select
 End Sub
 
 Public Function DoKLine(cptr As clsClient) As Boolean
-Dim i As Long
-For i = 1 To UBound(KLine)
-    If (cptr.IP Like KLine(i).Host) Or (cptr.Host Like KLine(i).Host) Then
-        If (cptr.User Like KLine(i).User) Then
-            m_error cptr, "Closing Link: K: line active (" & KLine(i).Reason & ")"
+Dim I As Long
+For I = 1 To UBound(KLine)
+    If (cptr.IP Like KLine(I).Host) Or (cptr.Host Like KLine(I).Host) Then
+        If (cptr.User Like KLine(I).User) Then
+            m_error cptr, "Closing Link: K: line active (" & KLine(I).Reason & ")"
             KillStruct (cptr.Nick)
             DoKLine = True
             Exit Function
         End If
     End If
-Next i
+Next I
 End Function
 
 Public Function DoILine(cptr As clsClient) As Boolean
-Dim i As Long
-For i = 2 To UBound(ILine)
-    If StrComp(ILine(i).IP, "NOMATCH") = 0 Then
-        If (cptr.Host Like ILine(i).Host) Then
-            cptr.Class = GetYLine(ILine(i).ConnectionClass).index
-            cptr.IIndex = i
+Dim I As Long
+For I = 2 To UBound(ILine)
+    If StrComp(ILine(I).IP, "NOMATCH") = 0 Then
+        If (cptr.Host Like ILine(I).Host) Then
+            cptr.Class = GetYLine(ILine(I).ConnectionClass).index
+            cptr.IIndex = I
             If YLine(cptr.Class).MaxClients = YLine(cptr.Class).CurClients Then
                 cptr.Class = 0
                 m_error cptr, "Closing Link: No more connections from your class allowed"
@@ -265,7 +302,7 @@ For i = 2 To UBound(ILine)
             Else
                 YLine(cptr.Class).CurClients = YLine(cptr.Class).CurClients + 1
             End If
-            If Len(ILine(i).Pass) <> 0 Then
+            If Len(ILine(I).Pass) <> 0 Then
                 cptr.PassOK = False
             Else
                 cptr.PassOK = True
@@ -273,9 +310,9 @@ For i = 2 To UBound(ILine)
             Exit Function
         End If
     Else
-        If (cptr.IP Like ILine(i).IP) Then
-            cptr.Class = GetYLine(ILine(i).ConnectionClass).index
-            cptr.IIndex = i
+        If (cptr.IP Like ILine(I).IP) Then
+            cptr.Class = GetYLine(ILine(I).ConnectionClass).index
+            cptr.IIndex = I
             If YLine(cptr.Class).MaxClients = YLine(cptr.Class).CurClients Then
                 cptr.Class = 0
                 m_error cptr, "Closing Link: No more connections from your class allowed"
@@ -284,7 +321,7 @@ For i = 2 To UBound(ILine)
             Else
                 YLine(cptr.Class).CurClients = YLine(cptr.Class).CurClients + 1
             End If
-            If Len(ILine(i).Pass) <> 0 Then
+            If Len(ILine(I).Pass) <> 0 Then
                 cptr.PassOK = False
             Else
                 cptr.PassOK = True
@@ -292,70 +329,91 @@ For i = 2 To UBound(ILine)
             Exit Function
         End If
     End If
-Next i
+Next I
 End Function
 
 Public Function DoZLine(index As Long, IP As String) As Boolean
-Dim i As Long, buf() As Byte
-For i = 2 To UBound(ZLine)
-    If IP Like ZLine(i).IP Then
-        buf = StrConv("ERROR :Closing Link: 'Z: Lined' " & ZLine(i).Reason & vbCrLf, vbFromUnicode)
+Dim I As Long, buf() As Byte
+For I = 2 To UBound(ZLine)
+    If IP Like ZLine(I).IP Then
+        buf = StrConv("ERROR :Closing Link: 'Z: Lined' " & ZLine(I).Reason & vbCrLf, vbFromUnicode)
         Call Send(Sockets.SocketHandle(index), buf(0), UBound(buf) + 1, 0&)
         DoZLine = True
         Exit Function
     End If
-Next i
+Next I
 End Function
 
 Public Function GetYLine(Class As Long) As YLines
-Dim i As Long
-For i = 2 To UBound(YLine)
-    If YLine(i).id = Class Then
-        GetYLine = YLine(i)
+Dim I As Long
+For I = 2 To UBound(YLine)
+    If YLine(I).id = Class Then
+        GetYLine = YLine(I)
         Exit Function
     End If
-Next i
+Next I
 End Function
 
 Public Function GetMotD()
-Dim ff As Integer, Temp As String
-ff = FreeFile
+Dim FF As Integer, Temp As String
+FF = FreeFile
 If Dir(App.Path & "\ircx.motd") <> vbNullString Then
-  Open App.Path & "\ircx.motd" For Input As ff
+  Open App.Path & "\ircx.motd" For Input As FF
   MotD = SPrefix & " 375 " & vbNullChar & " :- " & ServerName & " Message of the Day -" & vbCrLf
-  Do While Not EOF(ff)
-    Line Input #ff, Temp
+  Do While Not EOF(FF)
+    Line Input #FF, Temp
     MotD = MotD & SPrefix & " 372 " & vbNullChar & " :- " & Temp & vbCrLf
   Loop
   MotD = MotD & SPrefix & " 376 " & vbNullChar & " :End of /MOTD command."
 Else
   MotD = SPrefix & " 422 " & vbNullChar & " :MOTD File is missing"
 End If
-Close ff
+Close FF
 End Function
 
 Public Function GetQLine(Nick As String, AccessLevel As Long) As Long
-Dim i As Long
-For i = 2 To UBound(QLine)
-    If UCase(Nick) Like UCase(QLine(i).Nick) And AccessLevel <> 3 Then
-        GetQLine = i
+Dim I As Long
+For I = 2 To UBound(QLine)
+    If UCase(Nick) Like UCase(QLine(I).Nick) And AccessLevel <> 3 Then
+        GetQLine = I
         Exit Function
     End If
-Next i
+Next I
 End Function
 
 Public Function DoOLine(cptr As clsClient, Pass As String, OperName As String) As Boolean
-Dim i As Long, x As Long
-For i = 2 To UBound(OLine)
-    If StrComp(UCase(OperName), UCase(OLine(i).Name)) = 0 Then
-        If InStr(1, OLine(i).Host, "@") Then
-            If UCase(cptr.User) & "@" & UCase(cptr.RealHost) Like UCase(OLine(i).Host) Then
-                If StrComp(Pass, OLine(i).Pass) = 0 Then
+Dim I As Long, x As Long, tmpPass As String
+Dim tmpFlags As String
+If Crypt = True Then
+    'We have Pass Encryption Now to see what one
+    If MD5Crypt = True Then
+        'We have MD5 so lets encrypt the pass here and now...
+        tmpPass = oMD5.MD5(Pass)
+        Pass = tmpPass
+    End If
+End If
+For I = 2 To UBound(OLine)
+    If StrComp(UCase(OperName), UCase(OLine(I).Name)) = 0 Then
+        If InStr(1, OLine(I).Host, "@") Then
+            If UCase(cptr.User) & "@" & UCase(cptr.RealHost) Like UCase(OLine(I).Host) Then
+                If StrComp(Pass, OLine(I).Pass) = 0 Then
+                    'With the coming of modes like +Z we gotta make sure they aren't set via an oline...(Security)
+                    tmpFlags = OLine(I).AccessFlag
+                    '+r = Registered with NickServ (Just cos your an oper doesn't mean your registered)
+                    tmpFlags = Replace(tmpFlags, "r", "")
+                    '+Z = No oper should ever be a Remote Admin Client Automaticly
+                    tmpFlags = Replace(tmpFlags, "Z", "")
+                    '+S = Services can give themselves +S
+                    tmpFlags = Replace(tmpFlags, "S", "")
+
+                    'this event should be generated _before_ the user becomes an operator
+                    '(no chance in getting his own mode flags thrown at him)
+                    GenerateEvent "USER", "MODECHANGE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & add_umodes(cptr, tmpFlags)
                     cptr.AccessLevel = 3
                     Opers.Add cptr.GUID, cptr
-                    SendWsock cptr.index, "MODE " & cptr.Nick, "+" & add_umodes(cptr, OLine(i).AccessFlag), ":" & cptr.Nick
+                    SendWsock cptr.index, "MODE " & cptr.Nick, "+" & add_umodes(cptr, tmpFlags), ":" & cptr.Nick
                     SendWsock cptr.index, RPL_YOUREOPER, ":You are now an IRC operator"
-                    cptr.Class = GetYLine(OLine(i).ConnectionClass).index
+                    cptr.Class = GetYLine(OLine(I).ConnectionClass).index
                     DoOLine = True
                     Exit Function
                 Else
@@ -367,13 +425,16 @@ For i = 2 To UBound(OLine)
                 Exit Function
             End If
         Else
-            If UCase(cptr.RealHost) Like UCase(OLine(i).Host) Then
-                If StrComp(Pass, OLine(i).Pass) = 0 Then
+            If UCase(cptr.RealHost) Like UCase(OLine(I).Host) Then
+                If StrComp(Pass, OLine(I).Pass) = 0 Then
+                    'this event should be generated _before_ the user becomes an operator
+                    '(no chance in getting his own mode flags thrown at him)
+                    GenerateEvent "USER", "MODECHANGE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & add_umodes(cptr, OLine(I).AccessFlag)
                     cptr.AccessLevel = 3
                     Opers.Add cptr.GUID, cptr
-                    SendWsock cptr.index, "MODE " & cptr.Nick, "+" & add_umodes(cptr, OLine(i).AccessFlag), ":" & cptr.Nick
+                    SendWsock cptr.index, "MODE " & cptr.Nick, "+" & add_umodes(cptr, OLine(I).AccessFlag), ":" & cptr.Nick
                     SendWsock cptr.index, RPL_YOUREOPER, ":You are now an IRC operator"
-                    cptr.Class = GetYLine(OLine(i).ConnectionClass).index
+                    cptr.Class = GetYLine(OLine(I).ConnectionClass).index
                     DoOLine = True
                     Exit Function
                 Else
@@ -386,36 +447,43 @@ For i = 2 To UBound(OLine)
             End If
         End If
     End If
-Next i
+Next I
 SendWsock cptr.index, ERR_NOOPERHOST, TranslateCode(ERR_NOOPERHOST)
 End Function
 
-Public Function GetCLine(Server As String) As CLines
-Dim i As Long
-For i = 2 To UBound(CLine)
-    If CLine(i).Server Like Server Then
-        GetCLine = CLine(i)
+Public Function GetLLineC(Server As String) As LLines
+Dim I As Long
+For I = 2 To UBound(LLine)
+    If LLine(I).Server Like Server Then
+        GetLLineC = LLine(I)
         Exit Function
     End If
-Next i
+Next I
 End Function
 
-Public Function GetNLine(IP As String) As NLines
-Dim i As Long
-For i = 2 To UBound(NLine)
-    If NLine(i).Host = IP Then
-        GetNLine = NLine(i)
+Public Function GetLLineN(IP As String) As LLines
+Dim I As Long
+For I = 2 To UBound(LLine)
+    If LLine(I).Host = IP Then
+        GetLLineN = LLine(I)
         Exit Function
     End If
-Next i
+Next I
 End Function
 
 Public Sub DoVLine(cptr As clsClient, Login$, Pass$)
-Dim i&
-For i = 2 To UBound(VLine)
-    With VLine(i)
+Dim I&
+If Crypt = True Then
+    'We have Pass Encryption Now to see what one
+    If MD5Crypt = True Then
+        'We have MD5 so lets encrypt the pass here and now...
+        Pass = oMD5.MD5(Pass)
+    End If
+End If
+For I = 2 To UBound(VLine)
+    With VLine(I)
         If StrComp(UCase(.Name), UCase(Login)) = 0 Then
-            If UCase(cptr.User) & "@" & UCase(cptr.Host) Like UCase(.Host) Then
+            If UCase(cptr.User) & "@" & UCase(cptr.RealHost) Like UCase(.Host) Then
                 If Pass = .Pass Then
                     cptr.Host = .Vhost
                     cptr.Prefix = ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host
@@ -431,31 +499,31 @@ For i = 2 To UBound(VLine)
             End If
         End If
     End With
-Next i
+Next I
 SendWsock cptr.index, "NOTICE " & cptr.Nick, ":Invalid login name"
 End Sub
 
-Public Function DoNLine(cptr As clsClient) As Boolean
-Dim i&
-For i = 2 To UBound(NLine)
-    If cptr.IP Like NLine(i).Host Then
-        cptr.Class = GetYLine(NLine(i).ConnectionClass).index
+Public Function DoLLine(cptr As clsClient) As Boolean
+Dim I&
+For I = 2 To UBound(LLine)
+    If cptr.IP Like LLine(I).Host Then
+        cptr.Class = GetYLine(LLine(I).ConnectionClass).index
         If cptr.Class < 2 Then
             m_error cptr, "Closing Link: No class specified for your host"
-            DoNLine = True
+            DoLLine = True
             Exit Function
         End If
-        cptr.IIndex = i
+        cptr.IIndex = I
         If YLine(cptr.Class).MaxClients = YLine(cptr.Class).CurClients Then
             cptr.Class = 0
             cptr.IIndex = 0
             m_error cptr, "Closing Link: No more connections from your class allowed"
-            DoNLine = True
+            DoLLine = True
             Exit Function
         Else
             YLine(cptr.Class).CurClients = YLine(cptr.Class).CurClients + 1
         End If
-        If Len(NLine(i).Pass) <> 0 Then
+        If Len(LLine(I).Pass) <> 0 Then
             cptr.PassOK = False
         Else
             cptr.PassOK = True
@@ -463,6 +531,6 @@ For i = 2 To UBound(NLine)
         cptr.AccessLevel = 4
         Exit Function
     End If
-Next i
+Next I
 End Function
 

@@ -1,6 +1,8 @@
 			#######################
 			#ignitionServer README#
 			#######################
+# $Id: readme.txt,v 1.3 2004/05/28 20:20:55 ziggythehamster Exp $
+
 
 	===========++++++++===========++++++++===========
 
@@ -13,7 +15,7 @@ If you are not familiar with the GPL, please read LICENSE.TXT.
 Released under the GNU General Public License
 
 Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-                     Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
 
 ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 

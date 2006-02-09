@@ -21,11 +21,13 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
-'Contact information: Keith Gable (Ziggy) <ziggy@silentsoft.net>
-'                     Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
+'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
-
+'
+' $Id: clsClient.cls,v 1.3 2004/05/28 20:20:53 ziggythehamster Exp $
+'
 '
 'This program is free software.
 'You can redistribute it and/or modify it under the terms of the
@@ -78,9 +80,12 @@ Public WhoisAccessLevel As Integer 'AccessLevel of user asking for /whois
 Public IsInvisible As Boolean
 Public IsLocOperator As Boolean
 Public IsGlobOperator As Boolean
+Public IsNetAdmin As Boolean
 Public IsServerMsg As Boolean
 Public IsCloaked As Boolean
 Public IsRegistered As Boolean
+Public IsProtected As Boolean
+Public IsRemoteAdmClient As Boolean
 Public CanGlobKill As Boolean
 Public CanLocKill As Boolean
 Public CanDie As Boolean
@@ -90,6 +95,7 @@ Public CanKline As Boolean
 Public CanUnkline As Boolean
 Public CanLocRoute As Boolean
 Public CanGlobRoute As Boolean
+Public CanAdd As Boolean
 
 Public Idle As Long
 Public SentQuit As Boolean
@@ -99,9 +105,10 @@ Public PassOK As Boolean
 Public FromLink As clsClient
 Public UpLink As String
 Public HasRegistered As Boolean
-Public Nlined As Boolean
+Public LLined As Boolean
 
 Public OnChannels As clsOnChannels
+Public Events As clsEvents 'for event system
 Public Timeout As Long
 Public Hops As Long
 Public tmp As String, tmpused As Boolean 'Telnet support -Dill
@@ -113,45 +120,53 @@ Public MsgsInQueue As Long
 
 Public Function IsOnChan(Channel As String) As Boolean
 On Error Resume Next
-Dim i&
-For i = 1 To OnChannels.Count
-  If StrComp(OnChannels.Item(i).Name, Channel, vbTextCompare) = 0 Then
+Dim I&
+For I = 1 To OnChannels.Count
+  If StrComp(OnChannels.Item(I).Name, Channel, vbTextCompare) = 0 Then
     IsOnChan = True
     Exit Function
   End If
-Next i
+Next I
 End Function
 
 Public Function GetOnChans() As String
 Dim Chan As clsChannel, x&
-Dim i&
-For i = 1 To OnChannels.Count
-    With OnChannels.Item(i).Member.Item(Nick)
+Dim I&
+For I = 1 To OnChannels.Count
+    With OnChannels.Item(I).Member.Item(Nick)
         If .IsOwner Then
-            GetOnChans = GetOnChans & "." & OnChannels.Item(i).Name & " "
+            GetOnChans = GetOnChans & "." & OnChannels.Item(I).Name & " "
         ElseIf .IsOp Then
-            GetOnChans = GetOnChans & "@" & OnChannels.Item(i).Name & " "
+            GetOnChans = GetOnChans & "@" & OnChannels.Item(I).Name & " "
         'ElseIf .IsHOp Then 'HalfOp seems to be an unwriten standard in IRC now...
         '    GetOnChans = GetOnChans & "%" & OnChannels.Item(i).Name & " "
         ElseIf .IsVoice Then
-            GetOnChans = GetOnChans & "+" & OnChannels.Item(i).Name & " "
+            GetOnChans = GetOnChans & "+" & OnChannels.Item(I).Name & " "
         Else
-            GetOnChans = GetOnChans & OnChannels.Item(i).Name & " "
+            GetOnChans = GetOnChans & OnChannels.Item(I).Name & " "
         End If
     End With
-Next i
+Next I
 GetOnChans = Trim$(GetOnChans)
 End Function
 
 Public Function GetWhois(Nickname$) As String
 GetWhois = SPrefix & " " & RPL_WHOISUSER & " " & Nickname & " " & Nick & " " & User & " " & Host & " * :" & Name & vbCrLf
 If WhoisAccessLevel >= 3 Or Nickname = Nick Then
-  GetWhois = GetWhois & SPrefix & " 378 " & Nickname & " " & Nick & " :is connecting from " & RealHost & "; IP address is " & IP & vbCrLf
+  Dim tmpIP As String
+  If IP <> "" Then
+    tmpIP = IP
+  Else
+    tmpIP = "unknown"
+  End If
+  GetWhois = GetWhois & SPrefix & " 378 " & Nickname & " " & Nick & " :is connecting from " & RealHost & "; IP address is " & tmpIP & vbCrLf
 End If
 If OnChannels.Count > 0 Then GetWhois = GetWhois & SPrefix & " 319 " & Nickname & " " & Nick & " :" & GetOnChans & vbCrLf
 If Len(AwayMsg) > 0 Then GetWhois = GetWhois & SPrefix & " 301 " & Nickname & " " & Nick & " :" & AwayMsg & vbCrLf
 GetWhois = GetWhois & SPrefix & " 312 " & Nickname & " " & Nick & " " & ServerName & " :" & ServerDescription & vbCrLf
-If IsGlobOperator Then
+If IsGlobOperator And IsLocOperator Then
+    GetWhois = GetWhois & SPrefix & " 313 " & Nickname & " " & Nick & " :is a global IRC Operator" & vbCrLf
+ElseIf IsGlobOperator Then
     GetWhois = GetWhois & SPrefix & " 313 " & Nickname & " " & Nick & " :is a global IRC Operator" & vbCrLf
 ElseIf IsLocOperator Then
     GetWhois = GetWhois & SPrefix & " 313 " & Nickname & " " & Nick & " :is a local IRC Operator" & vbCrLf
@@ -162,6 +177,7 @@ End Function
 
 Private Sub Class_Initialize()
 Set OnChannels = New clsOnChannels
+Set Events = New clsEvents
 GUID = CreateGUID
 #If Debugging = 1 Then
     SendSvrMsg "Client class created"
@@ -202,6 +218,7 @@ If IsLocOperator Or IsGlobOperator Then
 End If
 If AccessLevel = 0 Then IrcStat.UnknownConnections = IrcStat.UnknownConnections - 1
 Set OnChannels = Nothing
+Set Events = Nothing
 #If Debugging = 1 Then
     SendSvrMsg "Client class terminated"
 #End If

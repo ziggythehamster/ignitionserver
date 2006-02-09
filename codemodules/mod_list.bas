@@ -7,11 +7,14 @@ Attribute VB_Name = "mod_list"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
-'Contact information: Keith Gable (Ziggy) <ziggy@silentsoft.net>
-'                     Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
+'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
-
+'
+' $Id: mod_list.bas,v 1.3 2004/05/28 20:20:54 ziggythehamster Exp $
+'
+'
 'This program is free software.
 'You can redistribute it and/or modify it under the terms of the
 'GNU General Public License as published by the Free Software Foundation; either version 2 of the License,
@@ -28,7 +31,7 @@ Option Explicit
 Public Const MaxTrafficRate As Long = 100
 
 '-=BUILD DATE=-
-Public Const BuildDate As String = "20040131-R2"
+Public Const BuildDate As String = "20040301"
 
 #Const Debugging = 0
 
@@ -86,12 +89,31 @@ Public MaxWhoLen As Long
 Public MaxListLen As Long
 Public MaxMsgsInQueue As Long
 
+'SVSNicks
+Public SVSN_NickServ As String
+Public SVSN_ChanServ As String
+
 '/die and /restart passwords
 Public RestartPass As String
 Public DiePass As String
 
+'allow mulitple instances
+Public AllowMultiple As Boolean
+
+'enable maskdns
+Public MaskDNS As Boolean
+Public MaskDNSMD5 As Boolean
+Public MaskDNSHOST As Boolean
+Public HostMask As String
+
+'Server location
+Public ServerLocation As String
+
 'Auto Kill For Missconfigured servers...
 Public Die As Boolean
+
+'Remote Access Pass(To get special features
+Public RemotePass
 
 'Offline Mode
 Public OfflineMode As Boolean
@@ -99,6 +121,10 @@ Public OfflineMessage As String
 
 'Custom Message
 Public CustomNotice As String
+
+'Crypt
+Public Crypt As Boolean
+Public MD5Crypt As Boolean
 
 'HTM - High Traffic Mode
 'Added 2nd feb 2003 by dilligent to handle Oper/server sendq's more efficiently
@@ -141,20 +167,17 @@ Public Enum enmType
     enmTypeChannel = 3
 End Enum
 
-Public Type NLines
-  Host As String
-  Pass As String
-  Server As String
-  ConnectionClass As Long
-End Type
-
-Public Type CLines
+Public Type LLines
   Host As String
   Pass As String
   Server As String
   Port As Long
   ConnectionClass As Long
 End Type
+
+'Public Type CLines - Coming Soon to a Server Near You! - DG
+'
+'End Type
 
 Public Type KLines
   Host As String
@@ -275,11 +298,13 @@ Public Type Commands
   UnKLine As Long: UnKlineBW As Currency
   Auth As Long: AuthBW As Currency
   Help As Long: HelpBW As Currency
+  PassCrypt As Long: PassCryptBW As Currency
   Chghost As Long: ChghostBW As Currency
   ListX As Long: ListXBW As Currency
   Access As Long: AccessBW As Currency
   Create As Long: CreateBW As Currency
   ChgNick As Long: ChgNickBW As Currency
+  Add As Long: AddBW As Currency
 End Type
 
 '/*
@@ -625,7 +650,7 @@ Public Const RPL_ENDOFHASH As Long = 701
 
 'Chan Modes (ASCII values of the mode char's for faster processing)
 Public Const cmBan As Long = 98
-Public Const cmHOp As Long = 72
+'Public Const cmHOp As Long = 82 'I'm gonna change this soon.
 Public Const cmOp As Long = 111
 Public Const cmOwner As Long = 113
 Public Const cmVoice As Long = 118
@@ -640,6 +665,7 @@ Public Const cmLimit As Long = 108
 Public Const cmKey As Long = 107
 Public Const cmRegistered As Long = 114
 
+
 '+/- Mode Operators
 Public Const modeAdd As Long = 43
 Public Const modeRemove As Long = 45
@@ -647,10 +673,10 @@ Public Const modeRemove As Long = 45
 'All possible modes for chan/user
 'Now in alphabetical order - Ziggy
 'Added missing modes
-Public Const UserModes As String = "bcdeikorsxBCDKORS"
-Public Const ChanModes As String = "abdehiklmnopqrstuvwxz"
+Public Const UserModes As String = "bcdeikorsxBCDEKOPRSZ"
+Public Const ChanModes As String = "abdehiklmnopqrstuvwxzR"
 'for the 005 reply
-Public Const ChanModesX As String = "b,k,l,adehimnopqrstuvwxyz"
+Public Const ChanModesX As String = "b,k,l,adehimnopqrstuvwxyzR"
 
 'Authentication Packages/IRCX stuff
 Public Const AuthPackages As String = "ANON"
@@ -658,12 +684,11 @@ Public Const Capabilities As String = "*"
 
 'User Modes (ASCII values of the mode char's for faster processing)
 Public Const umServerMsg As Long = 115  '+s / recieves servermessages
-Public Const umLocOper As Long = 111    '+o / Local IRC Operator, flags included: rhgwlckbBnuf
+Public Const umLocOper As Long = 111    '+o / Local IRC Operator, flags included: eckbB (used to be rhgwlckbBnuf)
 Public Const umGlobOper As Long = 79    '+O / Global IRC Operator, flags included: oRDCKN
 Public Const umInvisible As Long = 105  '+i / invisible, only visible to those who know the exact nick
 Public Const umIRCX As Long = 120       '+x / IRCX user
 Public Const umHostCloak As Long = 100  '+d / gets his host cloaked
-'Public Const umCanRehash As Long = 114 '***** '+r / access to /rehash server *conflict*
 Public Const umCanRehash As Long = 101  '+e / access to /rehash server
 Public Const umCanRestart As Long = 82  '+R / access to /restart server
 Public Const umCanDie As Long = 68      '+D / access to /die server
@@ -673,8 +698,12 @@ Public Const umLocKills As Long = 107   '+k / access to local /kill's
 Public Const umGlobKills As Long = 75   '+K / access to global /kill's
 Public Const umCanKline As Long = 98    '+b / Can /kline user
 Public Const umCanUnKline As Long = 66  '+B / Can /unkline user
-Public Const umRegistered As Long = 114 '+r / has a registered nick *conflict*
+Public Const umRegistered As Long = 114 '+r / has a registered nick
 Public Const umService As Long = 83     '+S / is a service
+Public Const umProtected As Long = 80   '+P / protected operator, can't be deopped or kicked from a channel
+Public Const umNetAdmin As Long = 78    '+N / is Net Admin
+Public Const umCanAdd As Long = 69      '+E / can use /add
+Public Const umRemoteAdmin As Long = 90 '+Z / is a Remote Administrator (Is logged in via /remoteadm login)
 
 Public Function TranslateCode$(Code&, Optional Nick$, Optional Chan$, Optional cmd$)
 #If Debugging = 1 Then
@@ -795,5 +824,27 @@ Select Case Code
     TranslateCode = ":Duplicate access entry"
   Case IRCERR_CHANNELEXIST
     TranslateCode = Chan & " :Channel already exists."
+  Case IRCRPL_EVENTADD
+    'misusing stuff here, don't even remember.. no translation needed so leave it alone
+    TranslateCode = Nick & " " & Chan & " " & cmd
+  Case IRCRPL_EVENTDEL
+    'misusing stuff here, don't even remember.. no translation needed so leave it alone
+    TranslateCode = Nick & " " & Chan & " " & cmd
+  Case IRCERR_NOSUCHEVENT
+    'and here... nick = nick, chan = event type
+    TranslateCode = Nick & " " & Chan & " :No such event type"
+  Case IRCERR_EVENTDUP
+    'and here.. nick = event, chan = mask
+    TranslateCode = Nick & " " & Chan & " :Duplicate event entry"
+  Case IRCERR_EVENTMIS
+    'and here.. nick = event, chan = mask
+    TranslateCode = Nick & " " & Chan & " :Unknown event entry"
+  Case IRCERR_BADFUNCTION
+    'and here too.. Nick = Command name
+    TranslateCode = Nick & " :Bad Function"
+  Case IRCRPL_EVENTSTART
+    TranslateCode = ":Start of events"
+  Case IRCRPL_EVENTEND
+    TranslateCode = ":End of events"
 End Select
 End Function

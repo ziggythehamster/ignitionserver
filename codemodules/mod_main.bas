@@ -7,10 +7,13 @@ Attribute VB_Name = "mod_main"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
-'Contact information: Keith Gable (Ziggy) <ziggy@silentsoft.net>
-'                     Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
+'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
+'
+' $Id: mod_main.bas,v 1.3 2004/05/28 20:20:54 ziggythehamster Exp $
+'
 '
 'This program is free software.
 'You can redistribute it and/or modify it under the terms of the
@@ -49,12 +52,11 @@ Public Function CreateGUID() As String
 End Function
 
 Public Sub Main()
-
-If App.PrevInstance = True Then
-MsgBox "FATAL ERROR IN MODULE ""IGNITIONSERVER"": This product is already running!"
+If App.PrevInstance = True And AllowMultiple = False Then
+MsgBox "FATAL ERROR IN MODULE ""IGNITIONSERVER"": You can not start multiple instances of ignitionServer - see X:ALLOWMULTIPLE to change this setting"
 End
 End If
-AppVersion = App.Major & "." & App.Minor & "." & App.Revision & "-Release2"
+AppVersion = App.Major & "." & App.Minor & "." & App.Revision
 AppComments = "ignitionServer " & AppVersion & " (http://www.ignition-project.com/)"
 StartUpDate = Now
 Error_Connect
@@ -106,7 +108,7 @@ On Error Resume Next
 'Release memory used by Channel and User/Server classes -Dill
 Erase Users: Channels.RemoveAll: GlobUsers.RemoveAll: Opers.RemoveAll
 'Realease Memory used by Configuration Types -Dill
-Erase ILine: Erase YLine: Erase ZLine: Erase KLine: Erase QLine: Erase OLine: Erase CLine: Erase NLine
+Erase ILine: Erase YLine: Erase ZLine: Erase KLine: Erase QLine: Erase OLine: Erase LLine ': Erase CLine - Coming Soon
 'reset ircd stats -Dill
 With IrcStat
     .Channels = 0
@@ -175,7 +177,7 @@ Do
         CurCmd = .Message
     End With
 #If Debugging = 1 Then
-    CreateObject("Scripting.FileSystemObject").OpenTextFile(App.Path & "\ircd.log", 8, True).WriteLine CurCmd
+    CreateObject("Scripting.FileSystemObject").OpenTextFile(App.Path & "\ircx.log", 8, True).WriteLine CurCmd
 #End If
     If Len(CurCmd) = 0 Then GoTo nextmsg
     #If Debugging = 1 Then
@@ -195,14 +197,18 @@ Do
             Set sptr = Servers(Prefix)
             If sptr Is Nothing Then
                 SendWsock cptr.index, "SQUIT " & Prefix, ":" & Prefix & " <-- ? Unknown Server"
-                SendSvrMsg "*** Notice -- Squit sent for unknown server prefix: " & Prefix, True
+                SendSvrMsg "*** Notice -- SQUIT sent for unknown server prefix: " & Prefix, True
                 GoTo nextmsg
             End If
         Else
             Set sptr = GlobUsers(Prefix)
+            'this looks like it'll fix her up like a beaut -z
+            'thanks nigel :P (how come i didn't think of this, lmao?)
             If sptr Is Nothing Then
-                SendSvrMsg "***Notice -- KILL sent for unknown prefix: " & Prefix, True
-                SendWsock cptr.index, "KILL " & Prefix, ":" & Prefix & " <-- ? Unknown client"
+                If cptr.ServerName = ServerName Then
+                    SendSvrMsg "***Notice -- KILL sent for unknown prefix: " & Prefix, True
+                    SendWsock cptr.index, "KILL " & Prefix, ":" & Prefix & " <-- ? Unknown client"
+                End If
                 GoTo nextmsg
             End If
         End If
@@ -343,9 +349,29 @@ Do
                 If Len(.User) > 0 Then
                   If Len(.Nick) > 0 Then
                     .RealHost = .Host
+                    If MaskDNS = True Then
+                        If MaskDNSMD5 = True Then
+                            .Host = UCase(modMD5.oMD5.MD5(.RealHost))
+                        ElseIf MaskDNSHOST = True Then
+                            If Not HostMask = vbNullString Then
+                                .Host = .Nick & "." & HostMask
+                            Else
+                                'HostMask is unset so we'll swap to MD5 cos the Admin does want some form of masking...
+                                MaskDNSHOST = False
+                                MaskDNSMD5 = True
+                                .Host = UCase(modMD5.oMD5.MD5(.RealHost))
+                            End If
+                        End If
+                    End If
+                    'generate User Logon event
+                    GenerateEvent "USER", "LOGON", .Nick & "!" & .User & "@" & .RealHost, .Nick & "!" & .User & "@" & .RealHost
                     SendWsock .index, SPrefix & " 001 " & .Nick & " :Welcome to the " & IRCNet & " IRC Network " & .Nick & "!" & .User & "@" & .RealHost, vbNullString, , True
                     SendWsock .index, SPrefix & " 002 " & .Nick & " :Your host is " & ServerName & ", running version ignitionServer-" & AppVersion, vbNullString, , True
-                    SendWsock .index, SPrefix & " 003 " & .Nick & " :This server was created " & StartUpDate, vbNullString, , True
+                    If ServerLocation <> "" Then
+                      SendWsock .index, SPrefix & " 003 " & .Nick & " :This server was (re)started " & StartUpDate & " and is in " & ServerLocation, vbNullString, , True
+                    Else
+                      SendWsock .index, SPrefix & " 003 " & .Nick & " :This server was (re)started " & StartUpDate, vbNullString, , True
+                    End If
                     SendWsock .index, SPrefix & " 004 " & .Nick & " " & ServerName & " ignitionServer " & UserModes & " " & ChanModes, vbNullString, , True
                     SendWsock .index, SPrefix & " 005 " & .Nick & " IRCX CHANTYPES=# PREFIX=(qov).@+ CHANMODES=" & ChanModesX & " NETWORK=" & Replace(IRCNet, " ", "_") & " CASEMAPPING=ascii CHARSET=ascii STD=i-d :are supported by this server", vbNullString, , True
                     IrcStat.GlobUsers = IrcStat.GlobUsers + 1: IrcStat.LocUsers = IrcStat.LocUsers + 1
@@ -354,8 +380,13 @@ Do
                     SendWsock .index, GetLusers(.Nick), vbNullString, , True
                     SendWsock .index, ReadMotd(.Nick), vbNullString, , True
                     .HasRegistered = True
-                    SendToServer "NICK" & " " & .Nick & " 1 " & .SignOn & _
-                    " " & .User & " " & .Host & " " & ServerName & " :" & .Name
+                    'after careful consideration,
+                    'i've decided that RealHost should be sent to links
+                    'if the link supports MD5 encrpytion, then use it
+                    'otherwise one server will have the real hostname and the other will have MD5 encrypted ones
+                    '(this is so the server actually knows what the bloody hell your real ident is)
+                    SendToServer "NICK " & .Nick & " 1 " & .SignOn & _
+                    " " & .User & " " & .RealHost & " " & ServerName & " :" & .Name
                     .Prefix = ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host
                     .UpLink = ServerName
                   End If
@@ -496,6 +527,8 @@ Do
           Call m_help(cptr, sptr, arglist(0))
         Case "IRCXHELP": Cmds.Help = Cmds.Help + 1: Cmds.HelpBW = Cmds.HelpBW + cmdLen
           Call m_help(cptr, sptr, arglist(0))
+        Case "PASSCRYPT"
+          Call m_passcrypt(cptr, sptr, arglist)
 '*****************************
 '|      Operator Queries    ||
 '*****************************
@@ -514,12 +547,24 @@ Do
             GoTo nextmsg
           End If
             Call m_chgnick(cptr, sptr, arglist)
+        Case "EVENT":
+          If Not cptr.HasRegistered Then
+            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+            GoTo nextmsg
+          End If
+            Call m_event(cptr, sptr, arglist)
         Case "OPER": Cmds.Oper = Cmds.Oper + 1: Cmds.OperBW = Cmds.OperBW + cmdLen
           If Not cptr.HasRegistered Then
             SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
             GoTo nextmsg
           End If
             Call m_oper(cptr, sptr, arglist)
+        Case "REMOTEADM"
+          If Not cptr.HasRegistered Then
+            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+            GoTo nextmsg
+          End If
+            Call m_remoteadm(cptr, sptr, arglist)
         'Case "WALL"
 '        Case "WALLOPS"
 '          m_wallops cptr, sptr, arglist
@@ -531,6 +576,8 @@ Do
             GoTo nextmsg
           End If
           Call m_hash(cptr, sptr, arglist)
+        Case "ADD": Cmds.Add = Cmds.Add + 1: Cmds.AddBW = Cmds.AddBW + cmdLen
+          Call m_add(cptr, sptr, arglist)
         Case "CLOSE": Cmds.Close = Cmds.Close + 1: Cmds.CloseBW = Cmds.CloseBW + cmdLen
           If Not cptr.HasRegistered Then
             SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
@@ -601,6 +648,12 @@ Do
               GoTo nextmsg
             End If
             Call m_connect(cptr, sptr, arglist)
+        Case "LINK": Cmds.Connect = Cmds.Connect + 1: Cmds.ConnectBW = Cmds.ConnectBW + cmdLen
+            If Not cptr.HasRegistered Then
+              SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+              GoTo nextmsg
+            End If
+            Call m_connect(cptr, sptr, arglist)
         Case "SQUIT": Cmds.Squit = Cmds.Squit + 1: Cmds.Squit = Cmds.Squit + cmdLen
             If Not cptr.HasRegistered Then
               SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
@@ -627,13 +680,13 @@ Do
               SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
               GoTo nextmsg
             End If
-            Call m_nickserv(cptr, sptr, arglist)
+            Call m_nickserv(cptr, sptr, "NickServ", arglist)
         Case "NICKSERV": Cmds.NickServ = Cmds.NickServ + 1: Cmds.NickServBW = Cmds.NickServBW + cmdLen
             If Not cptr.HasRegistered Then
               SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
               GoTo nextmsg
             End If
-            Call m_nickserv(cptr, sptr, arglist)
+            Call m_nickserv(cptr, sptr, "NickServ", arglist)
         Case "MS": Cmds.MemoServ = Cmds.MemoServ + 1: Cmds.MemoServBW = Cmds.MemoServBW + cmdLen
             If Not cptr.HasRegistered Then
               SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
@@ -651,13 +704,13 @@ Do
               SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
               GoTo nextmsg
             End If
-            Call m_chanserv(cptr, sptr, arglist)
+            Call m_chanserv(cptr, sptr, "ChanServ", arglist)
         Case "CHANSERV": Cmds.ChanServ = Cmds.ChanServ + 1: Cmds.ChanServBW = Cmds.ChanServBW + cmdLen
             If Not cptr.HasRegistered Then
               SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
               GoTo nextmsg
             End If
-            Call m_chanserv(cptr, sptr, arglist)
+            Call m_chanserv(cptr, sptr, "ChanServ", arglist)
         Case "OS": Cmds.OperServ = Cmds.OperServ + 1: Cmds.OperServBW = Cmds.OperServBW + cmdLen
             If Not cptr.HasRegistered Then
               SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
@@ -684,11 +737,11 @@ Public Function GetRand() As Long
     SendSvrMsg "GETRAND called!"
 #End If
 Randomize
-Dim MyValue As Long, i As Long, r As Long
-For i = 1 To 4
+Dim MyValue As Long, I As Long, r As Long
+For I = 1 To 4
     MyValue = Int((9 * Rnd) + 0)
     r = CLng(CStr(r) & CStr(MyValue))
-Next i
+Next I
 GetRand = r
 End Function
 
@@ -718,7 +771,7 @@ Public Sub KillStruct(Name$, Optional InType As enmType = enmTypeClient)
     SendSvrMsg "KILLSTRUCT called! (" & Name & ")"
 #End If
 On Error Resume Next
-Dim cptr As clsClient, Chan As clsChannel, i&, User() As clsClient
+Dim cptr As clsClient, Chan As clsChannel, I&, User() As clsClient
 If InType = enmTypeClient Then
     Set cptr = GlobUsers(Name)
     If Not cptr Is Nothing Then
@@ -747,27 +800,27 @@ ElseIf InType = enmTypeServer Then
     If Name = ServerName Then Exit Sub
     Set cptr = Servers(Name)
     User = GlobUsers.Values
-    For i = LBound(User) To UBound(User)
-        With User(i)
+    For I = LBound(User) To UBound(User)
+        With User(I)
             If Not .FromLink Is Nothing Then
                 If .FromLink.ServerName = Name Then
                     Set .FromLink = Nothing
                 End If
             End If
         End With
-    Next i
+    Next I
     User = Servers.Values
-    For i = LBound(User) To UBound(User)
-        With User(i)
+    For I = LBound(User) To UBound(User)
+        With User(I)
             If Not .FromLink Is Nothing Then
                 If .FromLink.ServerName = Name Then
                     Set .FromLink = Nothing
                     Servers.Remove .ServerName
-                    Set User(i) = Nothing
+                    Set User(I) = Nothing
                 End If
             End If
         End With
-    Next i
+    Next I
     Set cptr.FromLink = Nothing
     Servers.Remove Name
 End If
@@ -779,7 +832,7 @@ End Function
 
 Public Sub DoSend() '(ByVal hWnd As Long, ByVal nIDEvent As Long, ByVal uElapse As Long, ByVal lpTimerFunc As Long) As Long
 On Error Resume Next
-Dim OutMsg() As Byte, cptr As clsClient, i&, x&
+Dim OutMsg() As Byte, cptr As clsClient, I&, x&
 If ColOutClientMsg.Count = 0 Then Exit Sub
 Do While ColOutClientMsg.Count > 0
     x = x + 1
@@ -804,9 +857,9 @@ Do While ColOutClientMsg.Count > 0
                 End If
                 .IsKilled = True
                 'a client flooding us
-                For i = 1 To .OnChannels.Count
-                    SendToChan .OnChannels.Item(i), .Prefix & " QUIT :Max SendQ length exceeded", vbNullString
-                Next i
+                For I = 1 To .OnChannels.Count
+                    SendToChan .OnChannels.Item(I), .Prefix & " QUIT :Max SendQ length exceeded", vbNullString
+                Next I
                 SendToServer "QUIT :Max SendQ length exceeded", .Nick
                 KillStruct cptr.Nick, enmTypeClient
                 m_error cptr, "Closing Link: Max SendQ length exceeded"
@@ -820,16 +873,16 @@ Do While ColOutClientMsg.Count > 0
                 .IsKilled = True
                 Dim usr() As clsClient, y&
                 usr = GlobUsers.Values
-                For i = LBound(usr) To UBound(usr)
-                    Set usr(i).FromLink = Nothing
-                    KillStruct usr(i).Nick, enmTypeClient
-                    usr(i).SendQ = vbNullString
+                For I = LBound(usr) To UBound(usr)
+                    Set usr(I).FromLink = Nothing
+                    KillStruct usr(I).Nick, enmTypeClient
+                    usr(I).SendQ = vbNullString
                     For y = 1 To .OnChannels.Count
                         SendToChan .OnChannels.Item(y), .Prefix & " QUIT :Max SendQ length exceeded", vbNullString
                     Next y
-                    Set usr(i) = Nothing
+                    Set usr(I) = Nothing
                     GoTo nextmsg
-                Next i
+                Next I
                 m_error cptr, "Closing Link: Max SendQ length exceeded"
                 SendToServer_ButOne "SQUIT :Max SendQ length exceeded", .ServerName, .ServerName
                 SendSvrMsg "Closing link to " & .ServerName & " (Max SendQ length exceeded)"
@@ -851,7 +904,7 @@ Do While ColOutClientMsg.Count > 0
             GoTo nextmsg
         End If
 #If Debugging = 1 Then
-    CreateObject("Scripting.FileSystemObject").OpenTextFile(App.Path & "\ircd.log", 8, True).WriteLine .SendQ
+    CreateObject("Scripting.FileSystemObject").OpenTextFile(App.Path & "\ircx.log", 8, True).WriteLine .SendQ
 #End If
         SentMsg = SentMsg + 1
         OutMsg = StrConv(.SendQ, vbFromUnicode)

@@ -19,10 +19,13 @@ Attribute VB_Exposed = False
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
-'Contact information: Keith Gable (Ziggy) <ziggy@silentsoft.net>
-'                     Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
+'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
+'
+' $Id: clsHosts.cls,v 1.2 2004/05/28 20:20:53 ziggythehamster Exp $
+'
 '
 'This program is free software.
 'You can redistribute it and/or modify it under the terms of the
@@ -81,11 +84,11 @@ Public Sub Remove(vntIndexKey As Variant)
     mCol.Remove vntIndexKey
 End Sub
 Public Sub Clear() 'need this in order to facilitate access clearing
-Dim a As Integer
+Dim A As Integer
     If mCol.Count > 0 Then
-      For a = 1 To mCol.Count
-        mCol.Remove a
-      Next a
+      For A = 1 To mCol.Count
+        mCol.Remove A
+      Next A
     End If
 End Sub
 Private Sub Class_Initialize()

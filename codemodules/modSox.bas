@@ -7,10 +7,13 @@ Attribute VB_Name = "modSox"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
-'Contact information: Keith Gable (Ziggy) <ziggy@silentsoft.net>
-'                     Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
+'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
+'
+' $Id: modSox.bas,v 1.2 2004/05/28 20:20:54 ziggythehamster Exp $
+'
 '
 'This program is free software.
 'You can redistribute it and/or modify it under the terms of the
@@ -41,6 +44,7 @@ Dim cptr As clsClient, QMsg$, Msg$, y&, x() As clsChanMember, z&
 If insox = -1 Then Exit Sub
 Set cptr = Users(insox)
 If cptr Is Nothing Then Exit Sub
+
 If MaxConnectionsPerIP > 0 Then
     IPHash(cptr.IP) = IPHash(cptr.IP) - 1
     If IPHash(cptr.IP) = 0 Then
@@ -49,6 +53,8 @@ If MaxConnectionsPerIP > 0 Then
 End If
 If cptr.AccessLevel < 4 Then
     'Client connection closed -Dill
+    GenerateEvent "USER", "LOGOFF", cptr.Nick & "!" & cptr.User & "@" & cptr.RealHost, cptr.Nick & "!" & cptr.User & "@" & cptr.RealHost
+    GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP
     If cptr.SentQuit Then Exit Sub
     With cptr
         Msg = .Prefix & " QUIT :Client Exited"
@@ -70,37 +76,38 @@ If cptr.AccessLevel < 4 Then
     End With
     Set cptr = Nothing
 Else
+    GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP
     'Server connection closed -Dill
-    Dim i&, User() As clsClient, s&, c&
+    Dim I&, User() As clsClient, s&, c&
     User = GlobUsers.Values
     'remove all users (behind and/or directly from) this link -Dill
-    For i = LBound(User) To UBound(User)
-        If User(i).FromLink Is cptr Then
-            For z = 1 To User(i).OnChannels.Count
-                SendToChan User(i).OnChannels.Item(z), User(i).Prefix & " QUIT :" & ServerName & " " & cptr.ServerName, vbNullString
+    For I = LBound(User) To UBound(User)
+        If User(I).FromLink Is cptr Then
+            For z = 1 To User(I).OnChannels.Count
+                SendToChan User(I).OnChannels.Item(z), User(I).Prefix & " QUIT :" & ServerName & " " & cptr.ServerName, vbNullString
             Next z
-            KillStruct User(i).Nick
-            SendToServer "QUIT :" & ServerName & " " & cptr.ServerName, User(i).Nick
-            Set User(i) = Nothing
+            KillStruct User(I).Nick
+            SendToServer "QUIT :" & ServerName & " " & cptr.ServerName, User(I).Nick
+            Set User(I) = Nothing
             c = c + 1
         End If
-    Next i
+    Next I
     'remove all servers behind this link -Dill
     User = Servers.Values
-    For i = LBound(User) To UBound(User)
-        If User(i).FromLink Is cptr Then
-            Servers.Remove User(i).ServerName
-            SendToServer "SQUIT :" & User(i).ServerName, ServerName
-            Set User(i).FromLink = Nothing
-            Set User(i) = Nothing
+    For I = LBound(User) To UBound(User)
+        If User(I).FromLink Is cptr Then
+            Servers.Remove User(I).ServerName
+            SendToServer "SQUIT :" & User(I).ServerName, ServerName
+            Set User(I).FromLink = Nothing
+            Set User(I) = Nothing
             s = s + 1
         End If
-    Next i
+    Next I
     SendToServer "SQUIT :" & cptr.ServerName, cptr.ServerName
     Servers.Remove cptr.ServerName
     Set Users(insox) = Nothing
     Set cptr.FromLink = Nothing
-    SendSvrMsg "Connection lost to: " & cptr.ServerName & " " & c & " Clients and " & s & " Servers lost during netsplit."
+    SendSvrMsg "Connection lost to: " & cptr.ServerName & " " & c & " client(s) and " & s & " server(s) lost during netsplit."
     cptr.IsKilled = True
     Set cptr = Nothing
 End If
@@ -130,6 +137,7 @@ If IsClient Then
         End If
     End If
     NC.IP = Sockets.Address(insox)
+    GenerateEvent "SOCKET", "OPEN", "*!*@*", NC.IP
     If MaxConnectionsPerIP > 0 Then
         IPHash(NC.IP) = IPHash(NC.IP) + 1
         If IPHash(NC.IP) > MaxConnectionsPerIP Then
@@ -159,10 +167,11 @@ Else
     Sockets.SetOption insox, soxSO_KEEPALIVE, 1
     Sockets.SetOption insox, soxSO_TCP_NODELAY, 1
     Sockets.SetOption insox, soxSO_LINGER, 0
-    Dim SendAuth As NLines
+    Dim SendAuth As LLines
     Set NC = GetFreeSlot(insox)
     NC.SockHandle = Sockets.SocketHandle(insox)
     NC.IP = Sockets.Address(insox)
+    GenerateEvent "SOCKET", "OPEN", "*!*@*", NC.IP
     NC.AccessLevel = 4
     NC.ServerName = ServerName
     NC.ServerDescription = ServerDescription
@@ -173,7 +182,7 @@ Else
     NC.SignOn = UnixTime
     NC.Timeout = 2
     IrcStat.UnknownConnections = IrcStat.UnknownConnections + 1
-    SendAuth = GetNLine(NC.IP)
+    SendAuth = GetLLineN(NC.IP)
     If Len(SendAuth.Server) = 0 Then
         m_error NC, "Closing Link: (No Access)"
         Set NC = Nothing
@@ -189,7 +198,7 @@ Public Sub Sox_DataArrival(insox As Long, StrMsg As String)
 #If Debugging = 1 Then
     SendSvrMsg "Sox_DataArrival called!"
 #End If
-Dim cptr As clsClient, StrArray$(), i&, x&
+Dim cptr As clsClient, StrArray$(), I&, x&
 Set cptr = Users(insox)
 If cptr Is Nothing Then
     Sockets.CloseIt insox
@@ -228,8 +237,8 @@ ServerTraffic = ServerTraffic + Len(StrMsg)
 StrArray = Split(StrMsg, vbLf)
 'Due to the nature of a Stack (Last one to push on is the first one that will get pulled off)
 'we will have to push incoming messages in reversed order. -Dill
-For i = 0 To UBound(StrArray)
-    If Len(StrArray(i)) > 3 Then
+For I = 0 To UBound(StrArray)
+    If Len(StrArray(I)) > 3 Then
     
         If MaxMsgsInQueue > 0 Then
             If cptr.AccessLevel < 4 Then
@@ -251,10 +260,10 @@ For i = 0 To UBound(StrArray)
         End If
 
         RecvMsg = RecvMsg + 1
-        RecvQ.Add cptr, StrArray(i)
-        If Left$(StrArray(i), 5) = "QUIT " Then cptr.SentQuit = True
+        RecvQ.Add cptr, StrArray(I)
+        If Left$(StrArray(I), 5) = "QUIT " Then cptr.SentQuit = True
     End If
-Next i
+Next I
 End Sub
 
 Public Sub Sox_Error(insox As Long, inerror As Long, inDescription As String, inSource As String, inSnipet As String)

@@ -7,10 +7,13 @@ Attribute VB_Name = "mod_serv"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
-'Contact information: Keith Gable (Ziggy) <ziggy@silentsoft.net>
-'                     Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
+'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
+'
+' $Id: mod_serv.bas,v 1.3 2004/05/28 20:20:54 ziggythehamster Exp $
+'
 '
 'This program is free software.
 'You can redistribute it and/or modify it under the terms of the
@@ -28,20 +31,26 @@ Attribute VB_Name = "mod_serv"
 #Const CanRestart = 1
 #Const Debugging = 0
 
+'to prevent sending events multiple times
+Public Event_LastEventTime As Long
+Public Event_LastEventType As String
+Public Event_LastEventName As String
+Public Event_LastEventArgs As String
+
 Option Explicit
 
 Public Function ProcNumeric&(cptr As clsClient, sptr As clsClient, parv$(), Num&)
 #If Debugging = 1 Then
     SendSvrMsg "*** Notice -- PROCNUMERIC called! (" & cptr.Nick & ")"
 #End If
-Dim Args$, i&
-For i = 1 To UBound(parv)
-    If UBound(parv) > i Then
-        Args = Args & parv(i) & " "
+Dim Args$, I&
+For I = 1 To UBound(parv)
+    If UBound(parv) > I Then
+        Args = Args & parv(I) & " "
     Else
-        Args = Args & ":" & parv(i)
+        Args = Args & ":" & parv(I)
     End If
-Next i
+Next I
 If cptr.AccessLevel < 4 Then Exit Function
 Dim Recp As clsClient
 Set Recp = GlobUsers(parv(0))
@@ -121,7 +130,7 @@ Public Function m_squit(cptr As clsClient, sptr As clsClient, parv$()) As Long
 '    ** currently there is not enough information about remote
 '    ** clients to do this...   --msa
 '    */
-Dim Target As clsClient, User() As clsClient, i&, z&
+Dim Target As clsClient, User() As clsClient, I&, z&
 If cptr.AccessLevel = 4 Then
     If sptr.AccessLevel = 4 Then
         If Not sptr Is cptr Then
@@ -143,31 +152,31 @@ If cptr.AccessLevel = 4 Then
         If Target.Hops = 1 Then
             User = GlobUsers.Values
             'remove all users (behind and/or directly from) this link -Dill
-            For i = LBound(User) To UBound(User)
-                If User(i).FromLink Is Target Then
-                    For z = 1 To User(i).OnChannels.Count
-                        SendToChan User(i).OnChannels.Item(z), User(i).Prefix & " QUIT :" & ServerName & " " & Target.ServerName, vbNullString
+            For I = LBound(User) To UBound(User)
+                If User(I).FromLink Is Target Then
+                    For z = 1 To User(I).OnChannels.Count
+                        SendToChan User(I).OnChannels.Item(z), User(I).Prefix & " QUIT :" & ServerName & " " & Target.ServerName, vbNullString
                     Next z
-                    KillStruct User(i).Nick
-                    SendToServer "QUIT :" & ServerName & " " & Target.ServerName, User(i).Nick
+                    KillStruct User(I).Nick
+                    SendToServer "QUIT :" & ServerName & " " & Target.ServerName, User(I).Nick
                     '#If Debugging = 1 Then
-                        SendSvrMsg "*** Notice -- User " & User(i).Nick & " lost during netsplit"
+                        SendSvrMsg "*** Notice -- User " & User(I).Nick & " lost during netsplit"
                     '#End If
-                    Set User(i) = Nothing
+                    Set User(I) = Nothing
                 End If
-            Next i
+            Next I
             User = Servers.Values
-            For i = LBound(User) To UBound(User)
-                If User(i).FromLink Is cptr Then
-                    Servers.Remove User(i).ServerName
-                    SendToServer "SQUIT :" & User(i).ServerName, ServerName
-                    Set User(i).FromLink = Nothing
+            For I = LBound(User) To UBound(User)
+                If User(I).FromLink Is cptr Then
+                    Servers.Remove User(I).ServerName
+                    SendToServer "SQUIT :" & User(I).ServerName, ServerName
+                    Set User(I).FromLink = Nothing
                     '#If Debugging = 1 Then
-                        SendSvrMsg "*** Notice -- Server " & User(i).ServerName & " lost during netsplit"
+                        SendSvrMsg "*** Notice -- Server " & User(I).ServerName & " lost during netsplit"
                     '#End If
-                    Set User(i) = Nothing
+                    Set User(I) = Nothing
                 End If
-            Next i
+            Next I
             Servers.Remove cptr.ServerName
             SendToServer "SQUIT :" & cptr.ServerName, cptr.ServerName
             Sockets.CloseIt Target.index
@@ -261,18 +270,18 @@ Public Function m_server(cptr As clsClient, sptr As clsClient, parv$()) As Long
 #If Debugging = 1 Then
     SendSvrMsg "*** Notice -- SERVER called! (" & cptr.Nick & ")"
 #End If
-Dim NewSptr As clsClient, User As clsClient, SendAuth As CLines, Outgoing$, SendInfo As Boolean
+Dim NewSptr As clsClient, User As clsClient, SendAuth As LLines, Outgoing$, SendInfo As Boolean
 If Not cptr.HasRegistered Then
     If cptr.AccessLevel = 4 Then
         SendInfo = False
     Else
         SendInfo = True
     End If
-    If Not cptr.Nlined Then
-        If DoNLine(cptr) Then
+    If Not cptr.LLined Then
+        If DoLLine(cptr) Then
             Exit Function
         End If
-        cptr.Nlined = True
+        cptr.LLined = True
     End If
     Set NewSptr = Servers(parv(0))
 '    If Not NewSptr Is Nothing Then
@@ -296,7 +305,7 @@ If Not cptr.HasRegistered Then
         .ServerDescription = parv(2)
         Set .FromLink = cptr
         .HasRegistered = True
-        SendAuth = GetCLine(.ServerName)
+        SendAuth = GetLLineC(.ServerName)
         If Len(SendAuth.Server) = 0 Then
             Servers.Remove cptr.ServerName
             m_error cptr, "Unauthorized connection"
@@ -307,29 +316,29 @@ If Not cptr.HasRegistered Then
             SendWsock .index, "PASS " & SendAuth.Pass, vbNullString, vbNullString, True
             SendWsock .index, "SERVER " & ServerName & " 1 :" & ServerDescription, vbNullString, vbNullString, True
         End If
-        Dim i As Long, Val() As clsClient, x As Long, chans() As clsChannel, Membrs$, ChM() As clsChanMember, y&
+        Dim I As Long, Val() As clsClient, x As Long, chans() As clsChannel, Membrs$, ChM() As clsChanMember, y&
         Dim c&, s&, u&
         Val = Servers.Values
         If Not Val(0) Is Nothing Then
-            For i = 0 To UBound(Val)
-                If Val(i).Hops > 0 Then
-                    SendWsock .index, "SERVER" & " " & Val(i).ServerName & " " & Val(i).Hops + 1, ":" & Val(i).ServerDescription, ":" & Val(i).UpLink
+            For I = 0 To UBound(Val)
+                If Val(I).Hops > 0 Then
+                    SendWsock .index, "SERVER" & " " & Val(I).ServerName & " " & Val(I).Hops + 1, ":" & Val(I).ServerDescription, ":" & Val(I).UpLink
                     s = s + 1
                 End If
-            Next i
+            Next I
         End If
         Val = GlobUsers.Values
         If Not Val(0) Is Nothing Then
-            For i = 0 To UBound(Val)
-                SendWsock .index, "NICK" & " " & Val(i).Nick & " " & Val(i).Hops + 1 & " " & Val(i).SignOn & _
-                " " & Val(i).User & " " & Val(i).Host & " " & Val(i).FromLink.ServerName, ":" & Val(i).Name
+            For I = 0 To UBound(Val)
+                SendWsock .index, "NICK" & " " & Val(I).Nick & " " & Val(I).Hops + 1 & " " & Val(I).SignOn & _
+                " " & Val(I).User & " " & Val(I).Host & " " & Val(I).FromLink.ServerName, ":" & Val(I).Name
                 u = u + 1
-            Next i
+            Next I
         End If
         chans = Channels.Values
         If Not chans(0) Is Nothing Then
-            For i = 0 To UBound(chans)
-                ChM = chans(i).Member.Values
+            For I = 0 To UBound(chans)
+                ChM = chans(I).Member.Values
                 For y = 0 To UBound(ChM)
                     'add another record to the njoin buffer
                     x = x + 1
@@ -347,12 +356,12 @@ If Not cptr.HasRegistered Then
                     End If
                     If x = 11 Or y = UBound(ChM) Then
                         'flush
-                        SendWsock .index, "NJOIN " & chans(i).Name, ":" & Trim$(Membrs)
+                        SendWsock .index, "NJOIN " & chans(I).Name, ":" & Trim$(Membrs)
                         Membrs = vbNullString
                         x = 0
                     End If
                 Next y
-            Next i
+            Next I
         End If
         
         SendSvrMsg "*** Notice -- " & s & " server(s), " & u & " user(s), and " & c & " channel structures sent to " & .ServerName
@@ -432,12 +441,12 @@ Public Function m_links(cptr As clsClient, sptr As clsClient, parv$()) As Long
     SendSvrMsg "*** Notice -- LINKS called! (" & cptr.Nick & ")"
 #End If
 'SendWsock cptr.Index, "NOTICE " & cptr.Nick, ":LINKS has been disabled"
-Dim i&, Links() As clsClient
+Dim I&, Links() As clsClient
 Links = Servers.Values
 If Not Links(0) Is Nothing Then
-    For i = 0 To UBound(Links)
-        SendWsock cptr.index, RPL_LINKS & " " & cptr.Nick & " " & Links(i).ServerName & " " & Links(i).UpLink, ":" & Links(i).Hops & " " & Links(i).ServerDescription
-    Next i
+    For I = 0 To UBound(Links)
+        SendWsock cptr.index, RPL_LINKS & " " & cptr.Nick & " " & Links(I).ServerName & " " & Links(I).UpLink, ":" & Links(I).Hops & " " & Links(I).ServerDescription
+    Next I
 End If
 SendWsock cptr.index, RPL_ENDOFLINKS & " " & cptr.Nick, ":End of /LINKS list"
 End Function
@@ -611,7 +620,7 @@ Public Function m_connect(cptr As clsClient, sptr As clsClient, parv$()) As Long
 #If Debugging = 1 Then
     SendSvrMsg "*** Notice -- CONNECT called! (" & cptr.Nick & ")"
 #End If
-Dim Target As clsClient, ConnAuth As CLines
+Dim Target As clsClient, ConnAuth As LLines
 If cptr.AccessLevel = 4 Then
     
 Else
@@ -630,7 +639,7 @@ Else
                 SendWsock cptr.index, "NOTICE " & cptr.Nick, ":Server " & parv(0) & " exists already."
                 Exit Function
             End If
-            ConnAuth = GetCLine(parv(0))
+            ConnAuth = GetLLineC(parv(0))
             If Len(ConnAuth.Server) = 0 Then
                 SendWsock cptr.index, "NOTICE " & cptr.Nick, ":Server " & parv(0) & " is not listed in conf file."
                 Exit Function
@@ -647,7 +656,7 @@ Else
                 SendWsock cptr.index, ERR_NEEDMOREPARAMS, TranslateCode(ERR_NEEDMOREPARAMS, , , "CONNECT")
                 Exit Function
             End If
-            ConnAuth = GetCLine(parv(0))
+            ConnAuth = GetLLineC(parv(0))
             If Len(ConnAuth.Server) = 0 Then
                 SendWsock cptr.index, "NOTICE " & cptr.Nick, ":Server " & parv(0) & " is not listed in conf file."
                 Exit Function
@@ -777,12 +786,12 @@ End Function
             Exit Function
         End If
         If parv(0) = RestartPass Then
-            Dim i As Long   'close all connections properly -Dill
-            For i = 1 To UBound(Users)
-                If Not Users(i) Is Nothing Then
-                    m_error Users(i), "Closing Link: (" & ServerName & " is restarting on the request of " & cptr.Nick & ")"
+            Dim I As Long   'close all connections properly -Dill
+            For I = 1 To UBound(Users)
+                If Not Users(I) Is Nothing Then
+                    m_error Users(I), "Closing Link: (" & ServerName & " is restarting on the request of " & cptr.Nick & ")"
                 End If
-            Next i
+            Next I
             Terminate False: Main
         Else
             SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
@@ -848,14 +857,14 @@ End Function
             Exit Function
         End If
         If parv(0) = DiePass Then
-            Dim i As Long   'close all connection properly -Dill
-            For i = 1 To UBound(Users)
-                If Not Users(i) Is Nothing Then
-                    SendWsock i, "NOTICE " & Users(i).Nick, SPrefix & " is quiting on the request of: " & cptr.Nick
-                    Sockets.CloseIt i
-                    m_error Users(i), "Closing Link: (" & ServerName & " is quitting)"
+            Dim I As Long   'close all connection properly -Dill
+            For I = 1 To UBound(Users)
+                If Not Users(I) Is Nothing Then
+                    SendWsock I, "NOTICE " & Users(I).Nick, SPrefix & " is quiting on the request of: " & cptr.Nick
+                    Sockets.CloseIt I
+                    m_error Users(I), "Closing Link: (" & ServerName & " is quitting)"
                 End If
-            Next i
+            Next I
             Terminate
         Else
             SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
@@ -905,16 +914,16 @@ If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
     SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
     Exit Function
 End If
-Dim i As Long, x&   'close all connections properly -Dill
-For i = 1 To UBound(Users)
-    If Not Users(i) Is Nothing Then
-        If Users(i).HasRegistered = False Then
-            m_error Users(i), "Closing Link: (Closing half-open connections)"
+Dim I As Long, x&   'close all connections properly -Dill
+For I = 1 To UBound(Users)
+    If Not Users(I) Is Nothing Then
+        If Users(I).HasRegistered = False Then
+            m_error Users(I), "Closing Link: (Closing half-open connections)"
             x = x + 1
-            Set Users(i) = Nothing
+            Set Users(I) = Nothing
         End If
     End If
-Next i
+Next I
 SendWsock cptr.index, "NOTICE " & cptr.Nick, ":*** Notice -- " & x & " unregistered connections closed"
 IrcStat.UnknownConnections = 0
 End Function
@@ -952,7 +961,7 @@ On Error Resume Next
 #If Debugging = 1 Then
     SendSvrMsg "*** Notice -- KLINE called! (" & cptr.Nick & ")"
 #End If
-Dim i&, z&, Mask$, NewKline As KLines, KUser$, KHost$
+Dim I&, z&, Mask$, NewKline As KLines, KUser$, KHost$
 If Not (cptr.CanKline Or cptr.CanUnkline) Then
     SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
     Exit Function
@@ -966,18 +975,18 @@ If UBound(parv) = 0 Then
     Exit Function
 End If
 Mask = ":" & CreateMask(parv(0))
-For i = LBound(Users) To UBound(Users)
-    If Not Users(i) Is Nothing Then
-        If Users(i).Prefix Like Mask Then
-            m_error Users(i), "Closing Link: K-Line active from: " & cptr.Nick & " (" & parv(1) & ")"
-            For z = 1 To Users(i).OnChannels.Count
-                SendToChan Users(i).OnChannels.Item(z), Users(i).Prefix & " QUIT :Kline active (" & parv(1) & ")", vbNullString
+For I = LBound(Users) To UBound(Users)
+    If Not Users(I) Is Nothing Then
+        If Users(I).Prefix Like Mask Then
+            m_error Users(I), "Closing Link: K-Line active from: " & cptr.Nick & " (" & parv(1) & ")"
+            For z = 1 To Users(I).OnChannels.Count
+                SendToChan Users(I).OnChannels.Item(z), Users(I).Prefix & " QUIT :Kline active (" & parv(1) & ")", vbNullString
             Next z
-            Sockets.TerminateSocket Users(i).SockHandle
-            KillStruct Users(i).Nick
+            Sockets.TerminateSocket Users(I).SockHandle
+            KillStruct Users(I).Nick
         End If
     End If
-Next i
+Next I
 Mask = Mid$(Mask, 2)
 KHost = Mid$(Mask, InStr(1, Mask, "@") + 1)
 Mask = Replace(Mask, "@" & KHost, vbNullString, , 1)
@@ -999,31 +1008,280 @@ If Not (cptr.CanUnkline) Then
     Exit Function
 End If
 If Len(parv(0)) = 0 Then
-    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "KLINE")
+    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "UNKLINE")
     Exit Function
 End If
-Dim i&
-For i = 1 To UBound(KLine)
-    If Len(KLine(i).Host) > 0 Then
-        If KLine(i).User & "@" & KLine(i).Host Like parv(0) Then
-            KLine(i).Host = vbNullString
-            KLine(i).User = vbNullString
-            KLine(i).Reason = vbNullString
+Dim I&
+For I = 1 To UBound(KLine)
+    If Len(KLine(I).Host) > 0 Then
+        If KLine(I).User & "@" & KLine(I).Host Like parv(0) Then
+            KLine(I).Host = vbNullString
+            KLine(I).User = vbNullString
+            KLine(I).Reason = vbNullString
         End If
     End If
-Next i
+Next I
 End Function
-
+Public Function GenerateEvent(EventType As String, EventName As String, Mask As String, Args As String)
+'this function is called by all things that generate events
+If Event_LastEventTime = UnixTime And Event_LastEventType = EventType And Event_LastEventName = EventName And Event_LastEventArgs = Args Then Exit Function
+Event_LastEventType = EventType
+Event_LastEventName = EventName
+Event_LastEventArgs = Args
+Event_LastEventTime = UnixTime
+On Error Resume Next
+Dim I As Long, Recv() As clsClient
+Dim A As Long
+Recv() = Opers.Values
+If Recv(0) Is Nothing Then Exit Function
+For I = LBound(Recv) To UBound(Recv)
+  If Recv(I).Events.Count > 0 Then
+    For A = 1 To Recv(I).Events.Count
+      If (Recv(I).Events(A).Mask Like Mask) And (UCase(Recv(I).Events(A).EventType) = UCase(EventType)) And ((UCase(Recv(I).Events(A).EventName) = UCase(EventName)) Or (Recv(I).Events(A).EventName = "")) Then
+        'can get this event
+        'here we make sure that the user wildcarded it
+        'or if the user is asking for a specific name
+        If Recv(I).Events.Item(A).EventName = "" Then
+          'no event name at all -- assume wildcard
+          SendEvent Recv(I).index, EventType, EventName, Args
+          GoTo nextItem
+        ElseIf EventName = Recv(I).Events.Item(A).EventName Then
+          'event name specified, and user did too
+          SendEvent Recv(I).index, EventType, EventName, Args
+          GoTo nextItem
+        End If
+      End If
+nextItem:
+    Next A
+  End If
+Next I
+End Function
 Public Function m_event(cptr As clsClient, sptr As clsClient, parv$()) As Long
+On Error GoTo EventError
+Dim tL As String
+tL = "entry"
 #If Debugging = 1 Then
   SendSvrMsg "*** Notice -- EVENT called! (" & cptr.Nick & ")"
 #End If
 If cptr.AccessLevel = 4 Then
 'Todo
-ElseIf cptr.AccessLevel = 3 Then
-  
 Else
-    SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
-    Exit Function
+    tL = "determine oper perms"
+    If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
+        SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+        Exit Function
+    End If
+    tL = "need more params"
+    If Len(parv(0)) = 0 Then
+        SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "EVENT")
+        Exit Function
+    End If
+    'Syntax 1: EVENT [ADD | DELETE] <event> [<mask>]
+    'Syntax 2: EVENT LIST [<event>]
+    
+    'determine information ahead of time
+    'to simplify error trapping
+    tL = "define vars"
+    Dim Mask As String
+    Dim EventType As String
+    Dim EventName As String
+    Dim tmpFullEvent As String
+    
+    tL = "proccess params"
+    If UBound(parv) >= 2 Then
+      tL = "determine event type"
+      'ADD SOMETHING MASK
+      If InStr(1, parv(1), ".") Then
+        tmpFullEvent = parv(1)
+        tL = "set event type"
+        EventType = Split(tmpFullEvent, ".")(0)
+        tL = "set event name"
+        EventName = Split(tmpFullEvent, ".")(1)
+      Else
+        EventType = parv(1)
+        EventName = ""
+      End If
+      tL = "set mask"
+      Mask = CreateMask(parv(2))
+    ElseIf UBound(parv) = 1 And UCase(parv(0)) <> "LIST" Then
+      'ADD SOMETHING (assume mask is *!*@*)
+      tL = "determine event type (2 params not list)"
+      If InStr(1, parv(1), ".") Then
+        tmpFullEvent = parv(1)
+        tL = "set event type"
+        EventType = Split(tmpFullEvent, ".")(0)
+        tL = "set event name"
+        EventName = Split(tmpFullEvent, ".")(1)
+      Else
+        EventType = parv(1)
+        EventName = ""
+      End If
+      tL = "set mask"
+      Mask = "*!*@*"
+    ElseIf UBound(parv) = 1 And UCase(parv(0)) = "LIST" Then
+      tL = "determine event type (2 params, list)"
+      If InStr(1, parv(1), ".") Then
+        tmpFullEvent = parv(1)
+        tL = "set event type"
+        EventType = Split(tmpFullEvent, ".")(0)
+        tL = "set event name"
+        EventName = Split(tmpFullEvent, ".")(1)
+      Else
+        EventType = parv(1)
+        EventName = ""
+      End If
+      tL = "set mask"
+      Mask = "*!*@*"
+    Else
+      'has to be list
+      'if not, throw error
+      If UCase(parv(0)) <> "LIST" Then
+        SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "EVENT")
+        Exit Function
+      End If
+    End If
+    tL = "determine action"
+    Dim A As Integer
+    Select Case UCase(parv(0))
+      Case "ADD":
+        tL = "add event"
+        'detect if said event already exists
+        If cptr.Events.Count > 0 Then
+          For A = 1 To cptr.Events.Count
+            'the following conditions must be met to be considered a dupe:
+            '1) EventName = event trying to be added OR user specified a wildcard event, -and-
+            '2) EventType = event type trying to be added
+            '3) Mask = the same
+            'if all 3 are met, event is a dupe
+            If ((cptr.Events.Item(A).EventName = EventName) Or (cptr.Events.Item(A).EventName = "")) And cptr.Events.Item(A).EventType = EventType And cptr.Events.Item(A).Mask = Mask Then
+              SendWsock cptr.index, "918 " & cptr.Nick, TranslateCode(IRCERR_EVENTDUP, EventType, Mask)
+            End If
+          Next A
+        End If
+        If UCase(EventType) = "SOCKET" Then
+          tL = "add event socket"
+          If EventName = "" Then
+            'note: mask does not apply here
+            tL = "add event socket->all events"
+            cptr.Events.Add "SOCKET", "*!*@*", "OPEN"
+            cptr.Events.Add "SOCKET", "*!*@*", "CLOSE"
+            tL = "send event socket->all events"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase(parv(1)), "*!*@*")
+          ElseIf UCase(EventName) = "OPEN" Then
+            'SOCKET.OPEN
+            tL = "add event socket->open"
+            cptr.Events.Add "SOCKET", "*!*@*", "OPEN"
+            tL = "sent event socket->open"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase(parv(1)), "*!*@*")
+          ElseIf UCase(EventName) = "CLOSE" Then
+            'SOCKET.CLOSE
+            tL = "add event socket->close"
+            cptr.Events.Add "SOCKET", "*!*@*", "CLOSE"
+            tL = "send event socket->close"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase(parv(1)), "*!*@*")
+          Else
+            'send error
+            tL = "invalid event name"
+            SendWsock cptr.index, "902 " & cptr.Nick, TranslateCode(IRCERR_BADFUNCTION, UCase(parv(1)))
+          End If
+        ElseIf UCase(EventType) = "USER" Then
+          If EventName = "" Then
+            'note: mask does not apply here
+            tL = "add event user->all"
+            cptr.Events.Add "USER", Mask, "LOGON"
+            cptr.Events.Add "USER", Mask, "LOGOFF"
+            cptr.Events.Add "USER", Mask, "MODECHANGE"
+            cptr.Events.Add "USER", Mask, "JOIN"
+            cptr.Events.Add "USER", Mask, "PART"
+            cptr.Events.Add "USER", Mask, "NICKCHANGE"
+            tL = "send event user->all"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase(parv(1)), Mask)
+          ElseIf UCase(EventName) = "LOGON" Then
+            'USER.LOGON
+            tL = "add event user->logon"
+            cptr.Events.Add "USER", Mask, "LOGON"
+            tL = "send event user->logon"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase(parv(1)), Mask)
+          ElseIf UCase(EventName) = "LOGOFF" Then
+            'USER.LOGOFF
+            tL = "add event user->logoff"
+            cptr.Events.Add "USER", Mask, "LOGOFF"
+            tL = "send event user->logoff"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase(parv(1)), Mask)
+          ElseIf UCase(EventName) = "MODECHANGE" Then
+            'USER.MODECHANGE
+            tL = "add event user->modechange"
+            cptr.Events.Add "USER", Mask, "MODECHANGE"
+            tL = "send event user->modechange"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase(parv(1)), Mask)
+          ElseIf UCase(EventName) = "JOIN" Then
+            'USER.JOIN
+            tL = "add event user->join"
+            cptr.Events.Add "USER", Mask, "JOIN"
+            tL = "send event user->join"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase(parv(1)), Mask)
+          ElseIf UCase(EventName) = "PART" Then
+            'USER.PART
+            tL = "add event user->part"
+            cptr.Events.Add "USER", Mask, "PART"
+            tL = "send event user->part"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase(parv(1)), Mask)
+          ElseIf UCase(EventName) = "NICKCHANGE" Then
+            'USER.NICKCHANGE
+            tL = "add event user->nickchange"
+            cptr.Events.Add "USER", Mask, "NICKCHANGE"
+            tL = "send event user->nickchange"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase(parv(1)), Mask)
+          Else
+            'send error
+            tL = "USER -> invalid event name"
+            SendWsock cptr.index, "902 " & cptr.Nick, TranslateCode(IRCERR_BADFUNCTION, UCase(parv(1)))
+          End If
+        End If
+        tL = "end add"
+      Case "DELETE":
+        If cptr.Events.Count > 0 Then
+          For A = 1 To cptr.Events.Count
+            'if it exists, process and exit
+            If ((cptr.Events.Item(A).EventName = EventName) Or (EventName = "")) And UCase(cptr.Events.Item(A).EventType) = UCase(EventType) And (cptr.Events.Item(A).Mask Like Mask) Then
+              'it does exist
+              cptr.Events.Remove A
+              SendWsock cptr.index, "807", TranslateCode(IRCRPL_EVENTDEL, cptr.Nick, UCase(parv(1)), Mask)
+              Exit Function
+            End If
+            'didn't exist in this slot
+          Next A
+          'it can't exist
+          SendWsock cptr.index, "919 " & cptr.Nick, TranslateCode(IRCERR_EVENTMIS, EventType, Mask)
+        End If
+      Case "LIST":
+        SendWsock cptr.index, "808 " & cptr.Nick, TranslateCode(IRCRPL_EVENTSTART)
+        If cptr.Events.Count > 0 Then
+          For A = 1 To cptr.Events.Count
+            If EventType <> "" Then
+              If EventName <> "" Then
+                'if there's an event name (there will be), and eventtype and such was specified
+                If (UCase(EventType) = UCase(cptr.Events.Item(A).EventType)) And (UCase(EventName) = UCase(cptr.Events.Item(A).EventName)) Then
+                  SendWsock cptr.index, "809 " & cptr.Nick, UCase(cptr.Events.Item(A).EventType) & "." & UCase(cptr.Events.Item(A).EventName) & " " & cptr.Events.Item(A).Mask
+                End If
+              Else
+                'listing all events for a specific type
+                If UCase(EventType) = UCase(cptr.Events.Item(A).EventType) Then
+                  SendWsock cptr.index, "809 " & cptr.Nick, UCase(cptr.Events.Item(A).EventType) & "." & UCase(cptr.Events.Item(A).EventName) & " " & cptr.Events.Item(A).Mask
+                End If
+              End If
+            Else
+              'no event type specified at all, assuming EVENT LIST (sending all events)
+              SendWsock cptr.index, "809 " & cptr.Nick, UCase(cptr.Events.Item(A).EventType) & "." & UCase(cptr.Events.Item(A).EventName) & " " & cptr.Events.Item(A).Mask
+            End If
+          Next A
+        End If
+        SendWsock cptr.index, "810 " & cptr.Nick, TranslateCode(IRCRPL_EVENTEND)
+    End Select
 End If
+Exit Function
+
+EventError:
+SendSvrMsg "*** Error in m_event: Error " & err.Number & " - " & err.Description & " AT: " & tL
+SendSvrMsg "*** parv[0]: " & parv(0) & " | parv[1]: " & parv(1) & " | parv[2]: " & parv(2)
 End Function

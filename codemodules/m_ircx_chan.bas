@@ -7,11 +7,14 @@ Attribute VB_Name = "m_ircx_chan"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
-'Contact information: Keith Gable (Ziggy) <ziggy@silentsoft.net>
-'                     Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
+'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
-
+'
+' $Id: m_ircx_chan.bas,v 1.2 2004/05/28 20:20:54 ziggythehamster Exp $
+'
+'
 'This program is free software.
 'You can redistribute it and/or modify it under the terms of the
 'GNU General Public License as published by the Free Software Foundation; either version 2 of the License,
@@ -38,7 +41,7 @@ Public Function m_create(cptr As clsClient, sptr As clsClient, parv$()) As Long
 'parv[0] = #Channel
 'parv[1] = modes
 'parv[2] = mode argument 1
-'parv[3] = mode argument 3
+'parv[3] = mode argument 2
 Dim Chan As clsChannel
 Dim CurrentInfo As String
 If cptr.AccessLevel = 4 Then
@@ -68,6 +71,9 @@ Else
     Chan.Name = parv(0)
     Chan.Prop_Creation = UnixTime
     Chan.Prop_Name = parv(0)
+    Chan.Member.Add ChanOwner, cptr
+    cptr.OnChannels.Add Chan, Chan.Name
+    
     If UBound(parv) = 3 Then
       Call ParseModes(parv(1) & " " & parv(2) & " " & parv(3), Chan)
     ElseIf UBound(parv) = 2 Then
@@ -75,7 +81,7 @@ Else
     ElseIf UBound(parv) = 1 Then
       Call ParseModes(parv(1), Chan)
     End If
-    SendWsock cptr.index, "CREATE " & parv(0) & " 0", vbNullString, , True
+    SendWsock cptr.index, "CREATE " & parv(0) & " 0", vbNullString
     SendWsock cptr.index, cptr.Prefix & " JOIN " & parv(0), vbNullString, , True
     SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " = " & parv(0), ":." & cptr.Nick
     SendWsock cptr.index, SPrefix & " " & RPL_ENDOFNAMES & " " & cptr.Nick & " " & Chan.Name & " :End of /NAMES list.", vbNullString, , True
@@ -90,30 +96,30 @@ End Function
 Public Sub ParseModes(ModeString As String, Chan As clsChannel)
 Dim ModesArray() As String
 Dim CurParam As Integer
-Dim a As Integer
+Dim A As Integer
 CurParam = 1 '1 would default to the first mode parameter
 ModesArray = Split(ModeString, " ")
-For a = 1 To Len(ModesArray(0))
-  If Chr(cmModerated) = Mid(ModesArray(0), a, 1) Then Chan.IsModerated = True
-  If Chr(cmNoExternalMsg) = Mid(ModesArray(0), a, 1) Then Chan.IsNoExternalMsgs = True
-  If Chr(cmOpTopic) = Mid(ModesArray(0), a, 1) Then Chan.IsTopicOps = True
-  If Chr(cmHidden) = Mid(ModesArray(0), a, 1) Then
+For A = 1 To Len(ModesArray(0))
+  If Chr(cmModerated) = Mid(ModesArray(0), A, 1) Then Chan.IsModerated = True
+  If Chr(cmNoExternalMsg) = Mid(ModesArray(0), A, 1) Then Chan.IsNoExternalMsgs = True
+  If Chr(cmOpTopic) = Mid(ModesArray(0), A, 1) Then Chan.IsTopicOps = True
+  If Chr(cmHidden) = Mid(ModesArray(0), A, 1) Then
     Chan.IsHidden = True
     Chan.IsSecret = False
     Chan.IsPrivate = False
   End If
-  If Chr(cmInviteOnly) = Mid(ModesArray(0), a, 1) Then Chan.IsInviteOnly = True
-  If Chr(cmSecret) = Mid(ModesArray(0), a, 1) Then
+  If Chr(cmInviteOnly) = Mid(ModesArray(0), A, 1) Then Chan.IsInviteOnly = True
+  If Chr(cmSecret) = Mid(ModesArray(0), A, 1) Then
     Chan.IsSecret = True
     Chan.IsHidden = False
     Chan.IsPrivate = False
   End If
-  If Chr(cmPrivate) = Mid(ModesArray(0), a, 1) Then
+  If Chr(cmPrivate) = Mid(ModesArray(0), A, 1) Then
     Chan.IsSecret = False
     Chan.IsHidden = False
     Chan.IsPrivate = True
   End If
-  If Chr(cmLimit) = Mid(ModesArray(0), a, 1) Then
+  If Chr(cmLimit) = Mid(ModesArray(0), A, 1) Then
     If UBound(ModesArray) > 0 And UBound(ModesArray) >= CurParam Then
       'make sure we aren't going out of bounds
       'also adds protection against this kind of malformed create:
@@ -124,7 +130,7 @@ For a = 1 To Len(ModesArray(0))
       CurParam = CurParam + 1
     End If
   End If
-  If Chr(cmKey) = Mid(ModesArray(0), a, 1) Then
+  If Chr(cmKey) = Mid(ModesArray(0), A, 1) Then
     If UBound(ModesArray) > 0 And UBound(ModesArray) >= CurParam Then
       Chan.Key = CStr(ModesArray(CurParam))
       Chan.Prop_Memberkey = CStr(ModesArray(CurParam))
@@ -132,5 +138,5 @@ For a = 1 To Len(ModesArray(0))
      End If
   End If
   'todo: allow opers to make a chan +r
-Next a
+Next A
 End Sub

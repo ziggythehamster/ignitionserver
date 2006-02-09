@@ -1,6 +1,7 @@
 			########################
 			#ignitionServer CREDITS#
 			########################
+# $Id: credits.txt,v 1.2 2004/05/28 20:20:55 ziggythehamster Exp $
 
 	===========++++++++===========++++++++===========
 
@@ -9,8 +10,8 @@ ignitionServer is (C)  Keith Gable and Nigel Jones.
 You must include this notice in any modifications you make. You must additionally follow the GPL's provisions for sourcecode distribution and binary distribution.
 If you are not familiar with the GPL, please read LICENSE.TXT. (you are welcome to add a "Based On" line above this notice, but this notice must remain intact!)
 Released under the GNU General Public License
-Contact information: Keith Gable (Ziggy) <ziggy@silentsoft.net>
-                     Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
+                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
 
 ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 
@@ -22,3 +23,5 @@ Ben Affleck <ben-affleck@users.sourceforge.net>
 Dennis Fisch <dilligent@users.sourceforge.net>
 Johnny aka Pern <dragonsworkshop@users.sourceforge.net>
 Eric Dickman <inkblot777@users.sourceforge.net>
+
+Credits goto Phil Fresle for the MD5 Class

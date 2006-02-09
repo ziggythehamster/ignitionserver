@@ -2,9 +2,10 @@
 ## Ignition Server ChangeLog ##
 ###############################
 #
-# Zg = Ziggy(ziggy@silentsoft.net)
-# DG = DigiGuy(digi_guy@users.sourceforge.net)
+# Zg = Ziggy(ziggy@ignition-project.com)
+# DG = DigiGuy(digiguy@ignition-project.com)
 #
+# $Id: changelog.txt,v 1.3 2004/05/28 20:20:52 ziggythehamster Exp $
 #
 ### Project Start ###
 #
@@ -104,3 +105,74 @@ Zg - [30-Jan] - Added CHGHOST (Task 90351)
 Zg - [30-Jan] - Fixed bug #886707 (whois muckup)
 Zg - [30-Jan] - Fixed bug #888011 (OnJoin muckup)
 Zg - [31-Jan] - Added CHGNICK (Task 90351)
+#
+### RELEASE - 0.1.2-R2 ###
+#
+DG - [31-Jan] - Release 2 Uploaded and tagged
+Zg - [31-Jan] - Edited source and changed back to 0.1.3
+Zg - [31-Jan] - Fixed bug 886688
+Zg - [31-Jan] - Fixed bug 888392
+DG - [1-Feb] - Added Id CVS Tags
+DG - [1-Feb] - MD5 Class Added for one of Ziggys tasks... also makes a future one of mine possible
+Zg - [1-Feb] - X:DNSMASK added
+Zg - [1-Feb] - X:SERVERLOCATION added
+DG - [1-Feb] - X:CRYPT added
+DG - [1-Feb] - /passcrypt added (P.S. Ziggy always leave an empty line at bottom...
+Zg - [1-Feb] - fixed small bug Nigel had... PassCrypt replied as if the msg was coming from yourself. This could break some clients.
+Zg - [2-Feb] - basis for event system is in.. MINIMAL ERROR TRAPPING! there are many things i need to do, so it's safe to say the event system does not yet exist!
+Zg - [3-Feb] - USER events added
+Zg - [3-Feb] - Fixed more EVENT errors -- no longer sends events twice
+Zg - [3-Feb] - EVENT and CREATE now use RFC1459 origins (even though the IRCX draft doesn't specify). It's easier to code for if the command is in the same place as the rest of them.
+Zg - [3-Feb] - KILL'd changed to Killed in m_kill.
+Zg - [3-Feb] - Added framework for oper mode/flag +P (protected)
+Zg - [3-Feb] - Oper mode +P (protected) is in full operation
+Zg - [3-Feb] - Linked to X9Chat for a few minutes and found enough bugs to keep Sir William Gates busy for a few years. LINKING IS *EXPERIMENTAL*!
+Zg - [4-Feb] - Fixed bug with channel key (+k)
+Zg - [4-Feb] - Aliased /CONNECT to /LINK -- either now works (suggested by Michio)
+Zg - [4-Feb] - Access-related modes are now sent to other servers (before, you'd be an owner/host/voice locally, but not on the other server).
+DG - [5-Feb] - Test CVS Changes....
+DG - [5-Feb] - Fix Bug Described in Bugs item #890182
+Zg - [6-Feb] - Renamed ircd.log to ircx.log
+Zg - [6-Feb] - Felt the urge to add /whois * for opers
+Zg - [6-Feb] - Security bug is fixed now.
+Zg - [6-Feb] - Fixed bug with /who; your status and if oper or not is shown in /who's not directed to a channel.
+Zg - [6-Feb] - Access case-sensibility fixed.
+DG - [7-Feb] - No more C/N Lines say Hi to just L Lines Ziggy please note i'll be re-using the C lines
+Zg - [8-Feb] - Opers are no longer auto-q and no longer can defeat bans unless they are protected (+P).
+Zg - [8-Feb] - Added more events (USER.PART/USER.JOIN)
+Zg - [12-Feb] - Another bug identified... /part is broken! I'll be scanning my code since 7-Feb (before DG's addition) to see what got changed that fucks it up. Unless for some reason the server relies solely on C/N lines, it's my modified join code (restore to check?).
+Zg - [13-Feb] - Combed the source and located the bug: It involved the previous misuse of a variable (note: pureIRCd used it wrong, and without double checking, I assumed they did it right). Fixed possible future bug where if you tried to /part a room that didn't exist it would generate an error.
+Zg - [15-Feb] - Finished the core of the events system (DELETE, LIST added)
+Zg - [15-Feb] - Tested events a bit; fixed a bug I found
+Zg - [18-Feb] - Probably fixed a few things yesterday
+Zg - [18-Feb] - Fixed typo in /lusers
+Zg - [18-Feb] - Added X:ALLOWMULTIPLE:0|1 (simple enough, eh?)
+DG - [19-Feb] - Fixed Suspected Typo in m_ircx_chan
+DG - [19-Feb] - Added Umode/OperFlag E and Changed A -> N... (E Comes from Ultimate)
+DG - [19-Feb] - Starting work on /add - ziggy leave this stuff alone I havn't finished with it and I know it so let me finish it off plus finish some other code I'm working on but Havn't Committed
+DG - [19-Feb] - Changed Default MOTD
+DG - [20-Feb] - /add finished but /del and /mod is still on it's way
+DG - [20-Feb] - Fixed up Copyright Notices
+DG - [20-Feb] - Changed Docs tiny bit
+DG - [20-Feb] - Can't Remember what else...
+DG - [20-Feb] - Added MaskDNS Option 2(Auto Host Name) - Note Ziggy the VHost won't change after /nick this is not a bug it's a feature
+DG - [20-Feb] - I think I found a links bug... Damit
+DG - [20-Feb] - Fixed Bug 901367(Stats O)
+DG - [20-Feb] - Started work on /remoteadm
+DG - [20-Feb] - Added +Z
+DG - [21-Feb] - Added /remoteadm Login
+DG - [21-Feb] - Added /remoteadm SEND [Oper/Server]
+DG - [21-Feb] - As Ziggy is prep'ing to move He's not coding so It won't matter if I hold back all the actual changes(cos they are incomplete)
+#COMMENT - DG - SVN Introduced
+DG - [24-Feb] - Can't remember other changes(sorry) I think it was just bug fixing/cleanups
+DG - [25-Feb] - Cleared Task #94456 (OnPart/newlines)
+DG - [25-Feb] - Cleared Task #93419 (Change nickname that *Serv calls on) - Kinda but it will do until we make services
+DG - [26-Feb] - Introduced Ziggys m_kill changes(should clear /raw close bug
+DG - [26-Feb] - Added code to prevent Special UModes to be given via an OLine - Example +Z(Remote Admin Client), +S(Service), +r(Registered NickName)
+DG - [01-Mar] - Cleared Bug #904090 (Setting +q/+o on self when you've got it gives ChanOpsNeeded)
+DG - [01-Mar] - Cleared Bug #891538 (User ident can contain bad characters)
+#
+### RELEASE - 0.2.1 - BETA RC1 ###
+#
+DG - [01-Mar] - Tagged and Such
+DG - Test

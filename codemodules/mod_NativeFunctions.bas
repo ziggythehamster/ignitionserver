@@ -7,10 +7,13 @@ Attribute VB_Name = "mod_NativeFunctions"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
-'Contact information: Keith Gable (Ziggy) <ziggy@silentsoft.net>
-'                     Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
+'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
+'
+' $Id: mod_NativeFunctions.bas,v 1.3 2004/05/28 20:20:54 ziggythehamster Exp $
+'
 '
 'This program is free software.
 'You can redistribute it and/or modify it under the terms of the
@@ -44,11 +47,11 @@ Public Function GetLusers(Nick As String) As String
     SendSvrMsg "GETLUSERS called! (" & Nick & ")"
 #End If
 'Chancount/LocServer count are off sometimes
-GetLusers = SPrefix & " 251 " & Nick & " :There are " & GlobUsers.Count & " users on " & Servers.Count & " servers" & vbCrLf
-If Opers.Count > 0 Then GetLusers = GetLusers & SPrefix & " 252 " & Nick & " " & Opers.Count & " :Operators online" & vbCrLf
+GetLusers = SPrefix & " 251 " & Nick & " :There are " & GlobUsers.Count & " user(s) on " & Servers.Count & " server(s)" & vbCrLf
+If Opers.Count > 0 Then GetLusers = GetLusers & SPrefix & " 252 " & Nick & " " & Opers.Count & " :IRC Operator(s) Online" & vbCrLf
 If IrcStat.UnknownConnections > 0 Then GetLusers = GetLusers & SPrefix & " 253 " & Nick & " " & IrcStat.UnknownConnections & " :Unknown Connection(s)" & vbCrLf
-If IrcStat.Channels > 0 Then GetLusers = GetLusers & SPrefix & " 254 " & Nick & " " & Channels.Count & " :channels formed" & vbCrLf
-GetLusers = GetLusers & SPrefix & " 255 " & Nick & " :I have " & GlobUsers.m_LocCount & " clients and " & IrcStat.LocServers & " Servers" & vbCrLf
+If IrcStat.Channels > 0 Then GetLusers = GetLusers & SPrefix & " 254 " & Nick & " " & Channels.Count & " :channel(s) formed" & vbCrLf
+GetLusers = GetLusers & SPrefix & " 255 " & Nick & " :I have " & GlobUsers.m_LocCount & " client(s) and " & IrcStat.LocServers & " server(s)" & vbCrLf
 GetLusers = GetLusers & SPrefix & " 265 " & Nick & " :Current Local Users: " & GlobUsers.m_LocCount & " Max Local Users: " & IrcStat.MaxLocUsers & vbCrLf
 GetLusers = GetLusers & SPrefix & " 266 " & Nick & " :Current Global Users: " & GlobUsers.Count & " Max Global Users: " & IrcStat.MaxGlobUsers
 End Function
@@ -69,13 +72,27 @@ Public Function GetStats(Nick As String, AccessLvl As Integer, Flag As String, O
 #If Debugging = 1 Then
     SendSvrMsg "GETSTATS called! (" & Flag & ")"
 #End If
-Dim CurUT&, i&, x&
+Dim CurUT&, I&, x&
+Dim TempIsGlobOper As Boolean
 Select Case Flag
     'list all oline hosts and ids -Dill
     Case "o"
         If AccessLvl >= 3 Then
             For x = 2 To UBound(OLine)
-                GetStats = GetStats & SPrefix & " " & RPL_STATSOLINE & " " & Nick & " :O " & OLine(x).Host & " * " & OLine(x).Name & vbCrLf
+                TempIsGlobOper = False
+                Dim y&, CurMode$
+                For y = 1 To Len(OLine(x).AccessFlag)
+                    CurMode = Mid$(OLine(x).AccessFlag, y, 1)
+                    Select Case AscW(CurMode)
+                        Case umGlobOper
+                            TempIsGlobOper = True
+                    End Select
+                Next y
+                If TempIsGlobOper = True Then
+                    GetStats = GetStats & SPrefix & " " & RPL_STATSOLINE & " " & Nick & " :O " & OLine(x).Host & " * " & OLine(x).Name & vbCrLf
+                Else
+                    GetStats = GetStats & SPrefix & " " & RPL_STATSOLINE & " " & Nick & " :o " & OLine(x).Host & " * " & OLine(x).Name & vbCrLf
+                End If
             Next x
         Else
             GetStats = GetStats & SPrefix & " " & ERR_NOPRIVILEGES & " " & Nick & " " & TranslateCode(ERR_NOPRIVILEGES) & vbCrLf
@@ -111,9 +128,9 @@ Select Case Flag
         Dim Links() As clsClient
         Links = Servers.Values
         If Not Links(0) Is Nothing Then
-          For i = 0 To UBound(Links)
-            GetStats = GetStats & SPrefix & " " & RPL_STATSLINKINFO & " " & Nick & " " & Links(i).ServerName & " " & Len(Links(i).SendQ) & vbCrLf
-          Next i
+          For I = 0 To UBound(Links)
+            GetStats = GetStats & SPrefix & " " & RPL_STATSLINKINFO & " " & Nick & " " & Links(I).ServerName & " " & Len(Links(I).SendQ) & vbCrLf
+          Next I
         End If
     'Send current uptime -Dill
     Case "u"
@@ -121,6 +138,7 @@ Select Case Flag
         GetStats = GetStats & SPrefix & " " & RPL_STATSCONN & " " & Nick & " :Connection count since last (re)start: " & IrcStat.Connections & vbCrLf
     'send command inbound bandwidth and usage -Dill
     Case "m"
+        If Cmds.Add > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :ADD " & Cmds.Add & " " & Cmds.AddBW & vbCrLf
         If Cmds.Admin > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :ADMIN " & Cmds.Admin & vbCrLf
         If Cmds.Akill > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :AKILL " & Cmds.Akill & " " & Cmds.AkillBW & vbCrLf
         If Cmds.Auth > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :AUTH " & Cmds.Auth & " " & Cmds.AuthBW & vbCrLf
@@ -134,6 +152,7 @@ Select Case Flag
         If Cmds.Info > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :INFO " & Cmds.Info & " " & Cmds.InfoBW & vbCrLf
         If Cmds.Invite > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :INVITE " & Cmds.Invite & " " & Cmds.InviteBW & vbCrLf
         If Cmds.Help > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :IRCXHELP " & Cmds.Help & " " & Cmds.HelpBW & vbCrLf
+        If Cmds.PassCrypt > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :PASSCRYPT " & Cmds.PassCrypt & " " & Cmds.PassCryptBW & vbCrLf
         If Cmds.Ircx > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :IRCX " & Cmds.Ircx & " " & Cmds.IrcxBW & vbCrLf
         If Cmds.Ison > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :ISON " & Cmds.Ison & " " & Cmds.IsonBW & vbCrLf
         If Cmds.Join > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :JOIN " & Cmds.Join & " " & Cmds.JoinBW & vbCrLf
@@ -184,17 +203,17 @@ End Function
 'through all users and check for these modes! -Dill
 Public Sub SendSvrMsg(Msg As String, Optional Glob As Boolean = False, Optional Origin As String)
 #If Debugging = 1 Then
-    CreateObject("Scripting.FileSystemObject").OpenTextFile(App.Path & "\ircd.log", 8, True).WriteLine Msg
+    CreateObject("Scripting.FileSystemObject").OpenTextFile(App.Path & "\ircx.log", 8, True).WriteLine Msg
 #End If
 If ServerMsg.Count = 0 Then Exit Sub
 If Len(Origin) = 0 Then Origin = ServerName
 On Error Resume Next
-Dim i As Long, Recv() As clsClient
+Dim I As Long, Recv() As clsClient
 Recv = ServerMsg.Values
 If Recv(0) Is Nothing Then Exit Sub
-For i = LBound(Recv) To UBound(Recv)
-    SendWsock Recv(i).index, "NOTICE " & Recv(i).Nick, ":" & Msg, ":" & Origin
-Next i
+For I = LBound(Recv) To UBound(Recv)
+    SendWsock Recv(I).index, "NOTICE " & Recv(I).Nick, ":" & Msg, ":" & Origin
+Next I
 If Glob Then SendToServer "GNOTICE :" & Msg, Origin
 End Sub
 
@@ -210,14 +229,14 @@ Public Function GetServer(Mask$) As clsClient
 #If Debugging = 1 Then
     SendSvrMsg "GETSERVER called! (" & Mask & ")"
 #End If
-Dim i&, Val() As clsClient
+Dim I&, Val() As clsClient
 Val = Servers.Values
-For i = LBound(Val) To UBound(Val)
-    If Not Val(i).Hops = 0 Then
-        If Val(i).ServerName Like Mask Then
-            Set GetServer = Val(i)
+For I = LBound(Val) To UBound(Val)
+    If Not Val(I).Hops = 0 Then
+        If Val(I).ServerName Like Mask Then
+            Set GetServer = Val(I)
             Exit Function
         End If
     End If
-Next i
+Next I
 End Function

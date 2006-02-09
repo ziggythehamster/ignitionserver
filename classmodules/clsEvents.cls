@@ -6,13 +6,11 @@ BEGIN
   DataSourceBehavior  = 0  'vbNone
   MTSTransactionMode  = 0  'NotAnMTSObject
 END
-Attribute VB_Name = "clsChanMember"
+Attribute VB_Name = "clsEvents"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
-Attribute VB_Ext_KEY = "SavedWithClassBuilder6" ,"Yes"
-Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 'ignitionServer is (C)  Keith Gable and Nigel Jones.
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
@@ -26,7 +24,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsChanMember.cls,v 1.2 2004/05/28 20:20:53 ziggythehamster Exp $
+' $Id: clsEvents.cls,v 1.1 2004/05/28 20:20:53 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -40,10 +38,49 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'You should have received a copy of the GNU General Public License along with this program.
 'if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-Option Explicit
 
-Public Member As clsClient
-Public IsOp As Boolean
-Public IsVoice As Boolean
-Public IsOwner As Boolean 'IRCX - Ziggy
-Public IsHOp As Boolean 'HalfOp seems to be an unwriten standard in IRC now...
+Option Explicit
+Private mCol As Collection
+'(yes this is exactly like clsBan.. not really intentional)
+
+Public Function Add(EventType As String, Mask As String, Optional EventName As String = "", Optional sKey As String) As clsEvent
+    Dim objNewMember As clsEvent
+    Set objNewMember = New clsEvent
+    objNewMember.Mask = Mask
+    objNewMember.EventName = EventName
+    objNewMember.EventType = EventType
+    If Len(sKey) = 0 Then
+        mCol.Add objNewMember
+    Else
+        mCol.Add objNewMember, sKey
+    End If
+    Set Add = objNewMember
+    Set objNewMember = Nothing
+End Function
+Public Property Get Item(vntIndexKey As Variant) As clsEvent
+  Set Item = mCol(vntIndexKey)
+End Property
+
+Public Property Get Count() As Long
+    Count = mCol.Count
+End Property
+
+Public Sub Remove(vntIndexKey As Variant)
+    mCol.Remove vntIndexKey
+End Sub
+Public Sub Clear()
+Dim A As Integer
+    If mCol.Count > 0 Then
+      For A = 1 To mCol.Count
+        mCol.Remove A
+      Next A
+    End If
+End Sub
+Private Sub Class_Initialize()
+    Set mCol = New Collection
+End Sub
+
+Private Sub Class_Terminate()
+    Set mCol = Nothing
+End Sub
+

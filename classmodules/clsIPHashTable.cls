@@ -21,10 +21,13 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
-'Contact information: Keith Gable (Ziggy) <ziggy@silentsoft.net>
-'                     Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
+'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
+'
+' $Id: clsIPHashTable.cls,v 1.2 2004/05/28 20:20:53 ziggythehamster Exp $
+'
 '
 'This program is free software.
 'You can redistribute it and/or modify it under the terms of the
@@ -187,7 +190,7 @@ End Property
 ' the array of all values
 ' (VB5 users: convert return type to Variant)
 Property Get Values() As Long()
-    Dim i As Long, ndx As Long
+    Dim I As Long, ndx As Long
     Dim n As Long
     If m_Count = 0 Then
         ReDim Res(0) As Long
@@ -197,9 +200,9 @@ Property Get Values() As Long()
     
     ReDim Res(0 To m_Count - 1) As Long
     
-    For i = 0 To m_HashSize - 1
+    For I = 0 To m_HashSize - 1
         ' take the pointer from the hash table
-        ndx = hashTbl(i)
+        ndx = hashTbl(I)
         ' walk the slottable() array
         Do While ndx
             Res(n) = slotTable(ndx).Value
@@ -222,13 +225,13 @@ End Sub
 
 ' expand the slotTable() array
 Private Sub ExpandSlotTable(ByVal numEls As Long)
-    Dim newFreeNdx As Long, i As Long
+    Dim newFreeNdx As Long, I As Long
     newFreeNdx = UBound(slotTable) + 1
     
     ReDim Preserve slotTable(0 To UBound(slotTable) + numEls) As SlotType
     ' create the linked list of free items
-    For i = newFreeNdx To UBound(slotTable)
-        slotTable(i).nextItem = i + 1
+    For I = newFreeNdx To UBound(slotTable)
+        slotTable(I).nextItem = I + 1
     Next
     ' overwrite the last (wrong) value
     slotTable(UBound(slotTable)).nextItem = FreeNdx
@@ -238,7 +241,7 @@ End Sub
 
 ' return the hash code of a string
 Private Function HashCode(Key As String) As Long
-    Dim lastEl As Long, i As Long
+    Dim lastEl As Long, I As Long
     
     ' copy ansi codes into an array of long
     lastEl = (Len(Key) - 1) \ 4
@@ -247,8 +250,8 @@ Private Function HashCode(Key As String) As Long
     CopyMemory codes(0), ByVal Key, Len(Key)
     
     ' XOR the ANSI codes of all characters
-    For i = 0 To lastEl
-        HashCode = HashCode Xor codes(i)
+    For I = 0 To lastEl
+        HashCode = HashCode Xor codes(I)
     Next
     
 End Function

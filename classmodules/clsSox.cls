@@ -21,10 +21,13 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
-'Contact information: Keith Gable (Ziggy) <ziggy@silentsoft.net>
-'                     Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
+'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
+'
+' $Id: clsSox.cls,v 1.2 2004/05/28 20:20:53 ziggythehamster Exp $
+'
 '
 'This program is free software.
 'You can redistribute it and/or modify it under the terms of the
@@ -588,7 +591,7 @@ Private Sub GetData(insox As Long) ' Extracts data from the WinSock Recv buffers
 #If Debugging = 1 Then
     SendSvrMsg "GetData called!"
 #End If
-Dim i As Long
+Dim I As Long
     Dim tmpRecv As Long 'Holds how much data we actually received
     tmpRecv = 1
     Dim tmpBuffer() As Byte, InData$, buf$ 'This buffer could be optimized for small data, eg. A chat program, if you set it's size, to say 255 (256 in total), it could retrieve data faster
@@ -606,11 +609,11 @@ Dim i As Long
                         RaiseError insox, WSAGetLastError, "GetData", "Rec"
                     Case Else
                         buf = StrConv(tmpBuffer, vbUnicode)
-                        i = InStr(1, buf, vbNullChar)
-                        If i = 0 Then
+                        I = InStr(1, buf, vbNullChar)
+                        If I = 0 Then
                             InData = InData & buf
                         Else
-                            InData = InData & Left$(buf, i)
+                            InData = InData & Left$(buf, I)
                         End If
                 End Select
             Loop

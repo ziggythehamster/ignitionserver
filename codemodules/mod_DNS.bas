@@ -7,10 +7,13 @@ Attribute VB_Name = "modDNS"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
-'Contact information: Keith Gable (Ziggy) <ziggy@silentsoft.net>
-'                     Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
+'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
+'
+' $Id: mod_DNS.bas,v 1.2 2004/05/28 20:20:54 ziggythehamster Exp $
+'
 '
 'This program is free software.
 'You can redistribute it and/or modify it under the terms of the
@@ -53,17 +56,17 @@ Private Declare Sub RtlMoveMemory Lib "kernel32" (hpvDest As Any, ByVal hpvSourc
 'checks if string is valid IP address
 Public Function IsIP(ByVal strIP As String) As Boolean
   On Error Resume Next
-  Dim t As String: Dim s As String: Dim i As Integer
+  Dim t As String: Dim s As String: Dim I As Integer
   s = strIP
   While InStr(s, ".") <> 0
     t = Left$(s, InStr(s, ".") - 1)
     If IsNumeric(t) And Val(t) >= 0 And Val(t) <= 255 Then s = Mid$(s, InStr(s, ".") + 1) _
       Else Exit Function
-    i = i + 1
+    I = I + 1
   Wend
   t = s
   If IsNumeric(t) And InStr(t, ".") = 0 And Len(t) = Len(Trim$(Str$(Val(t)))) And _
-    Val(t) >= 0 And Val(t) <= 255 And strIP <> "255.255.255.255" And i = 3 Then IsIP = True
+    Val(t) >= 0 And Val(t) <= 255 And strIP <> "255.255.255.255" And I = 3 Then IsIP = True
   If err.Number > 0 Then
     err.Clear
   End If
@@ -126,7 +129,7 @@ Private Function AddrByName(ByVal strHost As String)
   Dim hst As HOSTENT
   Dim hostip_addr As Long
   Dim temp_ip_address() As Byte
-  Dim i As Integer
+  Dim I As Integer
   Dim ip_address As String
   If IsIP(strHost) Then
     AddrByName = strHost
@@ -140,8 +143,8 @@ Private Function AddrByName(ByVal strHost As String)
   RtlMoveMemory hostip_addr, hst.hAddrList, 4
   ReDim temp_ip_address(1 To hst.hLength)
   RtlMoveMemory temp_ip_address(1), hostip_addr, hst.hLength
-  For i = 1 To hst.hLength
-    ip_address = ip_address & temp_ip_address(i) & "."
+  For I = 1 To hst.hLength
+    ip_address = ip_address & temp_ip_address(I) & "."
   Next
   ip_address = Mid$(ip_address, 1, Len(ip_address) - 1)
   AddrByName = ip_address
