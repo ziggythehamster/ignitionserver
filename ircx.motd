@@ -1,5 +1,5 @@
 Welcome to a fresh installation of ignitionServer, an IRCX server for Windows.
-You'll probably want to replace this file with your own Message of the Day.
+You'll probably want to replace ircx.motd with your own Message of the Day.
 
 ignitionServer is proudly released under the GNU General Public License
 http://www.gnu.org/copyleft/gpl.html

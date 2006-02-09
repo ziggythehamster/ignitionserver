@@ -28,7 +28,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsServerHashTable.cls,v 1.6 2004/06/26 07:01:12 ziggythehamster Exp $
+' $Id: clsServerHashTable.cls,v 1.7 2004/09/05 05:17:13 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -205,7 +205,7 @@ End Property
 ' the array of all values
 ' (VB5 users: convert return type to Variant)
 Property Get Values() As clsClient()
-    Dim I As Long, ndx As Long
+    Dim i As Long, ndx As Long
     Dim n As Long
     If m_Count = 0 Then
         ReDim Res(0) As clsClient
@@ -215,9 +215,9 @@ Property Get Values() As clsClient()
     
     ReDim Res(0 To m_Count - 1) As clsClient
     
-    For I = 0 To m_HashSize - 1
+    For i = 0 To m_HashSize - 1
         ' take the pointer from the hash table
-        ndx = hashTbl(I)
+        ndx = hashTbl(i)
         ' walk the slottable() array
         Do While ndx
             Set Res(n) = slotTable(ndx).Value
@@ -240,13 +240,13 @@ End Sub
 
 ' expand the slotTable() array
 Private Sub ExpandSlotTable(ByVal numEls As Long)
-    Dim newFreeNdx As Long, I As Long
+    Dim newFreeNdx As Long, i As Long
     newFreeNdx = UBound(slotTable) + 1
     
     ReDim Preserve slotTable(0 To UBound(slotTable) + numEls) As SlotType
     ' create the linked list of free items
-    For I = newFreeNdx To UBound(slotTable)
-        slotTable(I).nextItem = I + 1
+    For i = newFreeNdx To UBound(slotTable)
+        slotTable(i).nextItem = i + 1
     Next
     ' overwrite the last (wrong) value
     slotTable(UBound(slotTable)).nextItem = FreeNdx
@@ -256,7 +256,7 @@ End Sub
 
 ' return the hash code of a string
 Private Function HashCode(Key As String) As Long
-    Dim lastEl As Long, I As Long
+    Dim lastEl As Long, i As Long
     
     ' copy ansi codes into an array of long
     lastEl = (Len(Key) - 1) \ 4
@@ -265,8 +265,8 @@ Private Function HashCode(Key As String) As Long
     CopyMemory codes(0), ByVal Key, Len(Key)
     
     ' XOR the ANSI codes of all characters
-    For I = 0 To lastEl
-        HashCode = HashCode Xor codes(I)
+    For i = 0 To lastEl
+        HashCode = HashCode Xor codes(i)
     Next
     
 End Function

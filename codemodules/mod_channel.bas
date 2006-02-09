@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_channel"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_channel.bas,v 1.65 2004/08/08 03:45:28 ziggythehamster Exp $
+' $Id: mod_channel.bas,v 1.77 2004/10/09 00:06:27 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -838,7 +838,7 @@ Public Function m_mode(cptr As clsClient, sptr As clsClient, parv$()) As Long
 #End If
 
 Dim Chan As clsChannel
-Dim I As Long
+Dim i As Long
 Dim x As Long
 Dim Target As clsClient
 Dim op As String
@@ -902,8 +902,8 @@ If cptr.AccessLevel = 4 Then
             op_nohost = sptr.Nick
         End If
         If UBound(parv) > 1 Then Inc = 1
-        For I = 1 To Len(parv(1))
-            Mask = Mid$(parv(1), I, 1)
+        For i = 1 To Len(parv(1))
+            Mask = Mid$(parv(1), i, 1)
             Select Case AscW(Mask)
                 Case modeAdd
                     MSwitch = True
@@ -997,9 +997,9 @@ If cptr.AccessLevel = 4 Then
                 Case cmBan
                     Inc = Inc + 1
                     If MSwitch Then
-                        Chan.Bans.Add parv(I + Inc), op, UnixTime, parv(Inc)
+                        Chan.Bans.Add parv(i + Inc), op, UnixTime, parv(Inc)
                     Else
-                        Chan.Bans.Remove parv(I + Inc)
+                        Chan.Bans.Remove parv(i + Inc)
                     End If
                     MU = MU & " " & parv(Inc)
                     NM = NM & "b"
@@ -1116,7 +1116,7 @@ If cptr.AccessLevel = 4 Then
                     Chan.IsCloneable = MSwitch
                     NM = NM & "d"
             End Select
-        Next I
+        Next i
         MU = LTrim$(MU)
         If Chan.IsAuditorium Then
           'the users in the channel need not know about this :)
@@ -1131,8 +1131,8 @@ If cptr.AccessLevel = 4 Then
     Else
         'user
         Set Target = GlobUsers(parv(0))
-        For I = 1 To Len(parv(1))
-            Mask = Mid$(parv(1), I, 1)
+        For i = 1 To Len(parv(1))
+            Mask = Mid$(parv(1), i, 1)
             Select Case AscW(Mask)
                 Case modeAdd
                     MSwitch = True
@@ -1171,7 +1171,7 @@ If cptr.AccessLevel = 4 Then
                     NM = NM & "P"
                 'End changes by SG_01
             End Select
-        Next I
+        Next i
         GenerateEvent "USER", "MODE", Replace(Target.Prefix, ":", ""), Replace(Target.Prefix, ":", "") & NM
         SendToServer_ButOne "MODE " & Target.Nick & " " & NM, cptr.ServerName, sptr.Nick
         If Target.Hops = 0 Then SendWsock Target.index, sptr.Prefix & " MODE " & Target.Nick & " " & NM, vbNullString, , True
@@ -1475,8 +1475,8 @@ CheckParam:
                      If CurParam > 1 Then
                         Select Case MSwitch
                            Case True
-                              Chan.Key = parv(CurParam)
-                              Chan.Prop_Memberkey = parv(CurParam)
+                              Chan.Key = UTF8_Unescape(parv(CurParam))
+                              Chan.Prop_Memberkey = UTF8_Unescape(parv(CurParam))
                               NewModes = NewModes & "k"
                               If Len(NewModesExtra) > 0 Then
                                  NewModesExtra = NewModesExtra & " " & parv(CurParam)
@@ -1721,8 +1721,8 @@ NextChan:
     
     op = vbNullString
     
-    For I = 1 To Len(parv(1))
-        Mask = Mid$(parv(1), I, 1)
+    For i = 1 To Len(parv(1))
+        Mask = Mid$(parv(1), i, 1)
         Select Case AscW(Mask)
             Case modeAdd
                 MSwitch = True
@@ -1818,7 +1818,7 @@ NextChan:
                 End If
             '</in-addition-to-contributed-patch>
         End Select
-    Next I
+    Next i
     If Len(op) > 1 Then
         If InStr(1, op, "z") Then
           'obviously, we deny normal users from setting +z on themselves
@@ -1992,7 +1992,7 @@ Public Function m_join(cptr As clsClient, sptr As clsClient, parv$()) As Long
 #End If
 
 On Error GoTo err
-Dim Chan As clsChannel, x&, y$(), A, Names$(0), OnJoinS$(), b&
+Dim Chan As clsChannel, x&, y$(), A, Names$(0), OnJoinS$(), B&
 Dim fake_param(1) As String
 
 Dim CurrentInfo As String
@@ -2113,6 +2113,18 @@ Else
     If Chan Is Nothing Then
       CurrentInfo = "channel does not exist"
       'the channel cptr wants to join doesn't exist, so we create it -Dill
+      'but not if the server admin doesn't want them to -zg
+      If CreateMode = 1 Then
+        If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
+          SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+          Exit Function
+        End If
+      ElseIf CreateMode = 2 Then
+        If Not ((cptr.IsLocOperator Or cptr.IsGlobOperator) Or (cptr.IsRegistered)) Then
+          SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
+          Exit Function
+        End If
+      End If
       Set Chan = Channels.Add(StrCache, New clsChannel)
       Chan.Name = StrCache
       Chan.Prop_Creation = UnixTime
@@ -2123,9 +2135,9 @@ Else
       Chan.IsTopicOps = True
       SendWsock cptr.index, cptr.Prefix & " JOIN :" & StrCache, vbNullString, , True
       If cptr.IsIRCX Then
-        SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " = " & StrCache, ":." & cptr.Nick
+        SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " = " & StrCache, ":" & Level_Owner & cptr.Nick
       Else
-        SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " = " & StrCache, ":@" & cptr.Nick
+        SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " = " & StrCache, ":" & Level_Host & cptr.Nick
       End If
       SendWsock cptr.index, SPrefix & " " & RPL_ENDOFNAMES & " " & cptr.Nick & " " & Chan.Name & " :End of /NAMES list.", vbNullString, , True
       GenerateEvent "CHANNEL", "CREATE", Chan.Name, Chan.Name & " +" & Split(GetModes(Chan), " ")(0) & " " & Replace(cptr.Prefix, ":", "")
@@ -2150,15 +2162,15 @@ Else
       'Is cptr banned? -Dill
       If IsBanned(Chan, cptr) And Not (IsHosted(Chan, cptr) Or IsOwnered(Chan, cptr)) Then
           If UBound(parv) > 0 Then
-            If parv(1) = Chan.Prop_Ownerkey And Len(Chan.Prop_Ownerkey) > 0 Then
+            If UTF8_Unescape(parv(1)) = Chan.Prop_Ownerkey And Len(Chan.Prop_Ownerkey) > 0 Then
               CurrentInfo = "banned, ownerkey"
               GoTo pastban
             End If
-            If parv(1) = Chan.Prop_Hostkey And Len(Chan.Prop_Hostkey) > 0 And Chan.Member.Item(cptr.Nick).IsOwner = False Then
+            If UTF8_Unescape(parv(1)) = Chan.Prop_Hostkey And Len(Chan.Prop_Hostkey) > 0 And Chan.Member.Item(cptr.Nick).IsOwner = False Then
               CurrentInfo = "banned, hostkey"
               GoTo pastban
             End If
-            If parv(1) = Chan.Prop_Memberkey And Len(Chan.Prop_Memberkey) > 0 Then
+            If UTF8_Unescape(parv(1)) = Chan.Prop_Memberkey And Len(Chan.Prop_Memberkey) > 0 Then
               CurrentInfo = "banned, memberkey"
               GoTo pastban
             End If
@@ -2178,7 +2190,7 @@ pastban:
         CurrentInfo = "channel locked"
         'if they have the ownerkey, or hostkey, let them in
         If UBound(parv) > 0 Then
-          If StrComp(parv(1), Chan.Key) <> 0 And StrComp(parv(1), Chan.Prop_Hostkey) <> 0 And StrComp(parv(1), Chan.Prop_Ownerkey) <> 0 Then
+          If StrComp(UTF8_Unescape(parv(1)), Chan.Key) <> 0 And StrComp(UTF8_Unescape(parv(1)), Chan.Prop_Hostkey) <> 0 And StrComp(UTF8_Unescape(parv(1)), Chan.Prop_Ownerkey) <> 0 Then
             CurrentInfo = "invalid key"
             SendWsock cptr.index, ERR_BADCHANNELKEY & " " & cptr.Nick & " " & TranslateCode(ERR_BADCHANNELKEY, , Chan.Name), vbNullString, SPrefix
             If Chan.IsKnock Then
@@ -2301,18 +2313,12 @@ pastban:
                 
                 'this is so we don't have to send a -q later
                 SendToServer "NJOIN " & CloneChan.Name & " :" & cptr.Nick, ServerName
-                SendToServer "PROP " & CloneChan.Name & " ACCOUNT :" & CloneChan.Prop_Account, ServerName
-                SendToServer "PROP " & CloneChan.Name & " CLIENT :" & CloneChan.Prop_Client, ServerName
-                SendToServer "PROP " & CloneChan.Name & " CREATION :" & CloneChan.Prop_Creation, ServerName
-                SendToServer "PROP " & CloneChan.Name & " HOSTKEY :" & CloneChan.Prop_Hostkey, ServerName
-                SendToServer "PROP " & CloneChan.Name & " LANGUAGE :" & CloneChan.Prop_Language, ServerName
-                SendToServer "PROP " & CloneChan.Name & " MEMBERKEY :" & CloneChan.Prop_Memberkey, ServerName
-                SendToServer "PROP " & CloneChan.Name & " ONJOIN :" & CloneChan.Prop_OnJoin, ServerName
-                SendToServer "PROP " & CloneChan.Name & " ONPART :" & CloneChan.Prop_OnPart, ServerName
-                SendToServer "PROP " & CloneChan.Name & " OWNERKEY :" & CloneChan.Prop_Ownerkey, ServerName
-                SendToServer "PROP " & CloneChan.Name & " PARENTNAME :" & CloneChan.Prop_ParentName, ServerName
-                SendToServer "PROP " & CloneChan.Name & " SUBJECT :" & CloneChan.Prop_Subject, ServerName
-                SendToServer "PROP " & CloneChan.Name & " TOPIC :" & CloneChan.Prop_Topic, ServerName
+                SendToServer "NPROP " & CloneChan.Name & " " & CloneChan.Prop_Creation & " " & CloneChan.Prop_OID & " " & _
+                ":ACCOUNT=" & UTF8_Escape(CloneChan.Prop_Account, True) & " CLIENT=" & UTF8_Escape(CloneChan.Prop_Client, True) _
+                & " HOSTKEY=" & UTF8_Escape(CloneChan.Prop_Hostkey, True) & " LANGUAGE=" & UTF8_Escape(CloneChan.Prop_Language, True) _
+                & " MEMBERKEY=" & UTF8_Escape(CloneChan.Prop_Memberkey, True) & " ONJOIN=" & UTF8_Escape(CloneChan.Prop_OnJoin, True) _
+                & " ONPART=" & UTF8_Escape(CloneChan.Prop_OnPart, True) & " OWNERKEY=" & UTF8_Escape(CloneChan.Prop_Ownerkey, True) _
+                & " SUBJECT=" & UTF8_Escape(CloneChan.Prop_Subject, True) & " TOPIC=" & UTF8_Escape(CloneChan.Prop_Topic, True), ServerName
                 SendToServer "MODE " & CloneChan.Name & " +" & GetModes(CloneChan), ServerName
                 
                 CurrentInfo = "setting chan"
@@ -2382,7 +2388,7 @@ afterclone:
       '(just in case they joined with the key or something)
       CurrentInfo = "keys"
       If UBound(parv) > 0 Then
-        If parv(1) = Chan.Prop_Ownerkey And Len(Chan.Prop_Ownerkey) > 0 Then
+        If UTF8_Unescape(parv(1)) = Chan.Prop_Ownerkey And Len(Chan.Prop_Ownerkey) > 0 Then
           CurrentInfo = "ownerkey"
           Chan.Member.Item(cptr.Nick).IsOwner = True
           If Chan.IsAuditorium Then
@@ -2395,7 +2401,7 @@ afterclone:
           SendToServer "MODE " & Chan.Name & " +q " & cptr.Nick, cptr.Nick
           OnJoinModes = OnJoinModes & "q"
         End If
-        If parv(1) = Chan.Prop_Hostkey And Len(Chan.Prop_Hostkey) > 0 And Chan.Member.Item(cptr.Nick).IsOwner = False Then
+        If UTF8_Unescape(parv(1)) = Chan.Prop_Hostkey And Len(Chan.Prop_Hostkey) > 0 And Chan.Member.Item(cptr.Nick).IsOwner = False Then
           CurrentInfo = "hostkey"
           Chan.Member.Item(cptr.Nick).IsOp = True
           If Chan.IsAuditorium Then
@@ -2538,11 +2544,11 @@ pastaccess:
       GenerateEvent "MEMBER", "JOIN", Replace(cptr.Prefix, ":", ""), Chan.Name & " " & Replace(cptr.Prefix, ":", "") & " +" & OnJoinModes
       CurrentInfo = "onjoin"
       If Len(Chan.Prop_OnJoin) > 0 Then
-        OnJoinS() = Split(Chan.Prop_OnJoin, "\n")
-        For b = 0 To UBound(OnJoinS)
-            SendWsock cptr.index, ":" & Chan.Name & " PRIVMSG " & Chan.Name & " :" & OnJoinS(b), vbNullString, , True
+        OnJoinS() = Split(UTF8_Escape(Chan.Prop_OnJoin), "\n")
+        For B = 0 To UBound(OnJoinS)
+            SendWsock cptr.index, ":" & Chan.Name & " PRIVMSG " & Chan.Name & " :" & OnJoinS(B), vbNullString, , True
             'SendWsock cptr.index, ":" & Chan.Name & " PRIVMSG " & cptr.Nick & " :" & OnJoinS(b) & vbCrLf, vbNullString, , True
-        Next b
+        Next B
       End If
     End If
 NextChan:
@@ -2565,7 +2571,7 @@ Public Function m_njoin(cptr As clsClient, sptr As clsClient, parv$()) As Long
 #End If
 On Error Resume Next
 If cptr.AccessLevel = 4 Then
-    Dim I&, Chan As clsChannel, User As clsClient, nUser$()
+    Dim i&, Chan As clsChannel, User As clsClient, nUser$()
     Dim Modes$, nu$, cache$
     ReDim Normals(0)
     Set Chan = Channels(parv(0))
@@ -2577,42 +2583,138 @@ If cptr.AccessLevel = 4 Then
         Chan.Prop_OID = 0
     End If
     nUser = Split(parv(1), " ")
-    For I = LBound(nUser) To UBound(nUser)
-        Select Case Left$(nUser(I), 1)
-            Case "."
-                cache = Mid$(nUser(I), 2)
+    For i = LBound(nUser) To UBound(nUser)
+        Select Case Left$(nUser(i), 1)
+            Case Level_Owner
+                cache = Mid$(nUser(i), 2)
                 Modes = Modes & "q"
                 nu = nu & cache & " "
                 Set User = GlobUsers(cache)
                 If Not User Is Nothing Then Chan.Member.Add ChanOwner, User
-            Case "@"
-                cache = Mid$(nUser(I), 2)
+            Case Level_Host
+                cache = Mid$(nUser(i), 2)
                 Modes = Modes & "o"
                 nu = nu & cache & " "
                 Set User = GlobUsers(cache)
                 If Not User Is Nothing Then Chan.Member.Add ChanOp, User
-            Case "+"
-                cache = Mid$(nUser(I), 2)
+            Case Level_Voice
+                cache = Mid$(nUser(i), 2)
                 Modes = Modes & "v"
                 nu = nu & cache & " "
                 If Not User Is Nothing Then Set User = GlobUsers(cache)
                 Chan.Member.Add ChanVoice, User
             Case Else
-                cache = nUser(I)
+                cache = nUser(i)
                 If Not User Is Nothing Then Set User = GlobUsers(cache)
                 Chan.Member.Add ChanNormal, User
         End Select
         If Not User Is Nothing Then User.OnChannels.Add Chan, Chan.Name
         SendToChan Chan, User.Prefix & " JOIN " & Chan.Name, ""
-    Next I
+    Next i
     If Len(Modes) > 0 Then SendToChan Chan, ":" & sptr.ServerName & " MODE " & Chan.Name & " +" & Modes & " " & nu, ""
     SendToServer_ButOne "NJOIN " & Chan.Name & " :" & parv(1), cptr.ServerName, sptr.ServerName
 Else
-  SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, ":Permission Denied"
+  Dim tmpSN As String
+  If Len(cptr.Nick) = 0 Then
+    tmpSN = "Anonymous"
+  Else
+    tmpSN = cptr.Nick
+  End If
+  SendWsock cptr.index, ERR_UNKNOWNCOMMAND & " " & tmpSN, TranslateCode(ERR_UNKNOWNCOMMAND, , , "NJOIN")
   Exit Function
 End If
 End Function
+Public Function m_nprop(cptr As clsClient, sptr As clsClient, parv$()) As Long
+'NPROP
+'#ChannelName CreationTime OID :Property1=PropertyValue Property2=PropertyValue Property3=PropertyValue
+'      0           1        2        3
+#If Debugging = 1 Then
+  SendSvrMsg "NPROP called! (" & cptr.Nick & ")"
+#End If
+Dim Chan As clsChannel
+Dim tmpCreation As Long
+Dim A As Long
+Dim tmpSplitProps() As String
+Dim tmpPropName As String
 
+If cptr.AccessLevel = 4 Then
+  'server
+  Set Chan = Channels(parv(0))
+  If Not Chan Is Nothing Then
+    'channel exists
+    tmpCreation = CLng(parv(1))
+    If Chan.Prop_Creation <= tmpCreation Then
+      'if the channel was created before or at the same time
+      'as the channel being introduced
+      Chan.Prop_OID = CLng(parv(2))
+      tmpSplitProps() = Split(parv(3), " ")
+      For A = LBound(tmpSplitProps) To UBound(tmpSplitProps)
+        tmpPropName = Split(tmpSplitProps(A), "=")(0)
+        With Chan
+          Select Case UCase$(tmpPropName)
+            Case "ACCOUNT"
+              If StrComp(.Prop_Account, UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)) <> 0 Then SendToChan Chan, "PROP " & Chan.Name & " ACCOUNT :" & UTF8_Escape(UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)), cptr.Prefix
+              .Prop_Account = UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)
+            Case "CLIENT"
+              If StrComp(.Prop_Client, UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)) <> 0 Then SendToChan Chan, "PROP " & Chan.Name & " CLIENT :" & UTF8_Escape(UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)), cptr.Prefix
+              .Prop_Client = UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)
+            Case "CLIENTGUID"
+              If StrComp(.Prop_ClientGUID, UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)) <> 0 Then SendToChan Chan, "PROP " & Chan.Name & " CLIENTGUID :" & UTF8_Escape(UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)), cptr.Prefix
+              .Prop_ClientGUID = UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)
+            Case "CLONENUMBER"
+              If StrComp(.Prop_CloneNumber, UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)) <> 0 Then SendToChan Chan, "PROP " & Chan.Name & " CLONENUMBER :" & UTF8_Escape(UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)), cptr.Prefix
+              .Prop_CloneNumber = UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)
+            Case "HOSTKEY"
+              If StrComp(.Prop_Hostkey, UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)) <> 0 Then SendToChan Chan, "PROP " & Chan.Name & " HOSTKEY :" & UTF8_Escape(UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)), cptr.Prefix
+              .Prop_Hostkey = UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)
+            Case "LAG"
+              If StrComp(.Prop_Lag, UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)) <> 0 Then SendToChan Chan, "PROP " & Chan.Name & " LAG :" & UTF8_Escape(UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)), cptr.Prefix
+              .Prop_Lag = UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)
+            Case "LANGUAGE"
+              If StrComp(.Prop_Language, UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)) <> 0 Then SendToChan Chan, "PROP " & Chan.Name & " LANGUAGE :" & UTF8_Escape(UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)), cptr.Prefix
+              .Prop_Language = UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)
+            Case "MEMBERKEY"
+              If StrComp(.Prop_Memberkey, UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)) <> 0 Then SendToChan Chan, "PROP " & Chan.Name & " MEMBERKEY :" & UTF8_Escape(UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)), cptr.Prefix
+              .Prop_Memberkey = UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)
+            Case "ONJOIN"
+              If StrComp(.Prop_OnJoin, UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)) <> 0 Then SendToChan Chan, "PROP " & Chan.Name & " ONJOIN :" & UTF8_Escape(UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)), cptr.Prefix
+              .Prop_OnJoin = UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)
+            Case "ONPART"
+              If StrComp(.Prop_OnPart, UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)) <> 0 Then SendToChan Chan, "PROP " & Chan.Name & " ONPART :" & UTF8_Escape(UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)), cptr.Prefix
+              .Prop_OnPart = UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)
+            Case "OWNERKEY"
+              If StrComp(.Prop_Ownerkey, UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)) <> 0 Then SendToChan Chan, "PROP " & Chan.Name & " OWNERKEY :" & UTF8_Escape(UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)), cptr.Prefix
+              .Prop_Ownerkey = UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)
+            Case "PARENTNAME"
+              If StrComp(.Prop_ParentName, UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)) <> 0 Then SendToChan Chan, "PROP " & Chan.Name & " PARENTNAME :" & UTF8_Escape(UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)), cptr.Prefix
+              .Prop_ParentName = UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)
+            Case "PICS"
+              If StrComp(.Prop_PICS, UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)) <> 0 Then SendToChan Chan, "PROP " & Chan.Name & " PICS :" & UTF8_Escape(UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)), cptr.Prefix
+              .Prop_PICS = UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)
+            Case "SERVICEPATH"
+              If StrComp(.Prop_ServicePath, UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)) <> 0 Then SendToChan Chan, "PROP " & Chan.Name & " SERVICEPATH :" & UTF8_Escape(UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)), cptr.Prefix
+              .Prop_ServicePath = UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)
+            Case "SUBJECT"
+              If StrComp(.Prop_Subject, UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)) <> 0 Then SendToChan Chan, "PROP " & Chan.Name & " SUBJECT :" & UTF8_Escape(UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)), cptr.Prefix
+              .Prop_Subject = UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)
+            Case "TOPIC"
+              If StrComp(.Prop_Topic, UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)) <> 0 Then SendToChan Chan, "PROP " & Chan.Name & " TOPIC :" & UTF8_Escape(UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)), cptr.Prefix
+              .Prop_Topic = UTF8_Unescape(CStr(Split(tmpSplitProps(A), "=")(1)), True)
+          End Select
+        End With
+      Next A
+    End If
+  End If
+Else
+  Dim tmpSN As String
+  If Len(cptr.Nick) = 0 Then
+    tmpSN = "Anonymous"
+  Else
+    tmpSN = cptr.Nick
+  End If
+  SendWsock cptr.index, ERR_UNKNOWNCOMMAND & " " & tmpSN, TranslateCode(ERR_UNKNOWNCOMMAND, , , "NPROP")
+End If
+End Function
 '/*
 '** m_part
 '**  parv$()[0] = sender prefix
@@ -2624,18 +2726,18 @@ Public Function m_part(cptr As clsClient, sptr As clsClient, parv$()) As Long
 #End If
 On Error GoTo PartError
 Dim at As String
-Dim x&, cmd$, Chan As clsChannel, chans$(), I&, A&, b As Long, OnPartS() As String
+Dim x&, cmd$, Chan As clsChannel, chans$(), i&, A&, B As Long, OnPartS() As String
 If cptr.AccessLevel = 4 Then
   at = "server user part"
   chans = Split(parv(0), ",")
   With sptr
-    For I = LBound(chans) To UBound(chans)  'Letting clients part multiple chans at one time -Dill
-      Set Chan = .OnChannels.Item(chans(I))
+    For i = LBound(chans) To UBound(chans)  'Letting clients part multiple chans at one time -Dill
+      Set Chan = .OnChannels.Item(chans(i))
       If Chan Is Nothing Then GoTo NextChannel
       If UBound(parv) = 0 Then  'Did client provide a part msg? -Dill
-        cmd = .Prefix & " PART " & chans(I)
+        cmd = .Prefix & " PART " & chans(i)
       Else
-        cmd = .Prefix & " PART " & chans(I) & " :""" & parv(1) & """"
+        cmd = .Prefix & " PART " & chans(i) & " :""" & parv(1) & """"
       End If
       
       If Chan.IsAuditorium Then
@@ -2651,27 +2753,31 @@ If cptr.AccessLevel = 4 Then
       
       SendToServer_ButOne "PART " & Chan.Name, cptr.ServerName, sptr.Nick
       Chan.Member.Remove .Nick
-      .OnChannels.Remove chans(I)
-      GenerateEvent "MEMBER", "PART", Replace(.Prefix, ":", ""), chans(I) & " " & Replace(.Prefix, ":", "")
+      .OnChannels.Remove chans(i)
+      GenerateEvent "MEMBER", "PART", Replace(.Prefix, ":", ""), chans(i) & " " & Replace(.Prefix, ":", "")
       If Chan.Member.Count = 0 Then
         'the channel only dies if it's not registered, or not persistant
         'and there's no people in it
-        If Not Chan.IsRegistered And RegChanMode_Always Then 'if it's not registered, and regchanmode = 0
-          Channels.Remove Chan.Name
-          GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
-          Set Chan = Nothing
-        ElseIf RegChanMode_Never Then 'who cares, all regged rooms close - regchanmode = 1
-          Channels.Remove Chan.Name
-          GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
-          Set Chan = Nothing
-        ElseIf Not Chan.IsPersistant And RegChanMode_ModeR Then 'if it's not persistant and regchanmode = 2
-          Channels.Remove Chan.Name
-          GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
-          Set Chan = Nothing
+        
+        'don't even process this crap if the channel is static, since the channel will always stay
+        If Not Chan.IsStatic Then
+          If Not Chan.IsRegistered And RegChanMode_Always Then 'if it's not registered, and regchanmode = 0
+            Channels.Remove Chan.Name
+            GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
+            Set Chan = Nothing
+          ElseIf RegChanMode_Never Then 'who cares, all regged rooms close - regchanmode = 1
+            Channels.Remove Chan.Name
+            GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
+            Set Chan = Nothing
+          ElseIf Not Chan.IsPersistant And RegChanMode_ModeR Then 'if it's not persistant and regchanmode = 2
+            Channels.Remove Chan.Name
+            GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
+            Set Chan = Nothing
+          End If
         End If
       End If
 NextChannel:
-    Next I
+    Next i
   End With
 Else
   at = "client start"
@@ -2685,13 +2791,13 @@ Else
     chans = Split(parv(0), ",")
     With cptr
       at = "begin checking this user's channels"
-      For I = LBound(chans) To UBound(chans)  'Letting clients part multiple chans at one time -Dill
-        If Not .IsOnChan(chans(I)) Then    'if client wasn't on this channel then complain -Dill / fixed error -Zg
+      For i = LBound(chans) To UBound(chans)  'Letting clients part multiple chans at one time -Dill
+        If Not .IsOnChan(chans(i)) Then    'if client wasn't on this channel then complain -Dill / fixed error -Zg
           at = "throw error"
-          SendWsock cptr.index, ERR_NOTONCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOTONCHANNEL, , chans(I))
+          SendWsock cptr.index, ERR_NOTONCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOTONCHANNEL, , chans(i))
           GoTo NextChan
         End If
-        Set Chan = Channels(chans(I))
+        Set Chan = Channels(chans(i))
         If Chan Is Nothing Then Exit Function
         'send partmsg!
         If UBound(parv) = 0 Then  'Did client provide a part msg? -Dill
@@ -2717,44 +2823,46 @@ Else
           SendToChan Chan, cmd, 0   'Notify all channelmembers -Dill
         End If
         
-        SendToServer "PART " & chans(I) & " :" & cptr.Nick, cptr.Nick
+        SendToServer "PART " & chans(i) & " :" & cptr.Nick, cptr.Nick
         If Len(Chan.Prop_OnPart) > 0 Then
           #If Debugging = 1 Then
             SendSvrMsg "Debug - OnPart Sending"
           #End If
-          OnPartS() = Split(Chan.Prop_OnPart, "\n")
-          For b = 0 To UBound(OnPartS)
+          OnPartS() = Split(UTF8_Escape(Chan.Prop_OnPart), "\n")
+          For B = 0 To UBound(OnPartS)
             #If Debugging = 1 Then
-              SendSvrMsg "Debug - Sending OnPart Line: :" & Chan.Name & " NOTICE " & cptr.Nick & " :" & OnPartS(b)
+              SendSvrMsg "Debug - Sending OnPart Line: :" & Chan.Name & " NOTICE " & cptr.Nick & " :" & OnPartS(B)
             #End If
             'bloody hell.. this should, by all means, be working!
             'SendDirect cptr.index, ":" & Chan.Name & " NOTICE " & Chan.Name & " :" & OnPartS(b) & vbCrLf
-            SendDirect cptr.index, ":" & Chan.Name & " NOTICE " & cptr.Nick & " :" & OnPartS(b) & vbCrLf
-          Next b
+            SendDirect cptr.index, ":" & Chan.Name & " NOTICE " & cptr.Nick & " :" & OnPartS(B) & vbCrLf
+          Next B
         End If
         Chan.Member.Remove cptr.Nick
-        .OnChannels.Remove chans(I)
-        GenerateEvent "MEMBER", "PART", Replace(.Prefix, ":", ""), chans(I) & " " & Replace(.Prefix, ":", "")
+        .OnChannels.Remove chans(i)
+        GenerateEvent "MEMBER", "PART", Replace(.Prefix, ":", ""), chans(i) & " " & Replace(.Prefix, ":", "")
         If Chan.Member.Count = 0 Then
           'the channel only dies if it's not registered, or not persistant
           'and there's no people in it
-          If Not Chan.IsRegistered And RegChanMode_Always Then 'if it's not registered, and regchanmode = 0
-            Channels.Remove Chan.Name
-            GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
-            Set Chan = Nothing
-          ElseIf RegChanMode_Never Then 'who cares, all regged rooms close - regchanmode = 1
-            Channels.Remove Chan.Name
-            GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
-            Set Chan = Nothing
-          ElseIf Not Chan.IsPersistant And RegChanMode_ModeR Then 'if it's not persistant and regchanmode = 2
-            Channels.Remove Chan.Name
-            GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
-            Set Chan = Nothing
+          If Not Chan.IsStatic Then
+            If Not Chan.IsRegistered And RegChanMode_Always Then 'if it's not registered, and regchanmode = 0
+              Channels.Remove Chan.Name
+              GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
+              Set Chan = Nothing
+            ElseIf RegChanMode_Never Then 'who cares, all regged rooms close - regchanmode = 1
+              Channels.Remove Chan.Name
+              GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
+              Set Chan = Nothing
+            ElseIf Not Chan.IsPersistant And RegChanMode_ModeR Then 'if it's not persistant and regchanmode = 2
+              Channels.Remove Chan.Name
+              GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
+              Set Chan = Nothing
+            End If
           End If
         End If
-        Set Chan = Nothing
+        'Set Chan = Nothing 'wtf? -zg
 NextChan:
-      Next I
+      Next i
     End With
   Else 'only one channel
     at = "parting one channel"
@@ -2801,21 +2909,21 @@ NextChan:
     SendToServer "PART " & parv(0) & " :" & cptr.Nick, cptr.Nick
     #If Debugging = 1 Then
       SendSvrMsg "Debug - OnPart Len: " & Len(Chan.Prop_OnPart)
-      SendSvrMsg "Debug - OnPart: " & Chan.Prop_OnPart
+      SendSvrMsg "Debug - OnPart: " & UTF8_Escape(Chan.Prop_OnPart)
     #End If
     at = "send onpart"
     If Len(Chan.Prop_OnPart) > 0 Then
       #If Debugging = 1 Then
         SendSvrMsg "Debug - OnPart Sending"
       #End If
-      OnPartS() = Split(Chan.Prop_OnPart, "\n")
-      For b = 0 To UBound(OnPartS)
+      OnPartS() = Split(UTF8_Escape(Chan.Prop_OnPart), "\n")
+      For B = 0 To UBound(OnPartS)
         #If Debugging = 1 Then
-          SendSvrMsg "Debug - Sending OnPart Line: :" & Chan.Name & " NOTICE " & cptr.Nick & " :" & OnPartS(b)
+          SendSvrMsg "Debug - Sending OnPart Line: :" & Chan.Name & " NOTICE " & cptr.Nick & " :" & OnPartS(B)
         #End If
         'SendDirect cptr.index, ":" & Chan.Name & " NOTICE " & Chan.Name & " :" & OnPartS(b) & vbCrLf
-        SendDirect cptr.index, ":" & Chan.Name & " NOTICE " & cptr.Nick & " :" & OnPartS(b) & vbCrLf
-      Next b
+        SendDirect cptr.index, ":" & Chan.Name & " NOTICE " & cptr.Nick & " :" & OnPartS(B) & vbCrLf
+      Next B
     End If
     at = "after onpart"
     Chan.Member.Remove cptr.Nick
@@ -2825,21 +2933,24 @@ NextChan:
     If Chan.Member.Count = 0 Then
       'the channel only dies if it's not registered, or not persistant
       'and there's no people in it
-      If Not Chan.IsRegistered And RegChanMode_Always Then 'if it's not registered, and regchanmode = 0
-        Channels.Remove Chan.Name
-        GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
-        Set Chan = Nothing
-      ElseIf RegChanMode_Never Then 'who cares, all regged rooms close - regchanmode = 1
-        Channels.Remove Chan.Name
-        GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
-        Set Chan = Nothing
-      ElseIf Not Chan.IsPersistant And RegChanMode_ModeR Then 'if it's not persistant and regchanmode = 2
-        Channels.Remove Chan.Name
-        GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
-        Set Chan = Nothing
+      
+      If Not Chan.IsStatic Then
+        If Not Chan.IsRegistered And RegChanMode_Always Then 'if it's not registered, and regchanmode = 0
+          Channels.Remove Chan.Name
+          GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
+          Set Chan = Nothing
+        ElseIf RegChanMode_Never Then 'who cares, all regged rooms close - regchanmode = 1
+          Channels.Remove Chan.Name
+          GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
+          Set Chan = Nothing
+        ElseIf Not Chan.IsPersistant And RegChanMode_ModeR Then 'if it's not persistant and regchanmode = 2
+          Channels.Remove Chan.Name
+          GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
+          Set Chan = Nothing
+        End If
       End If
     End If
-    Set Chan = Nothing
+    'Set Chan = Nothing 'again, wtf? --zg
   End If
 End If
 Exit Function
@@ -2860,7 +2971,7 @@ Public Function m_kick(cptr As clsClient, sptr As clsClient, parv$()) As Long
 #If Debugging = 1 Then
     SendSvrMsg "KICK called! (" & cptr.Nick & ")"
 #End If
-Dim Chan As clsChannel, I&, victim As clsClient, Reason$
+Dim Chan As clsChannel, i&, victim As clsClient, Reason$
 If cptr.AccessLevel = 4 Then
   Reason = parv(2)
   SendToChan Chan, sptr.Prefix & " KICK " & parv(0) & " " & parv(1) & " :" & Reason, 0
@@ -2869,18 +2980,20 @@ If cptr.AccessLevel = 4 Then
   If Chan.Member.Count = 0 Then
     'the channel only dies if it's not registered, or not persistant
     'and there's no people in it
-    If Not Chan.IsRegistered And RegChanMode_Always Then 'if it's not registered, and regchanmode = 0
-      Channels.Remove Chan.Name
-      GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
-      Set Chan = Nothing
-    ElseIf RegChanMode_Never Then 'who cares, all regged rooms close - regchanmode = 1
-      Channels.Remove Chan.Name
-      GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
-      Set Chan = Nothing
-    ElseIf Not Chan.IsPersistant And RegChanMode_ModeR Then 'if it's not persistant and regchanmode = 2
-      Channels.Remove Chan.Name
-      GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
-      Set Chan = Nothing
+    If Not Chan.IsStatic Then
+      If Not Chan.IsRegistered And RegChanMode_Always Then 'if it's not registered, and regchanmode = 0
+        Channels.Remove Chan.Name
+        GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
+        Set Chan = Nothing
+      ElseIf RegChanMode_Never Then 'who cares, all regged rooms close - regchanmode = 1
+        Channels.Remove Chan.Name
+        GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
+        Set Chan = Nothing
+      ElseIf Not Chan.IsPersistant And RegChanMode_ModeR Then 'if it's not persistant and regchanmode = 2
+        Channels.Remove Chan.Name
+        GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
+        Set Chan = Nothing
+      End If
     End If
   End If
   SendToServer_ButOne "KICK " & Chan.Name & " " & parv(1) & " :" & Reason, cptr.ServerName, sptr.Nick
@@ -2906,19 +3019,16 @@ Else
     SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, parv(0))
     Exit Function
   End If
-  If Not Chan.Member.Item(cptr.Nick).IsOp And Not Chan.Member.Item(cptr.Nick).IsOwner Then
+  If Not (Chan.Member.Item(cptr.Nick).IsOp) And Not (Chan.Member.Item(cptr.Nick).IsOwner) Then
     SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
     Exit Function
   End If
+  
   If Chan.Member.Item(victim.Nick).IsOwner Then
-    If Chan.Member.Item(cptr.Nick).IsOp Then
+    If Not Chan.Member.Item(cptr.Nick).IsOwner Then
         SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
         Exit Function
     End If
-  End If
-  If Chan.Member.Item(victim.Nick).IsOp Then
-        SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
-        Exit Function
   End If
   
   If victim.IsProtected Or victim.IsLProtected Then
@@ -2970,18 +3080,20 @@ Else
   If Chan.Member.Count = 0 Then
     'the channel only dies if it's not registered, or not persistant
     'and there's no people in it
-    If Not Chan.IsRegistered And RegChanMode_Always Then 'if it's not registered, and regchanmode = 0
-      Channels.Remove Chan.Name
-      GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
-      Set Chan = Nothing
-    ElseIf RegChanMode_Never Then 'who cares, all regged rooms close - regchanmode = 1
-      Channels.Remove Chan.Name
-      GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
-      Set Chan = Nothing
-    ElseIf Not Chan.IsPersistant And RegChanMode_ModeR Then 'if it's not persistant and regchanmode = 2
-      Channels.Remove Chan.Name
-      GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
-      Set Chan = Nothing
+    If Not Chan.IsStatic Then
+      If Not Chan.IsRegistered And RegChanMode_Always Then 'if it's not registered, and regchanmode = 0
+        Channels.Remove Chan.Name
+        GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
+        Set Chan = Nothing
+      ElseIf RegChanMode_Never Then 'who cares, all regged rooms close - regchanmode = 1
+        Channels.Remove Chan.Name
+        GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
+        Set Chan = Nothing
+      ElseIf Not Chan.IsPersistant And RegChanMode_ModeR Then 'if it's not persistant and regchanmode = 2
+        Channels.Remove Chan.Name
+        GenerateEvent "CHANNEL", "DESTROY", Chan.Name, Chan.Name
+        Set Chan = Nothing
+      End If
     End If
   End If
   victim.OnChannels.Remove Chan.Name
@@ -2999,7 +3111,7 @@ Public Function m_prop(cptr As clsClient, sptr As clsClient, parv$()) As Long
   SendSvrMsg "PROP called! (" & cptr.Nick & ")"
 #End If
 
-Dim Chan As clsChannel, I&
+Dim Chan As clsChannel, i&
 Dim TargetUser As clsClient
 
 'check if null (not enough params)
@@ -3084,7 +3196,7 @@ If UBound(parv) = 1 Then
       End If
       
       'If not a member of the channel, there are some props we can't read
-      If Chan.GetUser(cptr.Nick) Is Nothing Then
+      If (Chan.GetUser(cptr.Nick) Is Nothing) And Not tmpGod Then
         #If Debugging = 1 Then
           SendSvrMsg "Is a user!"
         #End If
@@ -3120,21 +3232,22 @@ If UBound(parv) = 1 Then
             SendSvrMsg "*** Sending Props!"
           #End If
           With Chan
-            If "ACCOUNT" Like UCase$(PL_Item) And ((Len(.Prop_Account) > 0) And (tmpOwner)) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Account :" & .Prop_Account
-            If "CLIENT" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate)) And Len(.Prop_Client) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Client :" & .Prop_Client
+            If "ACCOUNT" Like UCase$(PL_Item) And ((Len(.Prop_Account) > 0) And (tmpOwner)) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Account :" & UTF8_Escape(.Prop_Account)
+            If "CLIENT" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate)) And Len(.Prop_Client) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Client :" & UTF8_Escape(.Prop_Client)
             'If .Prop_ClientGUID <> vbNullString Then SendWsock cptr.Index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "ClientGUID :" & .Prop_ClientGUID
-            If "CREATION" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate))) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Creation :" & .Prop_Creation
+            If "CREATION" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate))) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Creation :" & UTF8_Escape(.Prop_Creation)
+            If "GUID" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate))) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "GUID :" & UTF8_Escape(.GUID)
             '.Prop_Lag (future implementation)
-            If "LANGUAGE" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate)) And Len(.Prop_Language) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Language :" & .Prop_Language
-            If "MEMBERKEY" Like UCase$(PL_Item) And (Len(.Prop_Memberkey) <> 0 And Not (tmpUser) And ((tmpMember) Or (tmpOwner) Or (tmpHost))) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "MemberKey :" & .Prop_Memberkey
-            If "NAME" Like UCase$(PL_Item) And (Len(.Prop_Name) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Name :" & .Prop_Name
-            If "OID" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate))) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "OID :" & .Prop_OID
-            If "ONJOIN" Like UCase$(PL_Item) And (Len(.Prop_OnJoin) <> 0 And (tmpOwner Or tmpHost)) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "OnJoin :" & .Prop_OnJoin
-            If "ONPART" Like UCase$(PL_Item) And (Len(.Prop_OnPart) <> 0 And (tmpOwner Or tmpHost)) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "OnPart :" & .Prop_OnPart
+            If "LANGUAGE" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate)) And Len(.Prop_Language) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Language :" & UTF8_Escape(.Prop_Language)
+            If "MEMBERKEY" Like UCase$(PL_Item) And (Len(.Prop_Memberkey) <> 0 And Not (tmpUser) And ((tmpMember) Or (tmpOwner) Or (tmpHost))) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "MemberKey :" & UTF8_Escape(.Prop_Memberkey)
+            If "NAME" Like UCase$(PL_Item) And (Len(.Prop_Name) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Name :" & UTF8_Escape(.Prop_Name)
+            If "OID" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate))) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "OID :" & UTF8_Escape(.Prop_OID)
+            If "ONJOIN" Like UCase$(PL_Item) And (Len(.Prop_OnJoin) <> 0 And (tmpOwner Or tmpHost)) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "OnJoin :" & UTF8_Escape(.Prop_OnJoin)
+            If "ONPART" Like UCase$(PL_Item) And (Len(.Prop_OnPart) <> 0 And (tmpOwner Or tmpHost)) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "OnPart :" & UTF8_Escape(.Prop_OnPart)
             '.Prop_PICS
             '.Prop_ServicePath
-            If "SUBJECT" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate)) And Len(.Prop_Subject) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Subject :" & .Prop_Subject
-            If "TOPIC" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate)) And Len(.Prop_Topic) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Topic :" & .Prop_Topic
+            If "SUBJECT" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate)) And Len(.Prop_Subject) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Subject :" & UTF8_Escape(.Prop_Subject)
+            If "TOPIC" Like UCase$(PL_Item) And (Not (tmpUser And (Chan.IsSecret Or Chan.IsPrivate)) And Len(.Prop_Topic) <> 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & Chan.Name, "Topic :" & UTF8_Escape(.Prop_Topic)
             SendWsock cptr.index, IRCRPL_PROPEND & " " & cptr.Nick & " " & Chan.Name, TranslateCode(IRCRPL_PROPEND)
           End With
         Next
@@ -3173,10 +3286,10 @@ If UBound(parv) = 1 Then
       
       For Each PL_Item In PropList
         With TargetUser
-          If "GUID" Like UCase$(PL_Item) And (Len(.GUID) > 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & .Nick, "GUID :" & .GUID
-          If "IDENTITY" Like UCase$(PL_Item) And (Len(.User) > 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & .Nick, "Identity :" & .User
-          If "NICK" Like UCase$(PL_Item) And (Len(.Nick) > 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & .Nick, "Nick :" & .Nick
-          If "OID" Like UCase$(PL_Item) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & .Nick, "OID :" & .OID
+          If "GUID" Like UCase$(PL_Item) And (Len(.GUID) > 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & .Nick, "GUID :" & UTF8_Escape(.GUID)
+          If "IDENTITY" Like UCase$(PL_Item) And (Len(.User) > 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & .Nick, "Identity :" & UTF8_Escape(.User)
+          If "NICK" Like UCase$(PL_Item) And (Len(.Nick) > 0) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & .Nick, "Nick :" & UTF8_Escape(.Nick)
+          If "OID" Like UCase$(PL_Item) Then SendWsock cptr.index, IRCRPL_PROPLIST & " " & cptr.Nick & " " & .Nick, "OID :" & UTF8_Escape(.OID)
           SendWsock cptr.index, IRCRPL_PROPEND & " " & cptr.Nick & " " & .Nick, TranslateCode(IRCRPL_PROPEND)
         End With
       Next
@@ -3202,7 +3315,7 @@ Else
       End If
       
       'If not a member of the channel, there are some props we can't read
-      If Chan.GetUser(cptr.Nick) Is Nothing Then
+      If (Chan.GetUser(cptr.Nick) Is Nothing) And Not tmpGod Then
         #If Debugging = 1 Then
           SendSvrMsg "Is a user!"
         #End If
@@ -3230,7 +3343,7 @@ Else
         Case "ACCOUNT":
           If tmpGod Then
             tmpVal = parv(2)
-            .Prop_Account = tmpVal
+            .Prop_Account = UTF8_Unescape(tmpVal)
             SendToChanOwners Chan, cptr.Prefix & " PROP " & Chan.Name & " ACCOUNT :" & tmpVal, 0
             If tmpAccessLvl = 4 Then
               SendToServer_ButOne "PROP " & Chan.Name & " ACCOUNT :" & tmpVal, tmpSvrName, cptr.Nick
@@ -3245,7 +3358,7 @@ Else
         Case "PARENTNAME":
           If tmpGod Then
             tmpVal = parv(2)
-            .Prop_ParentName = tmpVal
+            .Prop_ParentName = UTF8_Unescape(tmpVal)
             SendToServer_ButOne "PROP " & Chan.Name & " PARENTNAME :" & tmpVal, tmpSvrName, cptr.Nick
           Else
             SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
@@ -3253,7 +3366,7 @@ Else
         Case "CLONENUMBER":
           If tmpGod Then
             tmpVal = parv(2)
-            .Prop_CloneNumber = CLng(tmpVal)
+            .Prop_CloneNumber = CLng(UTF8_Unescape(tmpVal))
             SendToServer_ButOne "PROP " & Chan.Name & " CLONENUMBER :" & tmpVal, tmpSvrName, cptr.Nick
           Else
             SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
@@ -3261,7 +3374,7 @@ Else
         Case "OWNERKEY":
           If tmpOwner Then
             tmpVal = parv(2)
-            .Prop_Ownerkey = tmpVal
+            .Prop_Ownerkey = UTF8_Unescape(tmpVal)
             SendToChanOwners Chan, cptr.Prefix & " PROP " & Chan.Name & " OWNERKEY :" & tmpVal, 0
             If tmpAccessLvl = 4 Then
               SendToServer_ButOne "PROP " & Chan.Name & " OWNERKEY :" & tmpVal, tmpSvrName, cptr.Nick
@@ -3274,7 +3387,7 @@ Else
         Case "HOSTKEY":
           If tmpOwner Or tmpHost Then
             tmpVal = parv(2)
-            .Prop_Hostkey = tmpVal
+            .Prop_Hostkey = UTF8_Unescape(tmpVal)
             SendToChanOps Chan, cptr.Prefix & " PROP " & Chan.Name & " HOSTKEY :" & tmpVal, 0
             If tmpAccessLvl = 4 Then
               SendToServer_ButOne "PROP " & Chan.Name & " HOSTKEY :" & tmpVal, tmpSvrName, cptr.Nick
@@ -3287,7 +3400,7 @@ Else
         Case "MEMBERKEY":
           If tmpOwner Or tmpHost Then
             tmpVal = parv(2)
-            .Prop_Memberkey = tmpVal
+            .Prop_Memberkey = UTF8_Unescape(tmpVal)
             .Key = tmpVal
             If IRCXM_Trans = True Then
               SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +k " & tmpVal, 0
@@ -3313,7 +3426,7 @@ Else
         Case "CLIENT":
           If (tmpOwner Or tmpHost) Then
             tmpVal = parv(2)
-            .Prop_Client = tmpVal
+            .Prop_Client = UTF8_Unescape(tmpVal)
             SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " CLIENT :" & tmpVal, 0
             If tmpAccessLvl = 4 Then
               SendToServer_ButOne "PROP " & Chan.Name & " CLIENT :" & tmpVal, tmpSvrName, cptr.Nick
@@ -3326,7 +3439,7 @@ Else
         Case "CREATION":
           If tmpGod Then
             tmpVal = parv(2)
-            .Prop_Account = tmpVal
+            .Prop_Account = UTF8_Unescape(tmpVal)
             SendToChanOwners Chan, cptr.Prefix & " PROP " & Chan.Name & " CREATION :" & tmpVal, 0
             If tmpAccessLvl = 4 Then
               SendToServer_ButOne "PROP " & Chan.Name & " CREATION :" & tmpVal, tmpSvrName, cptr.Nick
@@ -3336,10 +3449,12 @@ Else
           Else
             SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
           End If
+        Case "GUID": 'cannot set GUID
+          SendWsock cptr.index, IRCERR_BADPROPERTY & " " & cptr.Nick & " " & Chan.Name, TranslateCode(IRCERR_BADPROPERTY)
         Case "LANGUAGE":
           If (tmpOwner Or tmpHost) Then
             tmpVal = parv(2)
-            .Prop_Language = tmpVal
+            .Prop_Language = UTF8_Unescape(tmpVal)
             SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " LANGUAGE :" & tmpVal, 0
             If tmpAccessLvl = 4 Then
               SendToServer_ButOne "PROP " & Chan.Name & " LANGUAGE :" & tmpVal, tmpSvrName, cptr.Nick
@@ -3356,7 +3471,7 @@ Else
         Case "ONJOIN":
           If (tmpOwner Or tmpHost) Then
             tmpVal = parv(2)
-            .Prop_OnJoin = tmpVal
+            .Prop_OnJoin = UTF8_Unescape(tmpVal)
             SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " ONJOIN :" & tmpVal, 0
             If tmpAccessLvl = 4 Then
               SendToServer_ButOne "PROP " & Chan.Name & " ONJOIN :" & tmpVal, tmpSvrName, cptr.Nick
@@ -3369,7 +3484,7 @@ Else
         Case "ONPART":
           If (tmpOwner Or tmpHost) Then
             tmpVal = parv(2)
-            .Prop_OnPart = tmpVal
+            .Prop_OnPart = UTF8_Unescape(tmpVal)
             SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " ONPART :" & tmpVal, 0
             If tmpAccessLvl = 4 Then
               SendToServer_ButOne "PROP " & Chan.Name & " ONPART :" & tmpVal, tmpSvrName, cptr.Nick
@@ -3382,7 +3497,7 @@ Else
         Case "SUBJECT":
           If (tmpOwner Or tmpHost) Then
             tmpVal = parv(2)
-            .Prop_Subject = tmpVal
+            .Prop_Subject = UTF8_Unescape(tmpVal)
             SendToChan Chan, cptr.Prefix & " PROP " & Chan.Name & " SUBJECT :" & tmpVal, 0
             If tmpAccessLvl = 4 Then
               SendToServer_ButOne "PROP " & Chan.Name & " SUBJECT :" & tmpVal, tmpSvrName, cptr.Nick
@@ -3398,8 +3513,8 @@ Else
             If TopicLen > 0 Then
               tmpVal = Left$(tmpVal, TopicLen)
             End If
-            .Prop_Topic = tmpVal
-            .Topic = tmpVal
+            .Prop_Topic = UTF8_Unescape(tmpVal)
+            .Topic = UTF8_Unescape(tmpVal)
             .TopicSetBy = cptr.Nick
             .TopcSetAt = UnixTime
             If IRCXM_Trans = True Then
@@ -3458,15 +3573,15 @@ Public Function m_topic(cptr As clsClient, sptr As clsClient, parv$()) As Long
 #If Debugging = 1 Then
     SendSvrMsg "TOPIC called! (" & cptr.Nick & ")"
 #End If
-Dim Chan As clsChannel, I&
+Dim Chan As clsChannel, i&
 If cptr.AccessLevel = 4 Then
   Set Chan = Channels(parv(0))
   If UBound(parv) = 1 Then
     'added maxlen (ircx default 160) - ziggy
     SendToChan Chan, sptr.Prefix & " TOPIC " & Chan.Name & " :" & Left$(parv(1), TopicLen), 0
     With Chan
-        .Topic = Left$(parv(1), TopicLen)
-        .Prop_Topic = Left$(parv(1), TopicLen)
+        .Topic = Left$(UTF8_Unescape(parv(1)), TopicLen)
+        .Prop_Topic = Left$(UTF8_Unescape(parv(1)), TopicLen)
         .TopicSetBy = sptr.Nick
         .TopcSetAt = UnixTime
         SendToServer_ButOne "TOPIC " & .Name & " :" & .Topic, cptr.ServerName, sptr.Nick
@@ -3515,8 +3630,8 @@ Else
         End If
         SendToServer "TOPIC " & .Name & " :" & parv(1), cptr.Nick
         GenerateEvent "CHANNEL", "TOPIC", Chan.Name, Chan.Name & " " & Replace(cptr.Prefix, ":", "") & " :" & parv(1)
-        .Topic = parv(1)
-        .Prop_Topic = parv(1)
+        .Topic = UTF8_Unescape(parv(1))
+        .Prop_Topic = UTF8_Unescape(parv(1))
         .TopicSetBy = cptr.Nick
         .TopcSetAt = UnixTime
     End With
@@ -3582,13 +3697,47 @@ Else
 End If
 End Function
 Public Function m_listx(cptr As clsClient, sptr As clsClient, parv$()) As Long
+On Error Resume Next
 #If Debugging = 1 Then
     SendSvrMsg "LISTX called! (" & cptr.Nick & ")"
 #End If
-If cptr.AccessLevel = 4 Then
-'server listing?
-Else
-    Dim I As Long, Ucount As Long, chans() As clsChannel, ret&
+
+'Table 3.2. Query terms for LIST command
+'Query Term    Description
+'===========================================================================
+'<#            Select channels with less than # members.
+'>#            Select channels with more than # members.
+'C<#           Select channels created less than # minutes ago.
+'C>#           Select channels created greater than # minutes ago.
+'L=<mask>      Select channels with language property matching the mask string.
+'N=<mask>      Select channels with name matching the mask string.
+'R=0           Select unregistered channels.
+'R=1           Select registered channels.
+'S=<mask>      Select channels with subject matching the mask string.
+'T<#           Select channels with a topic changed less than # minutes ago.
+'T>#           Select channels with a topic changed greater than # minutes ago.
+'T=<mask>      Select channels that topic matches the mask string.
+'<query limit> Maximum number of channels to be returned.
+'<mask>        Sequence of characters that is used to select a matching channel name or topic.
+'              The character * and ? are used for wildcard searches.
+
+If cptr.AccessLevel <> 4 Then
+    Dim i As Long, Ucount As Long, chans() As clsChannel, ret&
+    Dim A As Long, ShowChannel As Boolean, NewMask As String
+    
+    'query terms
+    Dim QT_Limit_LT As Long, QT_Limit_GT As Long
+    Dim QT_Creation_LT As Long, QT_Creation_GT As Long
+    Dim QT_Language_Mask As String
+    Dim QT_Name_Mask As String
+    Dim QT_Registered As Long '0 = don't search, 1 = not, 2 = registered
+    Dim QT_Subject_Mask As String
+    Dim QT_Topic_LT As Long, QT_Topic_GT As Long
+    Dim QT_Topic_Mask As String
+    
+    Dim ChanList As Variant, CL() As String
+    Dim MaxCL As Long
+    
     chans = Channels.Values
     SendWsock cptr.index, IRCRPL_LISTXSTART & " " & cptr.Nick, ":Start of ListX"
     
@@ -3596,16 +3745,216 @@ Else
         SendWsock cptr.index, IRCRPL_LISTXEND & " " & cptr.Nick, ":End of /LISTX"
         Exit Function
     End If
-    'not handling parameters yet
-    For I = 0 To UBound(chans)
-        If Not (chans(I).IsSecret Or chans(I).IsHidden Or chans(I).IsPrivate) Then
-            SendWsock cptr.index, IRCRPL_LISTXLIST & " " & cptr.Nick & " " & chans(I).Name & " +" & Replace(GetModesX(chans(I)), "+", "") & " " & chans(I).Member.Count & " " & chans(I).Limit, ":" & chans(I).Topic
+    If UBound(parv) = 0 And Left$(parv(0), 1) = "#" Then
+      #If Debugging = 1 Then
+        SendSvrMsg "Processing channel list..."
+      #End If
+      CL() = Split(parv(0), ",")
+      For Each ChanList In CL()
+        For i = 0 To UBound(chans)
+          If UCase$(chans(i).Name) = UCase$(CStr(ChanList)) Then
+            SendWsock cptr.index, IRCRPL_LISTXLIST & " " & cptr.Nick & " " & chans(i).Name & " +" & Replace(GetModesX(chans(i)), "+", "") & " " & chans(i).Member.Count & " " & chans(i).Limit, ":" & chans(i).Topic
             If MaxListLen > 0 Then
-                ret = ret + 1
-                If ret = MaxListLen Then Exit For
+              ret = ret + 1
+              If ret = MaxListLen Then Exit For
             End If
+          End If
+        Next i
+      Next
+      SendWsock cptr.index, IRCRPL_LISTXEND & " " & cptr.Nick, ":End of /LISTX"
+      Exit Function
+    End If
+    
+    For i = 0 To UBound(chans)
+        If Not (chans(i).IsSecret Or chans(i).IsHidden Or chans(i).IsPrivate) Then
+          'query terms!
+          #If Debugging = 1 Then
+            SendSvrMsg "Preparing to process query terms..."
+          #End If
+          If Len(parv(0)) > 0 Then
+            #If Debugging = 1 Then
+              SendSvrMsg "Processing Query Terms..."
+            #End If
+            For A = 0 To UBound(parv)
+              If Left$(parv(A), 1) = "<" Then
+                #If Debugging = 1 Then
+                  SendSvrMsg "Limit Less Than " & MakeNumber(Mid$(parv(A), 2))
+                #End If
+                QT_Limit_LT = CLng(MakeNumber(Mid$(parv(A), 2)))
+              ElseIf Left$(parv(A), 1) = ">" Then
+                #If Debugging = 1 Then
+                  SendSvrMsg "Limit Greater Than " & MakeNumber(Mid$(parv(A), 2))
+                #End If
+                QT_Limit_GT = CLng(MakeNumber(Mid$(parv(A), 2)))
+              ElseIf Left$(parv(A), 2) = "C<" Then
+                QT_Creation_LT = CLng(MakeNumber(Mid$(parv(A), 3)))
+              ElseIf Left$(parv(A), 2) = "C>" Then
+                QT_Creation_GT = CLng(MakeNumber(Mid$(parv(A), 3)))
+              ElseIf Left$(parv(A), 2) = "L=" Then
+                QT_Language_Mask = Mid$(parv(A), 3)
+              ElseIf Left$(parv(A), 2) = "N=" Then
+                QT_Name_Mask = Mid$(parv(A), 3)
+              ElseIf Left$(parv(A), 3) = "R=0" Then
+                QT_Registered = 1
+              ElseIf Left$(parv(A), 3) = "R=1" Then
+                QT_Registered = 2
+              ElseIf Left$(parv(A), 2) = "S=" Then
+                QT_Subject_Mask = Mid$(parv(A), 3)
+              ElseIf Left$(parv(A), 2) = "T<" Then
+                QT_Topic_LT = CLng(MakeNumber(Mid$(parv(A), 3)))
+              ElseIf Left$(parv(A), 2) = "T>" Then
+                QT_Topic_GT = CLng(MakeNumber(Mid$(parv(A), 3)))
+              ElseIf Left$(parv(A), 2) = "T=" Then
+                QT_Topic_Mask = Mid$(parv(A), 3)
+              End If
+            Next A
+          End If
+          
+          'filter the masks
+          NewMask = Replace(QT_Language_Mask, "[", " [ ")
+          NewMask = Replace(NewMask, "]", " ] ")
+          NewMask = Replace(NewMask, "#", "[#]")
+          NewMask = Replace(NewMask, " [ ", "[[]")
+          NewMask = Replace(NewMask, " ] ", "[]]")
+          NewMask = Replace(NewMask, "\*", "[*]")
+          NewMask = Replace(NewMask, "\?", "[?]")
+          NewMask = Replace(NewMask, "\b", " ")
+          NewMask = Replace(NewMask, "\c", ",")
+          NewMask = Replace(NewMask, "\\", "\")
+          QT_Language_Mask = NewMask
+          NewMask = Replace(QT_Name_Mask, "[", " [ ")
+          NewMask = Replace(NewMask, "]", " ] ")
+          NewMask = Replace(NewMask, "#", "[#]")
+          NewMask = Replace(NewMask, " [ ", "[[]")
+          NewMask = Replace(NewMask, " ] ", "[]]")
+          NewMask = Replace(NewMask, "\*", "[*]")
+          NewMask = Replace(NewMask, "\?", "[?]")
+          NewMask = Replace(NewMask, "\b", " ")
+          NewMask = Replace(NewMask, "\c", ",")
+          NewMask = Replace(NewMask, "\\", "\")
+          QT_Name_Mask = NewMask
+          NewMask = Replace(QT_Subject_Mask, "[", " [ ")
+          NewMask = Replace(NewMask, "]", " ] ")
+          NewMask = Replace(NewMask, "#", "[#]")
+          NewMask = Replace(NewMask, " [ ", "[[]")
+          NewMask = Replace(NewMask, " ] ", "[]]")
+          NewMask = Replace(NewMask, "\*", "[*]")
+          NewMask = Replace(NewMask, "\?", "[?]")
+          NewMask = Replace(NewMask, "\b", " ")
+          NewMask = Replace(NewMask, "\c", ",")
+          NewMask = Replace(NewMask, "\\", "\")
+          QT_Subject_Mask = NewMask
+          NewMask = Replace(QT_Topic_Mask, "[", " [ ")
+          NewMask = Replace(NewMask, "]", " ] ")
+          NewMask = Replace(NewMask, "#", "[#]")
+          NewMask = Replace(NewMask, " [ ", "[[]")
+          NewMask = Replace(NewMask, " ] ", "[]]")
+          NewMask = Replace(NewMask, "\*", "[*]")
+          NewMask = Replace(NewMask, "\?", "[?]")
+          NewMask = Replace(NewMask, "\b", " ")
+          NewMask = Replace(NewMask, "\c", ",")
+          NewMask = Replace(NewMask, "\\", "\")
+          QT_Topic_Mask = NewMask
+          
+          'now, test this channel with the query terms
+          ShowChannel = True
+          If ShowChannel And QT_Limit_LT > 0 Then
+            If chans(i).Limit < QT_Limit_LT Then
+              ShowChannel = True
+            Else
+              ShowChannel = False
+            End If
+          End If
+          If ShowChannel And QT_Limit_GT > 0 Then
+            If chans(i).Limit > QT_Limit_GT Then
+              ShowChannel = True
+            Else
+              ShowChannel = False
+            End If
+          End If
+          If ShowChannel And QT_Creation_LT > 0 Then
+            If chans(i).Prop_Creation < (UnixTime - (QT_Creation_LT * 60)) Then
+              ShowChannel = True
+            Else
+              ShowChannel = False
+            End If
+          End If
+          If ShowChannel And QT_Creation_GT > 0 Then
+            If chans(i).Prop_Creation > (UnixTime - (QT_Creation_GT * 60)) Then
+              ShowChannel = True
+            Else
+              ShowChannel = False
+            End If
+          End If
+          If ShowChannel And Len(QT_Language_Mask) > 0 Then
+            If chans(i).Prop_Language Like QT_Language_Mask Then
+              ShowChannel = True
+            Else
+              ShowChannel = False
+            End If
+          End If
+          If ShowChannel And Len(QT_Name_Mask) > 0 Then
+            If chans(i).Name Like QT_Name_Mask Then
+              ShowChannel = True
+            Else
+              ShowChannel = False
+            End If
+          End If
+          If ShowChannel And QT_Registered > 0 Then
+            If chans(i).IsRegistered And QT_Registered = 1 Then
+              ShowChannel = True
+            ElseIf Not chans(i).IsRegistered And QT_Registered = 0 Then
+              ShowChannel = True
+            Else
+              ShowChannel = False
+            End If
+          End If
+          If ShowChannel And Len(QT_Subject_Mask) > 0 Then
+            If chans(i).Prop_Subject Like QT_Subject_Mask Then
+              ShowChannel = True
+            Else
+              ShowChannel = False
+            End If
+          End If
+          If ShowChannel And QT_Topic_LT > 0 Then
+            If chans(i).TopcSetAt < QT_Topic_LT Then
+              ShowChannel = True
+            Else
+              ShowChannel = False
+            End If
+          End If
+          If ShowChannel And QT_Topic_GT > 0 Then
+            If chans(i).TopcSetAt > QT_Topic_GT Then
+              ShowChannel = True
+            Else
+              ShowChannel = False
+            End If
+          End If
+          If ShowChannel And Len(QT_Topic_Mask) > 0 Then
+            If chans(i).Topic Like QT_Topic_Mask Then
+              ShowChannel = True
+            Else
+              ShowChannel = False
+            End If
+          End If
+          
+          If IsNumeric(parv(UBound(parv))) Then
+            'if the last parameter is numeric, that's the max
+            'channel list thingy
+            MaxCL = CLng(parv(UBound(parv)))
+          End If
+            
+          If ShowChannel Then
+            SendWsock cptr.index, IRCRPL_LISTXLIST & " " & cptr.Nick & " " & chans(i).Name & " +" & Replace(GetModesX(chans(i)), "+", "") & " " & chans(i).Member.Count & " " & chans(i).Limit, ":" & chans(i).Topic
+            ret = ret + 1
+            
+            If MaxListLen > 0 Then
+              If ret = MaxListLen Then Exit For
+            End If
+            If MaxCL > 0 Then If ret = MaxCL Then Exit For
+          End If
         End If
-    Next I
+    Next i
     SendWsock cptr.index, IRCRPL_LISTXEND & " " & cptr.Nick, ":End of /LISTX"
 End If
 End Function
@@ -3625,7 +3974,7 @@ If cptr.AccessLevel = 4 Then
 'server listing?
 'this is pretty useless... -_-
 Else
-    Dim I As Long, Ucount As Long, chans() As clsChannel, ret&
+    Dim i As Long, Ucount As Long, chans() As clsChannel, ret&
     Dim NewMask As String
     
     chans = Channels.Values
@@ -3643,21 +3992,21 @@ Else
         'no parameters - /list
         Case vbNullString
             ListAt = "no parameters"
-            For I = 0 To UBound(chans)
+            For i = 0 To UBound(chans)
                 ListAt = "scan all channels"
                 'the next bit makes sure that it shows only channels you're supposed to see
                 'I probably need to handle private channels differently (so says CompNerd)
-                If Not (chans(I).IsSecret Or chans(I).IsHidden Or chans(I).IsPrivate) Then
+                If Not (chans(i).IsSecret Or chans(i).IsHidden Or chans(i).IsPrivate) Then
                     ListAt = "show all chans not +phs"
                     
-                    SendWsock cptr.index, 322 & " " & cptr.Nick & " " & chans(I).Name & " " & chans(I).Member.Count, ":[+" & GetModes(chans(I), True) & "] " & chans(I).Topic
+                    SendWsock cptr.index, 322 & " " & cptr.Nick & " " & chans(i).Name & " " & chans(i).Member.Count, ":[+" & GetModes(chans(i), True) & "] " & chans(i).Topic
                     
                     If MaxListLen > 0 Then
                         ret = ret + 1
                         If ret = MaxListLen Then Exit For
                     End If
                 End If
-            Next I
+            Next i
         'more users than - /list > 50
         'should /list >50 be allowed too?
         Case ">"
@@ -3668,18 +4017,18 @@ Else
             End If
             'get the count...
             Ucount = CLng(parv(1))
-            For I = LBound(chans) To UBound(chans)
-                If chans(I).Member.Count > Ucount Then
+            For i = LBound(chans) To UBound(chans)
+                If chans(i).Member.Count > Ucount Then
                     'again, don't send +phs chans
-                    If Not (chans(I).IsSecret Or chans(I).IsHidden Or chans(I).IsPrivate) Then
-                        SendWsock cptr.index, 322 & " " & cptr.Nick & " " & chans(I).Name & " " & chans(I).Member.Count, ":[+" & Replace(GetModes(chans(I), True), "+", "") & "] " & chans(I).Topic
+                    If Not (chans(i).IsSecret Or chans(i).IsHidden Or chans(i).IsPrivate) Then
+                        SendWsock cptr.index, 322 & " " & cptr.Nick & " " & chans(i).Name & " " & chans(i).Member.Count, ":[+" & Replace(GetModes(chans(i), True), "+", "") & "] " & chans(i).Topic
                         If MaxListLen > 0 Then
                             ret = ret + 1
                             If ret = MaxListLen Then Exit For
                         End If
                     End If
                 End If
-            Next I
+            Next i
         'less users than - /list < 50
         'should /list <50 be allowed too?
         Case "<"
@@ -3689,17 +4038,17 @@ Else
                 Exit Function
             End If
             Ucount = CLng(parv(1))
-            For I = LBound(chans) To UBound(chans)
-                If chans(I).Member.Count < Ucount Then
-                    If Not (chans(I).IsSecret Or chans(I).IsHidden Or chans(I).IsPrivate) Then
-                        SendWsock cptr.index, 322 & " " & cptr.Nick & " " & chans(I).Name & " " & chans(I).Member.Count, ":[+" & Replace(GetModes(chans(I), True), "+", "") & "] " & chans(I).Topic
+            For i = LBound(chans) To UBound(chans)
+                If chans(i).Member.Count < Ucount Then
+                    If Not (chans(i).IsSecret Or chans(i).IsHidden Or chans(i).IsPrivate) Then
+                        SendWsock cptr.index, 322 & " " & cptr.Nick & " " & chans(i).Name & " " & chans(i).Member.Count, ":[+" & Replace(GetModes(chans(i), True), "+", "") & "] " & chans(i).Topic
                         If MaxListLen > 0 Then
                             ret = ret + 1
                             If ret = MaxListLen Then Exit For
                         End If
                     End If
                 End If
-            Next I
+            Next i
         'if it's other garbage
         Case Else
             ListAt = "case else"
@@ -3719,27 +4068,27 @@ Else
               NewMask = Replace(NewMask, " ] ", "[]]")
               
               'cycle through the channels
-              For I = LBound(chans) To UBound(chans)
+              For i = LBound(chans) To UBound(chans)
                   ListAt = "scanning channels"
                   #If Debugging = 1 Then
-                    SendSvrMsg "chan: " & chans(I).Name & " mask: " & parv(0) & " escaped: " & NewMask
+                    SendSvrMsg "chan: " & chans(i).Name & " mask: " & parv(0) & " escaped: " & NewMask
                   #End If
-                  If UCase$(chans(I).Name) Like UCase$(NewMask) Then
+                  If UCase$(chans(i).Name) Like UCase$(NewMask) Then
                   'If UCase$(parv(0)) Like UCase$(chans(I).Name) Then
                       #If Debugging = 1 Then
                         SendSvrMsg "contains wildcard, matches"
                       #End If
                       ListAt = "matches wildcard"
-                      If Not ((chans(I).IsSecret) Or (chans(I).IsHidden) Or (chans(I).IsPrivate)) Then
+                      If Not ((chans(i).IsSecret) Or (chans(i).IsHidden) Or (chans(i).IsPrivate)) Then
                           ListAt = "can be shown (w/c)"
-                          SendWsock cptr.index, 322 & " " & cptr.Nick & " " & chans(I).Name & " " & chans(I).Member.Count, ":[+" & Replace(GetModes(chans(I), True), "+", "") & "] " & chans(I).Topic
+                          SendWsock cptr.index, 322 & " " & cptr.Nick & " " & chans(i).Name & " " & chans(i).Member.Count, ":[+" & Replace(GetModes(chans(i), True), "+", "") & "] " & chans(i).Topic
                           If MaxListLen > 0 Then
                               ret = ret + 1
                               If ret = MaxListLen Then Exit For
                           End If
                       End If
                   End If
-              Next I
+              Next i
             End If
     End Select
     ListAt = "end of list"
@@ -3772,7 +4121,7 @@ Else
     SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "NAMES")
     Exit Function
   End If
-  Dim I&, Chan As clsChannel, RetVal$, x&, chans$(), Membrs() As clsChanMember, y&, z&
+  Dim i&, Chan As clsChannel, RetVal$, x&, chans$(), Membrs() As clsChanMember, y&, z&
   Dim UserPrivs As Long
   
   chans = Split(parv(0), ",")
@@ -3802,33 +4151,33 @@ Else
     
     
     
-    For I = LBound(Membrs) To UBound(Membrs) 'List all members of a chan -Dill
-      With Membrs(I).Member
+    For i = LBound(Membrs) To UBound(Membrs) 'List all members of a chan -Dill
+      With Membrs(i).Member
           y = y + 1
-          If Membrs(I).IsOwner Then
+          If Membrs(i).IsOwner Then
             z = Len(.Nick)
             If cptr.IsIRCX Or cptr.AccessLevel = 4 Then
               'servers aren't supposed to send IRCX when they connect
               'so consider them to be IRCX anyways
-              Mid$(RetVal, y, 1) = "."
+              Mid$(RetVal, y, 1) = Level_Owner
             Else
               'older clients
-              Mid$(RetVal, y, 1) = "@"
+              Mid$(RetVal, y, 1) = Level_Host
             End If
             y = y + 1
             Mid$(RetVal, y, z) = .Nick
             y = y + z
             
-          ElseIf Membrs(I).IsOp Then
+          ElseIf Membrs(i).IsOp Then
             z = Len(.Nick)
-            Mid$(RetVal, y, 1) = "@"
+            Mid$(RetVal, y, 1) = Level_Host
             y = y + 1
             Mid$(RetVal, y, z) = .Nick
             y = y + z
-          ElseIf Membrs(I).IsVoice Then
+          ElseIf Membrs(i).IsVoice Then
             If (Not Chan.IsAuditorium) Or (UserPrivs > 1) Then
               z = Len(.Nick)
-              Mid$(RetVal, y, 1) = "+"
+              Mid$(RetVal, y, 1) = Level_Voice
               y = y + 1
               Mid$(RetVal, y, z) = .Nick
               y = y + z
@@ -3836,7 +4185,7 @@ Else
               'if it's auditorium, still tell them about themselves
               If StrComp(UCase$(.Nick), UCase$(cptr.Nick)) = 0 Then
                 z = Len(.Nick)
-                Mid$(RetVal, y, 1) = "+"
+                Mid$(RetVal, y, 1) = Level_Voice
                 y = y + 1
                 Mid$(RetVal, y, z) = .Nick
                 y = y + z
@@ -3860,11 +4209,11 @@ Else
             'RetVal = Left$(RetVal, InStrRev(RetVal, " "))
             SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " = " & Chan.Name, " :" & RetVal
             RetVal = Space$(500)
-            I = I - 1
+            i = i - 1
             y = 0
           End If
       End With
-    Next I
+    Next i
     RetVal = Left$(RetVal, y - 1) 'remove leading/trailing spaces -Dill
     'if the buffer still contains char's, send em out -Dill
     Dim ChanStatus As String
@@ -3892,14 +4241,14 @@ Public Function IsBanned(Channel As clsChannel, User As clsClient) As Boolean
 #If Debugging = 1 Then
     SendSvrMsg "ISBANNED called! (" & User.Nick & ")"
 #End If
-Dim I As Long, UserMask$, RealUserMask$
+Dim i As Long, UserMask$, RealUserMask$
 Dim A As Long
 On Error GoTo ex
 UserMask = Mid$(User.Prefix, 2)
 RealUserMask = User.Nick & "!" & User.User & "@" & User.RealHost
 
-For I = 1 To Channel.Bans.Count
-    If (UCase$(UserMask) Like UCase$(Channel.Bans.Item(I).Mask)) Or (UCase$(RealUserMask) Like UCase$(Channel.Bans.Item(I).Mask)) Then
+For i = 1 To Channel.Bans.Count
+    If (UCase$(UserMask) Like UCase$(Channel.Bans.Item(i).Mask)) Or (UCase$(RealUserMask) Like UCase$(Channel.Bans.Item(i).Mask)) Then
         For A = 1 To Channel.Grants.Count
           If UCase$(UserMask) Like UCase$(Channel.Grants.Item(A).Mask) Then
             IsBanned = False
@@ -3917,21 +4266,21 @@ For I = 1 To Channel.Bans.Count
         IsBanned = True
         Exit Function
     End If
-Next I
+Next i
 ex:
 End Function
 Public Function IsDenied(Channel As clsChannel, User As clsClient) As Boolean
 #If Debugging = 1 Then
     SendSvrMsg "ISDENIED called! (" & User.Nick & ")"
 #End If
-Dim I As Long, UserMask$, RealUserMask$
+Dim i As Long, UserMask$, RealUserMask$
 Dim A As Long
 On Error GoTo ex
 UserMask = Mid$(User.Prefix, 2)
 RealUserMask = User.Nick & "!" & User.User & "@" & User.RealHost
 
-For I = 1 To Channel.Bans.Count
-    If (UCase$(UserMask) Like UCase$(Channel.Bans.Item(I).Mask)) Or (UCase$(RealUserMask) Like UCase$(Channel.Bans.Item(I).Mask)) Then
+For i = 1 To Channel.Bans.Count
+    If (UCase$(UserMask) Like UCase$(Channel.Bans.Item(i).Mask)) Or (UCase$(RealUserMask) Like UCase$(Channel.Bans.Item(i).Mask)) Then
         
         'check to see if the user is protected (+P)
         If (User.IsLocOperator Or User.IsGlobOperator) And (User.IsProtected Or User.IsLProtected) Then
@@ -3942,384 +4291,384 @@ For I = 1 To Channel.Bans.Count
         IsDenied = True
         Exit Function
     End If
-Next I
+Next i
 ex:
 End Function
 Public Function FindVoice(Channel As clsChannel, Mask As String) As Boolean
 #If Debugging = 1 Then
     SendSvrMsg "FINDVOICE called! (" & Mask & ")"
 #End If
-Dim I As Long, UserMask$
+Dim i As Long, UserMask$
 Dim A As Long
 On Error GoTo ex
 
-For I = 1 To Channel.Voices.Count
-    If UCase$(Mask) Like UCase$(Channel.Voices.Item(I).Mask) Then
+For i = 1 To Channel.Voices.Count
+    If UCase$(Mask) Like UCase$(Channel.Voices.Item(i).Mask) Then
         FindVoice = True
         Exit Function
     End If
-Next I
+Next i
 ex:
 End Function
 Public Function FindHost(Channel As clsChannel, Mask As String) As Boolean
 #If Debugging = 1 Then
     SendSvrMsg "FINDHOST called! (" & Mask & ")"
 #End If
-Dim I As Long, UserMask$
+Dim i As Long, UserMask$
 Dim A As Long
 On Error GoTo ex
 
-For I = 1 To Channel.Hosts.Count
-    If UCase$(Mask) Like UCase$(Channel.Hosts.Item(I).Mask) Then
+For i = 1 To Channel.Hosts.Count
+    If UCase$(Mask) Like UCase$(Channel.Hosts.Item(i).Mask) Then
         FindHost = True
         Exit Function
     End If
-Next I
+Next i
 ex:
 End Function
 Public Function FindOwner(Channel As clsChannel, Mask As String) As Boolean
 #If Debugging = 1 Then
     SendSvrMsg "FINDOWNER called! (" & Mask & ")"
 #End If
-Dim I As Long, UserMask$
+Dim i As Long, UserMask$
 Dim A As Long
 On Error GoTo ex
 
-For I = 1 To Channel.Owners.Count
-    If UCase$(Mask) Like UCase$(Channel.Owners.Item(I).Mask) Then
+For i = 1 To Channel.Owners.Count
+    If UCase$(Mask) Like UCase$(Channel.Owners.Item(i).Mask) Then
         FindOwner = True
         Exit Function
     End If
-Next I
+Next i
 ex:
 End Function
 Public Function FindGrant(Channel As clsChannel, Mask As String) As Boolean
 #If Debugging = 1 Then
     SendSvrMsg "FINDGRANT called! (" & Mask & ")"
 #End If
-Dim I As Long, UserMask$
+Dim i As Long, UserMask$
 Dim A As Long
 On Error GoTo ex
 
-For I = 1 To Channel.Grants.Count
-    If UCase$(Mask) Like UCase$(Channel.Grants.Item(I).Mask) Then
+For i = 1 To Channel.Grants.Count
+    If UCase$(Mask) Like UCase$(Channel.Grants.Item(i).Mask) Then
         FindGrant = True
         Exit Function
     End If
-Next I
+Next i
 ex:
 End Function
 Public Function FindDeny(Channel As clsChannel, Mask As String) As Boolean
 #If Debugging = 1 Then
     SendSvrMsg "FINDDENY called! (" & Mask & ")"
 #End If
-Dim I As Long, UserMask$
+Dim i As Long, UserMask$
 Dim A As Long
 On Error GoTo ex
 
-For I = 1 To Channel.Bans.Count
-    If UCase$(Mask) Like UCase$(Channel.Bans.Item(I).Mask) Then
+For i = 1 To Channel.Bans.Count
+    If UCase$(Mask) Like UCase$(Channel.Bans.Item(i).Mask) Then
         FindDeny = True
         Exit Function
     End If
-Next I
+Next i
 ex:
 End Function
 Public Sub RemoveDeny(Channel As clsChannel, Mask As String)
 #If Debugging = 1 Then
     SendSvrMsg "REMOVEDENY called! (" & Mask & ")"
 #End If
-Dim I As Long, UserMask$
+Dim i As Long, UserMask$
 Dim A As Long
 On Error GoTo ex
 
-For I = 1 To Channel.Bans.Count
-    If UCase$(Mask) Like UCase$(Channel.Bans.Item(I).Mask) Then
-        Channel.Bans.Remove I
+For i = 1 To Channel.Bans.Count
+    If UCase$(Mask) Like UCase$(Channel.Bans.Item(i).Mask) Then
+        Channel.Bans.Remove i
     End If
-Next I
+Next i
 ex:
 End Sub
 Public Sub RemoveGrant(Channel As clsChannel, Mask As String)
 #If Debugging = 1 Then
     SendSvrMsg "REMOVEGRANT called! (" & Mask & ")"
 #End If
-Dim I As Long, UserMask$
+Dim i As Long, UserMask$
 Dim A As Long
 On Error GoTo ex
 
-For I = 1 To Channel.Grants.Count
-    If UCase$(Mask) Like UCase$(Channel.Grants.Item(I).Mask) Then
-        Channel.Grants.Remove I
+For i = 1 To Channel.Grants.Count
+    If UCase$(Mask) Like UCase$(Channel.Grants.Item(i).Mask) Then
+        Channel.Grants.Remove i
     End If
-Next I
+Next i
 ex:
 End Sub
 Public Sub RemoveVoice(Channel As clsChannel, Mask As String)
 #If Debugging = 1 Then
     SendSvrMsg "REMOVEVOICE called! (" & Mask & ")"
 #End If
-Dim I As Long, UserMask$
+Dim i As Long, UserMask$
 Dim A As Long
 On Error GoTo ex
 
-For I = 1 To Channel.Voices.Count
-    If UCase$(Mask) Like UCase$(Channel.Voices.Item(I).Mask) Then
-        Channel.Voices.Remove I
+For i = 1 To Channel.Voices.Count
+    If UCase$(Mask) Like UCase$(Channel.Voices.Item(i).Mask) Then
+        Channel.Voices.Remove i
     End If
-Next I
+Next i
 ex:
 End Sub
 Public Sub RemoveHost(Channel As clsChannel, Mask As String)
 #If Debugging = 1 Then
     SendSvrMsg "REMOVEHOST called! (" & Mask & ")"
 #End If
-Dim I As Long, UserMask$
+Dim i As Long, UserMask$
 Dim A As Long
 On Error GoTo ex
 
-For I = 1 To Channel.Hosts.Count
-    If UCase$(Mask) Like UCase$(Channel.Hosts.Item(I).Mask) Then
-        Channel.Hosts.Remove I
+For i = 1 To Channel.Hosts.Count
+    If UCase$(Mask) Like UCase$(Channel.Hosts.Item(i).Mask) Then
+        Channel.Hosts.Remove i
     End If
-Next I
+Next i
 ex:
 End Sub
 Public Sub RemoveOwner(Channel As clsChannel, Mask As String)
 #If Debugging = 1 Then
     SendSvrMsg "REMOVEOWNER called! (" & Mask & ")"
 #End If
-Dim I As Long, UserMask$
+Dim i As Long, UserMask$
 Dim A As Long
 On Error GoTo ex
 
-For I = 1 To Channel.Owners.Count
-    If UCase$(Mask) Like UCase$(Channel.Owners.Item(I).Mask) Then
-        Channel.Owners.Remove I
+For i = 1 To Channel.Owners.Count
+    If UCase$(Mask) Like UCase$(Channel.Owners.Item(i).Mask) Then
+        Channel.Owners.Remove i
     End If
-Next I
+Next i
 ex:
 End Sub
 Public Function IsGranted(Channel As clsChannel, User As clsClient) As Boolean
 #If Debugging = 1 Then
     SendSvrMsg "ISGRANTED called! (" & User.Nick & ")"
 #End If
-Dim I As Long, UserMask$, RealUserMask$
+Dim i As Long, UserMask$, RealUserMask$
 Dim A As Long
 On Error GoTo ex
 UserMask = Mid$(User.Prefix, 2)
 RealUserMask = User.Nick & "!" & User.User & "@" & User.RealHost
 
-For I = 1 To Channel.Grants.Count
-    If (UCase$(UserMask) Like UCase$(Channel.Grants.Item(I).Mask)) Or (UCase$(RealUserMask) Like UCase$(Channel.Grants.Item(I).Mask)) Then
+For i = 1 To Channel.Grants.Count
+    If (UCase$(UserMask) Like UCase$(Channel.Grants.Item(i).Mask)) Or (UCase$(RealUserMask) Like UCase$(Channel.Grants.Item(i).Mask)) Then
         IsGranted = True
         Exit Function
     End If
-Next I
+Next i
 ex:
 End Function
 Public Function IsVoiced(Channel As clsChannel, User As clsClient) As Boolean
 #If Debugging = 1 Then
     SendSvrMsg "ISVOICED called! (" & User.Nick & ")"
 #End If
-Dim I As Long, UserMask$, RealUserMask$
+Dim i As Long, UserMask$, RealUserMask$
 Dim A As Long
 On Error GoTo ex
 UserMask = Mid$(User.Prefix, 2)
 RealUserMask = User.Nick & "!" & User.User & "@" & User.RealHost
 
-For I = 1 To Channel.Voices.Count
-    If (UCase$(UserMask) Like UCase$(Channel.Voices.Item(I).Mask)) Or (UCase$(RealUserMask) Like UCase$(Channel.Voices.Item(I).Mask)) Then
+For i = 1 To Channel.Voices.Count
+    If (UCase$(UserMask) Like UCase$(Channel.Voices.Item(i).Mask)) Or (UCase$(RealUserMask) Like UCase$(Channel.Voices.Item(i).Mask)) Then
         'voiced!
         IsVoiced = True
         Exit Function
     End If
-Next I
+Next i
 ex:
 End Function
 Public Function IsHosted(Channel As clsChannel, User As clsClient) As Boolean
 #If Debugging = 1 Then
     SendSvrMsg "ISHOSTED called! (" & User.Nick & ")"
 #End If
-Dim I As Long, UserMask$, RealUserMask$
+Dim i As Long, UserMask$, RealUserMask$
 Dim A As Long
 On Error GoTo ex
 UserMask = Mid$(User.Prefix, 2)
 RealUserMask = User.Nick & "!" & User.User & "@" & User.RealHost
 
-For I = 1 To Channel.Hosts.Count
-    If (UCase$(UserMask) Like UCase$(Channel.Hosts.Item(I).Mask)) Or (UCase$(RealUserMask) Like UCase$(Channel.Hosts.Item(I).Mask)) Then
+For i = 1 To Channel.Hosts.Count
+    If (UCase$(UserMask) Like UCase$(Channel.Hosts.Item(i).Mask)) Or (UCase$(RealUserMask) Like UCase$(Channel.Hosts.Item(i).Mask)) Then
         'a host
         IsHosted = True
         Exit Function
     End If
-Next I
+Next i
 ex:
 End Function
 Public Function IsOwnered(Channel As clsChannel, User As clsClient) As Boolean
 #If Debugging = 1 Then
     SendSvrMsg "ISOWNERED called! (" & User.Nick & ")"
 #End If
-Dim I As Long, UserMask$, RealUserMask$
+Dim i As Long, UserMask$, RealUserMask$
 Dim A As Long
 On Error GoTo ex
 UserMask = Mid$(User.Prefix, 2)
 RealUserMask = User.Nick & "!" & User.User & "@" & User.RealHost
 
-For I = 1 To Channel.Owners.Count
-    If (UCase$(UserMask) Like UCase$(Channel.Owners.Item(I).Mask)) Or (UCase$(RealUserMask) Like UCase$(Channel.Owners.Item(I).Mask)) Then
+For i = 1 To Channel.Owners.Count
+    If (UCase$(UserMask) Like UCase$(Channel.Owners.Item(i).Mask)) Or (UCase$(RealUserMask) Like UCase$(Channel.Owners.Item(i).Mask)) Then
         'an owner
         IsOwnered = True
         Exit Function
     End If
-Next I
+Next i
 ex:
 End Function
 Public Function GetModes(Channel As clsChannel, Optional HideKey As Boolean = False) As String
 #If Debugging = 1 Then
     SendSvrMsg "GETMODES called! (" & Channel.Name & ")"
 #End If
-Dim I&
+Dim i&
 GetModes = Space$(30)
-I = 1
+i = 1
 'TODO: Put these in alphabetical order, lowercase first (i.e. abcdABCD)
 With Channel
     If .IsCloneable Then
-        Mid$(GetModes, I, 1) = "d"
-        I = I + 1
+        Mid$(GetModes, i, 1) = "d"
+        i = i + 1
     End If
     If .IsClone Then
-        Mid$(GetModes, I, 1) = "e"
-        I = I + 1
+        Mid$(GetModes, i, 1) = "e"
+        i = i + 1
     End If
     If .IsInviteOnly Then
-        Mid$(GetModes, I, 1) = "i"
-        I = I + 1
+        Mid$(GetModes, i, 1) = "i"
+        i = i + 1
     End If
     If .IsModerated Then
-        Mid$(GetModes, I, 1) = "m"
-        I = I + 1
+        Mid$(GetModes, i, 1) = "m"
+        i = i + 1
     End If
     If .IsNoExternalMsgs Then
-        Mid$(GetModes, I, 1) = "n"
-        I = I + 1
+        Mid$(GetModes, i, 1) = "n"
+        i = i + 1
     End If
     If .IsPrivate Then
-        Mid$(GetModes, I, 1) = "p"
-        I = I + 1
+        Mid$(GetModes, i, 1) = "p"
+        i = i + 1
     End If
     If .IsHidden Then
-        Mid$(GetModes, I, 1) = "h"
-        I = I + 1
+        Mid$(GetModes, i, 1) = "h"
+        i = i + 1
     End If
     If .IsSecret Then
-        Mid$(GetModes, I, 1) = "s"
-        I = I + 1
+        Mid$(GetModes, i, 1) = "s"
+        i = i + 1
     End If
     If .IsTopicOps Then
-        Mid$(GetModes, I, 1) = "t"
-        I = I + 1
+        Mid$(GetModes, i, 1) = "t"
+        i = i + 1
     End If
     If .IsRegistered Then
-        Mid$(GetModes, I, 1) = "r"
-        I = I + 1
+        Mid$(GetModes, i, 1) = "r"
+        i = i + 1
     End If
     If .IsAuditorium Then
-        Mid$(GetModes, I, 1) = "x"
-        I = I + 1
+        Mid$(GetModes, i, 1) = "x"
+        i = i + 1
     End If
     If .IsOperOnly Then
-        Mid$(GetModes, I, 1) = "O"
-        I = I + 1
+        Mid$(GetModes, i, 1) = "O"
+        i = i + 1
     End If
     If .IsPersistant Then
-        Mid$(GetModes, I, 1) = "R"
-        I = I + 1
+        Mid$(GetModes, i, 1) = "R"
+        i = i + 1
     End If
     If Len(.Key) > 0 And .Limit > 0 Then
-        Mid$(GetModes, I, 3) = "lk "
-        I = I + 3
-        Mid$(GetModes, I, Len(CStr(.Limit))) = .Limit
-        I = I + Len(CStr(.Limit))
+        Mid$(GetModes, i, 3) = "lk "
+        i = i + 3
+        Mid$(GetModes, i, Len(CStr(.Limit))) = .Limit
+        i = i + Len(CStr(.Limit))
         
         If Not HideKey Then
-          Mid$(GetModes, I, Len(.Key)) = .Key
-          I = I + Len(CStr(.Key))
+          Mid$(GetModes, i, Len(.Key)) = .Key
+          i = i + Len(CStr(.Key))
         End If
     ElseIf Len(.Key) > 0 And .Limit = 0 Then
         If Not HideKey Then
-          Mid$(GetModes, I, 1) = "k "
-          I = I + 2
-          Mid$(GetModes, I, Len(.Key)) = .Key
-          I = I + Len(.Key)
+          Mid$(GetModes, i, 1) = "k "
+          i = i + 2
+          Mid$(GetModes, i, Len(.Key)) = .Key
+          i = i + Len(.Key)
         Else
-          Mid$(GetModes, I, 1) = "k"
-          I = I + 1
+          Mid$(GetModes, i, 1) = "k"
+          i = i + 1
         End If
     ElseIf Len(.Key) = 0 And .Limit > 0 Then
-        Mid$(GetModes, I, 3) = "l "
-        I = I + 2
-        Mid$(GetModes, I, Len(CStr(.Limit))) = .Limit
-        I = I + Len(CStr(.Limit))
+        Mid$(GetModes, i, 3) = "l "
+        i = i + 2
+        Mid$(GetModes, i, Len(CStr(.Limit))) = .Limit
+        i = i + Len(CStr(.Limit))
     End If
 End With
-GetModes = Left$(GetModes, I - 1)
+GetModes = Left$(GetModes, i - 1)
 End Function
 Public Function GetModesX(Channel As clsChannel) As String
 #If Debugging = 1 Then
     SendSvrMsg "GETMODESX called! (" & Channel.Name & ")"
 #End If
-Dim I&
+Dim i&
 GetModesX = Space$(30)
-I = 1
+i = 1
 'TODO: Put these in alphabetical order, lowercase first (i.e. abcdABCD)
 With Channel
     If .IsInviteOnly Then
-        Mid$(GetModesX, I, 1) = "i"
-        I = I + 1
+        Mid$(GetModesX, i, 1) = "i"
+        i = i + 1
     End If
     If .IsModerated Then
-        Mid$(GetModesX, I, 1) = "m"
-        I = I + 1
+        Mid$(GetModesX, i, 1) = "m"
+        i = i + 1
     End If
     If .IsNoExternalMsgs Then
-        Mid$(GetModesX, I, 1) = "n"
-        I = I + 1
+        Mid$(GetModesX, i, 1) = "n"
+        i = i + 1
     End If
     If .IsPrivate Then
-        Mid$(GetModesX, I, 1) = "p"
-        I = I + 1
+        Mid$(GetModesX, i, 1) = "p"
+        i = i + 1
     End If
     If .IsHidden Then
-        Mid$(GetModesX, I, 1) = "h"
-        I = I + 1
+        Mid$(GetModesX, i, 1) = "h"
+        i = i + 1
     End If
     If .IsSecret Then
-        Mid$(GetModesX, I, 1) = "s"
-        I = I + 1
+        Mid$(GetModesX, i, 1) = "s"
+        i = i + 1
     End If
     If .IsTopicOps Then
-        Mid$(GetModesX, I, 1) = "t"
-        I = I + 1
+        Mid$(GetModesX, i, 1) = "t"
+        i = i + 1
     End If
     If .IsRegistered Then
-        Mid$(GetModesX, I, 1) = "r"
-        I = I + 1
+        Mid$(GetModesX, i, 1) = "r"
+        i = i + 1
     End If
     If .IsAuditorium Then
-        Mid$(GetModesX, I, 1) = "x"
-        I = I + 1
+        Mid$(GetModesX, i, 1) = "x"
+        i = i + 1
     End If
     If .IsOperOnly Then
-        Mid$(GetModesX, I, 1) = "O"
-        I = I + 1
+        Mid$(GetModesX, i, 1) = "O"
+        i = i + 1
     End If
     If .IsPersistant Then
-        Mid$(GetModesX, I, 1) = "R"
-        I = I + 1
+        Mid$(GetModesX, i, 1) = "R"
+        i = i + 1
     End If
 End With
-GetModesX = Left$(GetModesX, I - 1)
+GetModesX = Left$(GetModesX, i - 1)
 End Function
 Public Function CreateMask$(InVar$)
 #If Debugging = 1 Then

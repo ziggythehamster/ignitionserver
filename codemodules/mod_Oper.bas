@@ -13,7 +13,7 @@ Attribute VB_Name = "mod_Oper"
 '                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_Oper.bas,v 1.8 2004/07/21 03:13:00 ziggythehamster Exp $
+' $Id: mod_Oper.bas,v 1.9 2004/08/15 17:16:39 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -133,8 +133,8 @@ ElseIf UCase$(parv(0)) = "SEND" Then
                 SendWsock cptr.index, "REMOTEADM :SEND OPER " & OLine(x).Name & " " & OLine(x).Pass & " " & OLine(x).Host & " " & OLine(x).AccessFlag & " " & OLine(x).ConnectionClass, vbNullString, , True
             Next x
         ElseIf UCase$(parv(1)) = "SERVER" Then
-            For x = 2 To UBound(LLine)
-                SendWsock cptr.index, "REMOTEADM :SEND SERVER " & LLine(x).Server & " " & LLine(x).Pass & " " & LLine(x).Host & " " & LLine(x).Port & " " & LLine(x).ConnectionClass, vbNullString, , True
+            For x = 2 To UBound(NLine)
+                SendWsock cptr.index, "REMOTEADM :SEND SERVER " & NLine(x).Server & " " & NLine(x).Pass & " " & NLine(x).Host & " " & NLine(x).ConnectionClass, vbNullString, , True
             Next x
         End If
     Else

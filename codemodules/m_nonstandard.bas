@@ -14,7 +14,7 @@ Attribute VB_Name = "m_nonstandard"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: m_nonstandard.bas,v 1.5 2004/08/08 06:01:10 airwalklogik Exp $
+' $Id: m_nonstandard.bas,v 1.7 2004/09/04 23:46:29 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -112,7 +112,7 @@ If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
     SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
     Exit Function
 End If
-Dim I&, ops$, Inc&, SetMode As Boolean, Chan As clsChannel, CurMode&, ChM As clsChanMember
+Dim i&, ops$, Inc&, SetMode As Boolean, Chan As clsChannel, CurMode&, ChM As clsChanMember
 Dim NewModes$, Param$
 Set Chan = Channels(parv(0))
 If Chan Is Nothing Then
@@ -120,8 +120,8 @@ If Chan Is Nothing Then
     Exit Function
 End If
 If UBound(parv) > 1 Then Inc = 1
-For I = 1 To Len(parv(1))
-    CurMode = AscW(Mid$(parv(1), I, 1))
+For i = 1 To Len(parv(1))
+    CurMode = AscW(Mid$(parv(1), i, 1))
     Select Case CurMode
         Case modeAdd
             SetMode = True
@@ -226,8 +226,8 @@ For I = 1 To Len(parv(1))
                     If Len(Chan.Key) = 0 Then
                         NewModes = NewModes & "k"
                         Param = Param & parv(Inc) & " "
-                        Chan.Key = parv(Inc)
-                        Chan.Prop_Memberkey = parv(Inc)
+                        Chan.Key = UTF8_Unescape(parv(Inc))
+                        Chan.Prop_Memberkey = UTF8_Unescape(parv(Inc))
                     Else
                         SendWsock cptr.index, ERR_KEYSET & " " & cptr.Nick, TranslateCode(ERR_KEYSET, , , Chan.Name)
                     End If
@@ -348,7 +348,7 @@ For I = 1 To Len(parv(1))
             SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
         End If
     End Select
-Next I
+Next i
 If Len(NewModes) <= 1 Then Exit Function
 Param = RTrim$(Param)
 SendToChanIRCX Chan, cptr.Prefix & " MODE " & Chan.Name & " " & NewModes & " " & Param, vbNullString

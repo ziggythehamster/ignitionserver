@@ -21,7 +21,7 @@ Attribute VB_Exposed = False
 'Released under the GNU General Public License
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
 '
-' $Id: clsSox.cls,v 1.2 2004/06/29 01:52:57 ziggythehamster Exp $
+' $Id: clsSox.cls,v 1.3 2004/09/12 03:10:02 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -38,930 +38,1707 @@ Attribute VB_Exposed = False
 
 Option Explicit
 
-Public Enum enmSoxState
-    ' Used
-    soxDisconnected = 0&
-    soxListening = 1&
-    soxConnecting = 2&
-    soxConnected = 3&
-    soxDataRecv = 4&
-    soxDataSend = 5&
-    soxClosing = 6&
-    soxBound = 10& ' The socket has been bound to its current Port and Address
-    soxERROR = -1& ' This is here so the outside calling functions can test function return values eg. If Sox.CloseIt(123) = soxERROR Then ... but is not used within the Class module
+'==============================================================================
+'API FUNCTIONS
+'==============================================================================
+
+Private Declare Function api_socket Lib "ws2_32.dll" Alias "socket" (ByVal af As Long, ByVal s_type As Long, ByVal Protocol As Long) As Long
+Private Declare Function api_GlobalLock Lib "kernel32" Alias "GlobalLock" (ByVal hMem As Long) As Long
+Private Declare Function api_GlobalUnlock Lib "kernel32" Alias "GlobalUnlock" (ByVal hMem As Long) As Long
+Private Declare Function api_htons Lib "ws2_32.dll" Alias "htons" (ByVal hostshort As Integer) As Integer
+Private Declare Function api_ntohs Lib "ws2_32.dll" Alias "ntohs" (ByVal netshort As Integer) As Integer
+Private Declare Function api_connect Lib "ws2_32.dll" Alias "connect" (ByVal s As Long, ByRef name As sockaddr_in, ByVal namelen As Long) As Long
+Private Declare Function api_gethostname Lib "ws2_32.dll" Alias "gethostname" (ByVal host_name As String, ByVal namelen As Long) As Long
+Private Declare Function api_gethostbyname Lib "ws2_32.dll" Alias "gethostbyname" (ByVal host_name As String) As Long
+Private Declare Function api_bind Lib "ws2_32.dll" Alias "bind" (ByVal s As Long, ByRef name As sockaddr_in, ByVal namelen As Long) As Long
+Private Declare Function api_getsockname Lib "ws2_32.dll" Alias "getsockname" (ByVal s As Long, ByRef name As sockaddr_in, ByRef namelen As Long) As Long
+Private Declare Function api_getpeername Lib "ws2_32.dll" Alias "getpeername" (ByVal s As Long, ByRef name As sockaddr_in, ByRef namelen As Long) As Long
+Private Declare Function api_inet_addr Lib "ws2_32.dll" Alias "inet_addr" (ByVal cp As String) As Long
+Private Declare Function api_send Lib "ws2_32.dll" Alias "send" (ByVal s As Long, ByRef buf As Any, ByVal buflen As Long, ByVal flags As Long) As Long
+Private Declare Function api_sendto Lib "ws2_32.dll" Alias "sendto" (ByVal s As Long, ByRef buf As Any, ByVal buflen As Long, ByVal flags As Long, ByRef toaddr As sockaddr_in, ByVal tolen As Long) As Long
+Private Declare Function api_getsockopt Lib "ws2_32.dll" Alias "getsockopt" (ByVal s As Long, ByVal level As Long, ByVal optname As Long, optval As Any, optlen As Long) As Long
+Private Declare Function api_setsockopt Lib "ws2_32.dll" Alias "setsockopt" (ByVal s As Long, ByVal level As Long, ByVal optname As Long, optval As Any, ByVal optlen As Long) As Long
+Private Declare Function api_recv Lib "ws2_32.dll" Alias "recv" (ByVal s As Long, ByRef buf As Any, ByVal buflen As Long, ByVal flags As Long) As Long
+Private Declare Function api_recvfrom Lib "ws2_32.dll" Alias "recvfrom" (ByVal s As Long, ByRef buf As Any, ByVal buflen As Long, ByVal flags As Long, ByRef from As sockaddr_in, ByRef fromlen As Long) As Long
+Private Declare Function api_WSACancelAsyncRequest Lib "ws2_32.dll" Alias "WSACancelAsyncRequest" (ByVal hAsyncTaskHandle As Long) As Long
+Private Declare Function api_listen Lib "ws2_32.dll" Alias "listen" (ByVal s As Long, ByVal backlog As Long) As Long
+Private Declare Function api_accept Lib "ws2_32.dll" Alias "accept" (ByVal s As Long, ByRef addr As sockaddr_in, ByRef addrlen As Long) As Long
+Private Declare Function api_inet_ntoa Lib "ws2_32.dll" Alias "inet_ntoa" (ByVal inn As Long) As Long
+Private Declare Function api_ioctlsocket Lib "ws2_32.dll" Alias "ioctlsocket" (ByVal s As Long, ByVal cmd As Long, ByRef argp As Long) As Long
+Private Declare Function api_closesocket Lib "ws2_32.dll" Alias "closesocket" (ByVal s As Long) As Long
+'Private Declare Function api_gethostbyaddr Lib "ws2_32.dll" Alias "gethostbyaddr" (addr As Long, ByVal addr_len As Long, ByVal addr_type As Long) As Long
+
+'==============================================================================
+'CONSTANTS
+'==============================================================================
+Public Enum SockState
+    sckClosed = 0
+    sckOpen
+    sckListening
+    sckConnectionPending
+    sckResolvingHost
+    sckHostResolved
+    sckConnecting
+    sckConnected
+    sckClosing
+    sckError
 End Enum
 
-Public Enum enmSoxOptions
-    ' Set & Get Compatible Options
-    soxSO_BROADCAST = &H20& 'BOOL Allow transmission of broadcast messages on the socket.
-    soxSO_DEBUG = &H1& 'BOOL Record debugging information.
-'    soxSO_SO_DONTLINGER = Not soxSO_LINGER 'BOOL Do not block close waiting for unsent data to be sent. Setting this option is equivalent to setting SO_LINGER with l_onoff set to zero.
-    soxSO_DONTROUTE = &H10& 'BOOL Do not route: send directly to interface.
-    soxSO_KEEPALIVE = &H8& 'BOOL Send keepalives
-    soxSO_LINGER = &H80& 'struct LINGER  Linger on close if unsent data is present.
-    soxSO_OOBINLINE = &H100& 'BOOL Receive out-of-band data in the normal data stream. (See section DECnet Out-Of-band data for a discussion of this topic.)
-    soxSO_RCVBUF = &H1002& 'int Specify the total per-socket buffer space reserved for receives. This is unrelated to SO_MAX_MSG_SIZE or the size of a TCP window.
-    soxSO_REUSEADDR = &H4& 'BOOL Allow the socket to be bound to an address that is already in use. (See bind.)
-    soxSO_SNDBUF = &H1001& 'int Specify the total per-socket buffer space reserved for sends. This is unrelated to SO_MAX_MSG_SIZE or the size of a TCP window.
-    ' Inverting TCP_NODELAY value to create unique value of -2
-    soxSO_TCP_NODELAY = Not &H1& 'BOOL Disables the Nagle algorithm for send coalescing.
-    ' Get ONLY Compatible Options
-    soxSO_USELOOPBACK = &H40& 'bypass hardware when possible
-    soxSO_ACCEPTCONN = &H2& 'BOOL Socket is listening.
-    soxSO_ERROR = &H1007& 'int Retrieve error status and clear.
-    soxSO_TYPE = &H1008& 'Get Socket Type (From FTP - Experimental) (Seems to always returns 1 for a valid TCP socket, -1 for a closed socket)
-End Enum
-
-'API Defined
-Private Type typSocketAddr
-    sin_family As Integer
-    sin_port As Integer
-    sin_addr As Long
-    sin_zero(7) As Byte
-End Type
-Private Const SOCKADDR_SIZE = 16
-
-'IPv6 -- may need changing later
-Private Type typSocketAddr6
-  sin6_family As Integer
-  sin6_port As Integer
-  sin6_flowinfo As Long
-  sin6_addr As Long
-  sin6_scope_id As Long
-End Type
-
-'Class module Defined
-Private Type typSocket
-    Socket As Long ' The actual WinSock API socket number
-    SocketAddr As typSocketAddr ' Info about the connection
-    State As enmSoxState ' Not FULLY implemented
-    uMsg As Long ' Server (-1) / Client (0) Socket (Server = A Socket that has a connection to the Server / Client = A Socket that was created in Accept that connected to us)
-End Type
-
-Private Const WSADescription_Len As Long = 256 '(Confirmed)
-Private Const WSASYS_Status_Len As Long = 128 '(Confirmed)
-
-'API Defined
-'Contains information about our current WinSock implementation
-Private Type typWSAData
-    wversion As Integer
-    wHighVersion As Integer
-    szDescription(0 To WSADescription_Len) As Byte
-    szSystemStatus(0 To WSASYS_Status_Len) As Byte
-    iMaxSockets As Integer
-    iMaxUdpDg As Integer
-    lpVendorInfo As Long
-End Type
-
-Private Type typLinger
-    l_onoff As Integer
-    l_linger As Integer
-End Type
-
-'VB WinSock OCX Defined Error codes
-Public Enum enmError
-    sckOutOfMemory = 7                'Out of memory
-    sckInvalidPropertyValue = 380     'The property value is invalid
-    sckGetNotSupported = 394          'The property cannot be read
-    sckSetNotSupported = 383          'The property is read-only
-    sckBadState = 40006               'Wrong protocol or connection state for the requested transaction or request
-    sckInvalidArg = 40014             'The argument passed to a function was not in the correct format or in the specified range
-    sckSuccess = 40017                'Successful
-    sckUnsupported = 40018            'Unsupported variant type
-    sckInvalidOp = 40020              'Invalid operation at current state
-    sckOutOfRange = 40021             'Argument is out of range
-    sckWrongProtocol = 40026          'Wrong protocol for the requested transaction or request
-    sckOpCanceled = 1004              'The operation was canceled
-    sckInvalidArgument = 10014        'The requested address is a broadcast address, but flag is not set
-    sckWouldBlock = 10035             'Socket is non-blocking and the specified operation will block
-    sckInProgress = 10036             'A blocking Winsock operation in progress
-    sckAlreadyComplete = 10037        'The operation is completed. No blocking operation in progress
-    sckNotSocket = 10038              'The descriptor is not a socket
-    sckMsgTooBig = 10040              'The datagram is too large to fit into the buffer and is truncated
-    sckPortNotSupported = 10043       'The specified port is not supported
-    sckAddressInUse = 10048           'Address in use
-    sckAddressNotAvailable = 10049    'Address not available from the local machine
-    sckNetworkSubsystemFailed = 10050 'Network subsystem failed
-    sckNetworkUnreachable = 10051     'The network cannot be reached from this host at this time
-    sckNetReset = 10052               'Connection has timed out when SO_KEEPALIVE is set
-    sckConnectAborted = 10053         'Connection is aborted due to timeout or other failure
-    sckConnectionReset = 10054        'The connection is reset by remote side
-    sckNoBufferSpace = 10055          'No buffer space is available
-    sckAlreadyConnected = 10056       'Socket is already connected
-    sckNotConnected = 10057           'Socket is not connected
-    sckSocketShutdown = 10058         'Socket has been shut down
-    sckTimedout = 10060               'Socket has been shut down
-    sckConnectionRefused = 10061      'Connection is forcefully rejected
-    sckNotInitialized = 10093         'WinsockInit should be called first
-    sckHostNotFound = 11001           'Authoritative answer: Host not found
-    sckHostNotFoundTryAgain = 11002   'Non-Authoritative answer: Host not found
-    sckNonRecoverableError = 11003    'Non-recoverable errors
-    sckNoData = 11004                 'Valid name, no data record of requested type
-End Enum
-
-'All WinSock error constants are based on WSABASEERR
-Private Const WSABASEERR As Long = 10000
-'WinSock definitions of regular Microsoft C error constants
-Private Const WSAEINTR As Long = (WSABASEERR + 4) 'Interrupted function call
-Private Const WSAEBADF As Long = (WSABASEERR + 9)
-Private Const WSAEACCES As Long = (WSABASEERR + 13) 'Permission Denied
-Private Const WSAEFAULT As Long = (WSABASEERR + 14) 'Bad address
-Private Const WSAEINVAL As Long = (WSABASEERR + 22) 'Invalid argument
-Private Const WSAEMFILE As Long = (WSABASEERR + 24) 'Too many open files
-'Windows Sockets definitions of regular Berkeley error constants
-Private Const WSAEWOULDBLOCK As Long = (WSABASEERR + 35) 'Resource temporarily unavailable
-Private Const WSAEINPROGRESS As Long = (WSABASEERR + 36) 'Operation now in progress
-Private Const WSAEALREADY As Long = (WSABASEERR + 37) 'Operation already in progress
-Private Const WSAENOTSOCK As Long = (WSABASEERR + 38) 'Socket operation on non-socket
-Private Const WSAEDESTADDRREQ As Long = (WSABASEERR + 39) 'Destination address required
-Private Const WSAEMSGSIZE As Long = (WSABASEERR + 40) 'Message too long
-Private Const WSAEPROTOTYPE As Long = (WSABASEERR + 41) 'Protocol wrong type for socket
-Private Const WSAENOPROTOOPT As Long = (WSABASEERR + 42) 'Bad protocol option
-Private Const WSAEPROTONOSUPPORT As Long = (WSABASEERR + 43) 'Protocol not supported
-Private Const WSAESOCKTNOSUPPORT As Long = (WSABASEERR + 44) 'Socket type not supported
-Private Const WSAEOPNOTSUPP As Long = (WSABASEERR + 45) 'Operation not supported
-Private Const WSAEPFNOSUPPORT As Long = (WSABASEERR + 46) 'Protocol family not supported
-Private Const WSAEAFNOSUPPORT As Long = (WSABASEERR + 47) 'Address family not supported by protocol family
-Private Const WSAEADDRINUSE As Long = (WSABASEERR + 48) 'Address already in use
-Private Const WSAEADDRNOTAVAIL As Long = (WSABASEERR + 49) 'Cannot assign requested address
-Private Const WSAENETDOWN As Long = (WSABASEERR + 50) 'Network is down
-Private Const WSAENETUNREACH As Long = (WSABASEERR + 51) 'Network is unreachable
-Private Const WSAENETRESET As Long = (WSABASEERR + 52) 'Network dropped connection on reset
-Private Const WSAECONNABORTED As Long = (WSABASEERR + 53) 'Software caused connection abort
-Private Const WSAECONNRESET As Long = (WSABASEERR + 54) 'Connection reset by peer
-Private Const WSAENOBUFS As Long = (WSABASEERR + 55) 'No buffer space available
-Private Const WSAEISCONN As Long = (WSABASEERR + 56) 'Socket is already connected
-Private Const WSAENOTCONN As Long = (WSABASEERR + 57) 'Socket is not connected
-Private Const WSAESHUTDOWN As Long = (WSABASEERR + 58) 'Cannot send after socket shutdown
-Private Const WSAETOOMANYREFS As Long = (WSABASEERR + 59) 'Too many references: can't splice (UnConfirmed Description)
-Private Const WSAETIMEDOUT As Long = (WSABASEERR + 60) 'Connection timed out
-Private Const WSAECONNREFUSED As Long = (WSABASEERR + 61) 'Connection refused
-Private Const WSAELOOP As Long = (WSABASEERR + 62) 'Too many levels of symbolic links (UnConfirmed Description)
-Private Const WSAENAMETOOLONG As Long = (WSABASEERR + 63) 'File name too long (UnConfirmed Description)
-Private Const WSAEHOSTDOWN As Long = (WSABASEERR + 64) 'Host is down
-Private Const WSAEHOSTUNREACH As Long = (WSABASEERR + 65) 'No route to host
-Private Const WSAENOTEMPTY As Long = (WSABASEERR + 66) 'Directory not empty (UnConfirmed Description)
-Private Const WSAEPROCLIM As Long = (WSABASEERR + 67) 'Too many processes
-Private Const WSAEUSERS As Long = (WSABASEERR + 68) 'Too many users (UnConfirmed Description)
-Private Const WSAEDQUOT As Long = (WSABASEERR + 69) 'Disk quota exceeded (UnConfirmed Description)
-Private Const WSAESTALE As Long = (WSABASEERR + 70) 'Stale NFS file handle (UnConfirmed Description)
-Private Const WSAEREMOTE As Long = (WSABASEERR + 71) 'Too many levels of remote in path (UnConfirmed Description)
-'Extended Windows Sockets error constant definitions
-Private Const WSASYSNOTREADY As Long = (WSABASEERR + 91) 'Network subsystem is unavailable
-Private Const WSAVERNOTSUPPORTED As Long = (WSABASEERR + 92) 'WINSOCK.DLL version out of range
-Private Const WSANOTINITIALISED As Long = (WSABASEERR + 93) 'Successful WSAStartup not yet performed
-Private Const WSAEDISCON1 As Long = (WSABASEERR + 94) 'Graceful shutdown in progress
-'Private Const WSA_INVALID_HANDLE    '(OS Dependent) Specified event object handle is invalid
-'Private Const WSA_INVALID_PARAMETER '(OS Dependent) One or more parameters are invalid
-'Private Const WSAINVALIDPROCTABLE   '(OS Dependent) Invalid procedure table from service provider
-'Private Const WSAINVALIDPROVIDER    '(OS Dependent) Invalid service provider version number
-'Private Const WSA_IO_INCOMPLETE     '(OS Dependent) Overlapped I/O event object not in signaled state
-'Private Const WSA_IO_PENDING        '(OS Dependent) Overlapped operations will complete later
-'Private Const WSA_NOT_ENOUGH_MEMORY '(OS Dependent) Insufficient memory available
-'Private Const WSAPROVIDERFAILEDINIT '(OS Dependent) Unable to initialize a service provider
-'Private Const WSA_OPERATION_ABORTED '(OS Dependent) Overlapped operation aborted
-Private Const WSAEDISCON2 As Long = (WSABASEERR + 101) 'Graceful shutdown in progress
-Private Const WSAENOMORE As Long = (WSABASEERR + 102)
-Private Const WSAECANCELLED As Long = (WSABASEERR + 103)
-Private Const WSAEINVALIDPROCTABLE As Long = (WSABASEERR + 104)
-Private Const WSAEINVALIDPROVIDER As Long = (WSABASEERR + 105)
-Private Const WSAEPROVIDERFAILEDINIT As Long = (WSABASEERR + 106)
-Private Const WSASYSCALLFAILURE As Long = (WSABASEERR + 107) '(OS Dependent) System call failure
-Private Const WSASERVICE_NOT_FOUND As Long = (WSABASEERR + 108)
-Private Const WSATYPE_NOT_FOUND As Long = (WSABASEERR + 109) 'Class type not found
-Private Const WSA_E_NO_MORE As Long = (WSABASEERR + 110)
-Private Const WSA_E_CANCELLED As Long = (WSABASEERR + 111)
-Private Const WSAEREFUSED As Long = (WSABASEERR + 112)
-'Authoritative Answer: Host not found
-Private Const WSAHOST_NOT_FOUND As Long = (WSABASEERR + 1001) 'Host not found
-'Non-Authoritative: Host not found, or SERVERFAIL
-Private Const WSATRY_AGAIN As Long = (WSABASEERR + 1002) 'Non-authoritative host not found
-'Non recoverable errors, FORMERR, REFUSED, NOTIMP
-Private Const WSANO_RECOVERY As Long = (WSABASEERR + 1003) 'This is a non-recoverable error
-'Valid name, no data record of requested type
-Private Const WSANO_DATA As Long = (WSABASEERR + 1004) 'Valid name, no data record of requested type
-
-Private Const INVALID_SOCKET As Long = -1& ' Indication of an Invalid Socket
-Private Const SOCKET_ERROR As Long = -1&
-
-Private Const INADDR_ANY As Long = &H0 'Used for auto bind of a socket / selects an unused socket (Confirmed)
-Private Const INADDR_NONE As Long = &HFFFFFFFF 'Was FFFF (Confirmed) ... Returned address is an error
-
-Private Const AF_UNSPEC As Long = 0 'unspecified
-Private Const AF_UNIX As Long = 1 'local to host (pipes, portals)
-Private Const AF_INET As Long = 2 'internetwork: UDP, TCP, etc
-Private Const AF_IMPLINK As Long = 3 'arpanet imp addresses
-Private Const AF_PUP As Long = 4 'pup protocols: e.g. BSP
-Private Const AF_CHAOS As Long = 5 'mit CHAOS protocols
-Private Const AF_NS As Long = 6 'XEROX NS protocols
-Private Const AF_ISO As Long = 7 'ISO protocols
-Private Const AF_OSI As Long = AF_ISO 'OSI is ISO
-Private Const AF_ECMA As Long = 8 'european computer manufacturers
-Private Const AF_DATAKIT As Long = 9 'datakit protocols
-Private Const AF_CCITT As Long = 10 'CCITT protocols, X.25 etc
-Private Const AF_SNA As Long = 11 'IBM SNA
-Private Const AF_DECnet As Long = 12 'DECnet
-Private Const AF_DLI As Long = 13 'Direct data link interface
-Private Const AF_LAT As Long = 14 'LAT
-Private Const AF_HYLINK As Long = 15 'NSC Hyperchannel
-Private Const AF_APPLETALK As Long = 16 'AppleTalk
-Private Const AF_NETBIOS As Long = 17 'NetBios-style addresses
-Private Const AF_MAX As Long = 18
-
-'Confirmed - Maximum queue length specifiable by listen
 Private Const SOMAXCONN As Long = 5
-'Confirmed flags for recv
-'To extract the data from recv - use 0 for flags value (default)
-Private Const MSG_OOB As Long = &H1                     'Process out-of-band data
-Private Const MSG_PEEK As Long = &H2                    'Peek at incoming message (Probably the only one used !!!)
-Private Const MSG_DONTROUTE As Long = &H4               'Send without using routing tables
 
-'Confirmed types
-Private Const SOCK_STREAM As Long = 1    'stream socket
-Private Const SOCK_DGRAM As Long = 2     'datagram socket
-Private Const SOCK_RAW As Long = 3       'raw-protocol interface
-Private Const SOCK_RDM As Long = 4       'reliably-delivered message
-Private Const SOCK_SEQPACKET As Long = 5 'sequenced packet stream
+Public Enum ProtocolConstants
+    sckTCPProtocol = 0
+    sckUDPProtocol = 1
+End Enum
 
-'Confirmed option level flags (per-socket)
-Private Const SOL_SOCKET As Long = &HFFFF& 'Officially the only option for socket level
-'Confirmed option flags (per-socket)
-Private Const SO_DEBUG As Long = &H1&          'turn on debugging info recording
-Private Const SO_ACCEPTCONN As Long = &H2&     'socket has had listen()
-Private Const SO_REUSEADDR As Long = &H4&     'allow local address reuse
-Private Const SO_KEEPALIVE As Long = &H8&    'keep connections alive (VERY important for future use)
-Private Const SO_DONTROUTE As Long = &H10&     'just use interface addresses
-Private Const SO_BROADCAST As Long = &H20&    'permit sending of broadcast msgs
-Private Const SO_USELOOPBACK As Long = &H40& 'bypass hardware when possible
-Private Const SO_LINGER As Long = &H80&      'linger on close if data present
-'Private Const SO_DONTLINGER (u_int)(~SO_LINGER)'??? What does this C code mean ??? I believe that this is not really an option for write ... but displays the inverse of SO_LINGER
-Private Const SO_OOBINLINE As Long = &H100&    'leave received OOB data in line
+Private Const MSG_PEEK  As Long = &H2
 
-'Confirmed additional sock options used by getsockopt API (SO As Long = SockOption)
-Private Const SO_SNDBUF As Long = &H1001&    'send buffer size
-Private Const SO_RCVBUF As Long = &H1002&    'receive buffer size
-Private Const SO_SNDLOWAT As Long = &H1003& 'send low-water mark
-Private Const SO_RCVLOWAT As Long = &H1004&  'receive low-water mark
-Private Const SO_SNDTIMEO As Long = &H1005&  'send timeout
-Private Const SO_RCVTIMEO As Long = &H1006&  'receive timeout
-Private Const SO_ERROR As Long = &H1007&    'get error status and clear (Use THIS in stead of WSAGetLastError to return the Socket specific error)
-Private Const SO_TYPE As Long = &H1008&     'get socket type
+'==============================================================================
+'EVENTS
+'==============================================================================
 
-'Confirmed TCP Options
-Private Const TCP_NODELAY As Long = &H1
+Public Event CloseSck()
+Public Event Connect()
+Public Event ConnectionRequest(ByVal requestID As Long)
+Public Event DataArrival(ByVal bytesTotal As Long)
+Public Event Error(ByVal Number As Integer, Description As String, ByVal sCode As Long, ByVal Source As String, ByVal HelpFile As String, ByVal HelpContext As Long, CancelDisplay As Boolean)
+Public Event SendComplete()
+Public Event SendProgress(ByVal bytesSent As Long, ByVal bytesRemaining As Long)
 
-'Confirmed flags to be used with the WSAAsyncSelect() call and on Msg arrival
-Private Const FD_READ As Long = &H1
-Private Const FD_WRITE As Long = &H2
-Private Const FD_OOB As Long = &H4
-Private Const FD_ACCEPT As Long = &H8
-Private Const FD_CONNECT As Long = &H10
-Private Const FD_CLOSE As Long = &H20
+'==============================================================================
+'MEMBER VARIABLES
+'==============================================================================
+Private m_lngSocketHandle       As Long                 'socket handle
+Private m_enmState              As SockState            'socket state
+Private m_strTag                As String               'tag
+Private m_strRemoteHost         As String               'remote host
+Private m_lngRemotePort         As Long                 'remote port
+Private m_strRemoteHostIP       As String               'remote host ip
+Private m_lngLocalPort          As Long                 'local port
+Private m_lngLocalPortBind      As Long                 'temporary local port
+Private m_strLocalIP            As String               'local IP
+Private m_enmProtocol           As ProtocolConstants    'protocol used (TCP / UDP)
 
-' Confirmed ShutDown options
-Private Const SD_RECEIVE As Long = &H0
-Private Const SD_SEND As Long = &H1
-Private Const SD_BOTH As Long = &H2
+Private m_lngMemoryPointer  As Long 'memory pointer used as buffer when resolving host
+Private m_lngMemoryHandle   As Long 'buffer memory handle
 
+Private m_lngSendBufferLen  As Long 'winsock buffer size for sends
+Private m_lngRecvBufferLen  As Long 'winsock buffer size for receives
 
-'Confirmed list of Protocols for use by Socket API call
-Private Const IPPROTO_IP As Long = 0 'dummy for IP
-Private Const IPPROTO_ICMP As Long = 1 'control message protocol
-Private Const IPPROTO_GGP As Long = 2 'gateway^2 (deprecated)
-Private Const IPPROTO_TCP As Long = 6 'tcp
-Private Const IPPROTO_PUP As Long = 12 'pup
-Private Const IPPROTO_UDP As Long = 17 'user datagram protocol
-Private Const IPPROTO_IDP As Long = 22 'xns idp
-Private Const IPPROTO_ND As Long = 77 'UNOFFICIAL net disk proto
-Private Const IPPROTO_RAW As Long = 255 'raw IP packet
-Private Const IPPROTO_MAX As Long = 256
+Private m_strSendBuffer As String   'local incoming buffer
+Private m_strRecvBuffer As String   'local outgoing buffer
 
-Private Const GWL_WNDPROC As Long = (-4)
+Private m_blnAcceptClass As Boolean 'if True then this is an Accept socket class
+Private m_colWaitingResolutions As Collection   'hosts waiting to be resolved by the system
 
-'Public Const WINSOCK_MESSAGE As Long = 4025 'The only Message type currently used ... not anymore :)
-Private Const soxSERVER As Long = 4026& ' This indicates that the Socket is either a Listening Socket, or was created from a Listening Socket, either way, our machine is acting as a Sox Server
-Private Const soxCLIENT As Long = 4027& ' This indicates that the Socket is a connection we established to another computer/server, therefore our machine is acting as a Sox Client on this Socket
+'  ****  WARNING WARNING WARNING WARNING ******
+'This sub MUST be the first on the class. DO NOT attempt
+'to change it's location or the code will CRASH.
+'This sub receives system messages from our WndProc.
+Public Sub WndProc(ByVal hwnd As Long, ByVal uMsg As Long, ByVal wParam As Long, ByVal lParam As Long)
+Select Case uMsg
 
-Private Declare Function apiWSAStartup Lib "WS2_32" Alias "WSAStartup" (ByVal wVersionRequired As Long, lpWSADATA As typWSAData) As Long
-Private Declare Function apiWSACleanup Lib "WS2_32" Alias "WSACleanup" () As Long
-Private Declare Function apiSocket Lib "WS2_32" Alias "socket" (ByVal af As Long, ByVal s_type As Long, ByVal protocol As Long) As Long
-Private Declare Function apiCloseSocket Lib "WS2_32" Alias "closesocket" (ByVal s As Long) As Long
-Private Declare Function apiBind Lib "WS2_32" Alias "bind" (ByVal s As Long, addr As typSocketAddr, ByVal namelen As Long) As Long
-Private Declare Function apiListen Lib "WS2_32" Alias "listen" (ByVal s As Long, ByVal backlog As Long) As Long
-Private Declare Function apiConnect Lib "WS2_32" Alias "connect" (ByVal s As Long, Name As typSocketAddr, ByVal namelen As Long) As Long
-Private Declare Function apiAccept Lib "WS2_32" Alias "accept" (ByVal s As Long, addr As typSocketAddr, addrLen As Long) As Long
-Private Declare Function apiWSAAsyncSelect Lib "WS2_32" Alias "WSAAsyncSelect" (ByVal s As Long, ByVal hWnd As Long, ByVal wMsg As Long, ByVal lEvent As Long) As Long
-Private Declare Function apiRecv Lib "WS2_32" Alias "recv" (ByVal s As Long, buf As Any, ByVal buflen As Long, ByVal flags As Long) As Long
-Private Declare Function apiSend Lib "WS2_32" Alias "send" (ByVal s As Long, buf As Any, ByVal buflen As Long, ByVal flags As Long) As Long
-Private Declare Function apiGetSockOpt Lib "WS2_32" Alias "getsockopt" (ByVal s As Long, ByVal Level As Long, ByVal optname As Long, optval As Any, optlen As Long) As Long
-Private Declare Function apiSetSockOpt Lib "WS2_32" Alias "setsockopt" (ByVal s As Long, ByVal Level As Long, ByVal optname As Long, optval As Any, ByVal optlen As Long) As Long
-Private Declare Function apiHToNL Lib "WS2_32" Alias "htonl" (ByVal hostlong As Long) As Long 'Host To Network Long
-Private Declare Function apiHToNS Lib "WS2_32" Alias "htons" (ByVal hostshort As Long) As Integer 'Host To Network Short
-Private Declare Function apiNToHL Lib "WS2_32" Alias "ntohl" (ByVal netlong As Long) As Long 'Network To Host Long
-Private Declare Function apiNToHS Lib "WS2_32" Alias "ntohs" (ByVal netshort As Long) As Integer 'Network To Host Short
-Private Declare Function apiIPToNL Lib "WS2_32" Alias "inet_addr" (ByVal cp As String) As Long
-Private Declare Function apiNLToIP Lib "WS2_32" Alias "inet_ntoa" (ByVal inn As Long) As Long
-Private Declare Function apiGetHostName Lib "WS2_32" Alias "gethostname" (ByVal Name As String, ByVal namelen As Long) As Long
-Private Declare Function apiShutDown Lib "WS2_32" Alias "shutdown" (ByVal s As Long, ByVal how As Long) As Long
-Private Declare Function WSAGetLastError Lib "WSOCK32" () As Long
-
-Private Declare Function apiCreateWindowEx Lib "user32" Alias "CreateWindowExA" (ByVal dwExStyle As Long, ByVal lpClassName As String, ByVal lpWindowName As String, ByVal dwStyle As Long, ByVal x As Long, ByVal y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As Long, ByVal hMenu As Long, ByVal hInstance As Long, lpParam As Any) As Long
-Private Declare Function apiDestroyWindow Lib "user32" Alias "DestroyWindow" (ByVal hWnd As Long) As Long
-Private Declare Function apiCallWindowProc Lib "user32" Alias "CallWindowProcA" (ByVal lpPrevWndFunc As Long, ByVal hWnd As Long, ByVal Msg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
-Private Declare Function apiSetWindowLong Lib "user32" Alias "SetWindowLongA" (ByVal hWnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
-
-Private Declare Function apiLStrLen Lib "kernel32" Alias "lstrlenA" (ByVal lpString As Any) As Long
-Private Declare Function apiLstrCpy Lib "kernel32" Alias "lstrcpyA" (ByVal lpString1 As String, ByVal lpString2 As Long) As Long
-Private Declare Sub apiCopyMemory Lib "kernel32" Alias "RtlMoveMemory" (pDst As Any, pSrc As Any, ByVal ByteLen As Long)
-
-Private WSADATA As typWSAData 'Stores WinSock data on initialization of WinSock 2
-Private Sockets() As typSocket
-Private Socks As New Collection
+Case RESOLVE_MESSAGE
+    
+    PostResolution wParam, HiWord(lParam)
+    
+Case SOCKET_MESSAGE
+    
+    PostSocket LoWord(lParam), HiWord(lParam)
+    
+End Select
+End Sub
 
 Private Sub Class_Initialize()
-On Error Resume Next
-InternalDebug "Class_Initialize"
-    If apiWSAStartup(&H101, WSADATA) = SOCKET_ERROR Then
-        Call MsgBox("WinSock failed to initialize properly - Error#: " & Err.LastDllError) 'Creates an 'application instance' and memory space in the WinSock DLL (MUST be cleaned up later)
-    Else
-        Let Portal.hWnd = apiCreateWindowEx(0&, "STATIC", "CCPortal", 0&, 0&, 0&, 0&, 0&, 0&, 0&, App.hInstance, ByVal 0&) 'Create a hidden object to accept our WinSock messages
-        If Portal.hWnd = 0 Then
-            Call MsgBox("Error: " & Err.LastDllError & " on Portal creation.")   'If cleanup failed, does not / cannot raise errors
-        Else
-            Let Portal.WndProc = apiSetWindowLong(Portal.hWnd, GWL_WNDPROC, AddressOf WindowProc)
-            Let Portal.Sockets = -1 ' Initialize our socket count ... NB - WE HAVE NONE, used primarily to Redim the Sockets Array
-            ReDim Sockets(0)
-        End If
-    End If
+'socket's handle default value
+m_lngSocketHandle = INVALID_SOCKET
+
+'initiate resolution collection
+Set m_colWaitingResolutions = New Collection
+
+'initiate processes and winsock service
+modSox.InitiateProcesses
 End Sub
 
-Private Sub Class_Terminate() 'Scaled down version of Terminate code, used purely as failsafe, normally just call Terminate Sub above
-On Error Resume Next
-InternalDebug "Class_Terminate"
-    Dim tmpSox As Long
-    For tmpSox = 0 To Portal.Sockets
-        Call apiShutDown(Sockets(tmpSox).Socket, SD_BOTH)
-        Call apiCloseSocket(Sockets(tmpSox).Socket)
-    Next tmpSox
-    'Correctly replaces/reattaches the origional WindowProc procedure to our 'hidden' handle
-    Call apiSetWindowLong(Portal.hWnd, GWL_WNDPROC, Portal.WndProc)
-    'This will destroy our hidden object that received all our WinSock API messages
-    If apiDestroyWindow(Portal.hWnd) = 0 Then
-      Call MsgBox("Error#: " & Err.LastDllError & " on Portal destruction")  'If cleanup failed, does not / cannot raise errors
-    End If
-    If apiWSACleanup = SOCKET_ERROR Then
-      Call MsgBox("WinSock failed to terminate properly, memory leak imminent - Error#: " & Err.LastDllError)  'If cleanup failed, does not / cannot raise errors
-    End If
+Private Sub Class_Terminate()
+'clean hostname resolution system
+CleanResolutionSystem
+
+'destroy socket if it exists
+If Not m_blnAcceptClass Then DestroySocket
+
+'clean processes and finish winsock service
+modSox.FinalizeProcesses
+
+'clean resolution collection
+Set m_colWaitingResolutions = Nothing
 End Sub
 
-Private Function Accept(inSocket As Long) As Long 'Returns: New Sox Number -- inSocket is the listening WinSocket ...
-On Error Resume Next
-    InternalDebug "Accept!"
-    Dim tmpSocket As Long, Found As Boolean
-    Dim tmpSocketAddr As typSocketAddr 'This stores the details of our new socket/client, including the client IP address
+'==============================================================================
+'PROPERTIES
+'==============================================================================
+
+Public Property Get RemotePort() As Long
+RemotePort = m_lngRemotePort
+End Property
+
+Public Property Let RemotePort(ByVal lngPort As Long)
+If m_enmProtocol = sckTCPProtocol And m_enmState <> sckClosed Then
+    Err.Raise sckInvalidOp, "CSocketMaster.RemotePort", "Invalid operation at current state"
+End If
+
+If lngPort < 0 Or lngPort > 65535 Then
+    Err.Raise sckInvalidArg, "CSocketMaster.RemotePort", "The argument passed to a function was not in the correct format or in the specified range."
+Else
+    m_lngRemotePort = lngPort
+End If
+End Property
+
+Public Property Get RemoteHost() As String
+RemoteHost = m_strRemoteHost
+End Property
+
+Public Property Let RemoteHost(ByVal strHost As String)
+If m_enmProtocol = sckTCPProtocol And m_enmState <> sckClosed Then
+    Err.Raise sckInvalidOp, "CSocketMaster.RemoteHost", "Invalid operation at current state"
+End If
+
+m_strRemoteHost = strHost
+End Property
+
+Public Property Get RemoteHostIP() As String
+RemoteHostIP = m_strRemoteHostIP
+End Property
+
+Public Property Get LocalPort() As Long
+If m_lngLocalPortBind = 0 Then
+    LocalPort = m_lngLocalPort
+Else
+    LocalPort = m_lngLocalPortBind
+End If
+End Property
+
+Public Property Let LocalPort(ByVal lngPort As Long)
+If m_enmState <> sckClosed Then
+    Err.Raise sckInvalidOp, "CSocketMaster.LocalPort", "Invalid operation at current state"
+End If
+If lngPort < 0 Or lngPort > 65535 Then
+    Err.Raise sckInvalidArg, "CSocketMaster.LocalPort", "The argument passed to a function was not in the correct format or in the specified range."
+Else
+    m_lngLocalPort = lngPort
+End If
+End Property
+
+Public Property Get State() As SockState
+State = m_enmState
+End Property
+
+Public Property Get LocalHostName() As String
+LocalHostName = GetLocalHostName
+End Property
+
+Public Property Get LocalIP() As String
+If m_enmState = sckConnected Then
+    LocalIP = m_strLocalIP
+Else
+    LocalIP = GetLocalIP
+End If
+End Property
+
+Public Property Get BytesReceived() As Long
+If m_enmProtocol = sckTCPProtocol Then
+    BytesReceived = Len(m_strRecvBuffer)
+Else
+    BytesReceived = GetBufferLenUDP
+End If
+End Property
+
+Public Property Get SocketHandle() As Long
+SocketHandle = m_lngSocketHandle
+End Property
+
+Public Property Get Tag() As String
+Tag = m_strTag
+End Property
+
+Public Property Let Tag(ByVal strTag As String)
+m_strTag = strTag
+End Property
+
+Public Property Get Protocol() As ProtocolConstants
+Protocol = m_enmProtocol
+End Property
+
+Public Property Let Protocol(ByVal enmProtocol As ProtocolConstants)
+If m_enmState <> sckClosed Then
+    Err.Raise sckInvalidOp, "CSocketMaster.Protocol", "Invalid operation at current state"
+Else
+    m_enmProtocol = enmProtocol
+End If
+End Property
+
+'Destroys the socket if it exists and unregisters it
+'from control list.
+Private Sub DestroySocket()
+If Not m_lngSocketHandle = INVALID_SOCKET Then
+
+    Dim lngResult As Long
     
-    Let tmpSocket = apiAccept(inSocket, tmpSocketAddr, SOCKADDR_SIZE) 'Accept API returns a valid, random, unused socket for us to use for the new client
-    If tmpSocket = INVALID_SOCKET Then 'Accept API may not give us a valid socket eg. when all sockets are full, you may have to add additional error trapping if you believe you will use over 32,767 sockets
-        'Since a socket was not commited for the new Connection ... we don't have to close it (Since the socket was never even created)
-        Let Accept = INVALID_SOCKET
-    Else ' Success, A new connection ... Accept now contains the new Socket number
-'        For Accept = 0 To Portal.Sockets ' First search to see if the socket already exists
-'            If Sockets(Accept).Socket = tmpSocket Then
-'                Found = True
-'                Exit For
-'            End If
-'        Next Accept
-        Accept = UBound(Sockets) + 1
-        Socks.Add Accept, CStr(tmpSocket)
-        ReDim Preserve Sockets(Accept)
-        Portal.Sockets = Portal.Sockets + 1
-        InternalDebug "Portal.Sockets: " & CStr(Portal.Sockets)
-        Let Sockets(Accept).Socket = tmpSocket
-        Let Sockets(Accept).SocketAddr = tmpSocketAddr 'Set the details of the new socket/client
-        Let Sockets(Accept).uMsg = soxSERVER  'This is a Client Socket - It has connected to US
-        Call RaiseState(Accept, soxConnecting) ' Could possibly leave this on soxDisconnected, and on Select Case State, thurn it on and set it ready to send data (Or set it to connecting)
-        Call Sox_Connect(Accept, True)
-    End If
-End Function
-
-Public Function Bind(LocalPort As Integer, LocalIP As String) As Long
-On Error Resume Next
-InternalDebug "Bind Called"
-    Dim tmpSocket As Long, DoReAlloc As Boolean
-    DoReAlloc = True
-    Dim tmpSocketAddr As typSocketAddr
-    If LocalPort = 0 Or Len(LocalIP) = 0 Then
-        Let Bind = INVALID_SOCKET
+    lngResult = api_closesocket(m_lngSocketHandle)
+    
+    If lngResult = SOCKET_ERROR Then
+        
+        m_enmState = sckError: Debug.Print "STATE: sckError"
+        Dim lngErrorCode As Long
+        lngErrorCode = Err.LastDllError
+        Err.Raise lngErrorCode, "CSocketMaster.DestroySocket", GetErrorDescription(lngErrorCode)
+    
     Else
-        Let tmpSocketAddr.sin_family = AF_INET
-        Let tmpSocketAddr.sin_port = apiHToNS(LocalPort)
-        If tmpSocketAddr.sin_port = INVALID_SOCKET Then
-            Let Bind = INVALID_SOCKET
-        Else
-            Let tmpSocketAddr.sin_addr = apiIPToNL(LocalIP) 'If this is Zero, it will assign 0.0.0.0 !!!
-            If tmpSocketAddr.sin_addr = INADDR_NONE Then 'If 255.255.255.255 is returned ... we have a problem ... I think :)
-                Let Bind = INVALID_SOCKET
-            Else
-                Let tmpSocket = apiSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP) 'This is where you specify what type of protocol to use and what type of Streaming to use, returns a new socket number 4 us (NB - From here, if any further steps fail after this one succeeds, we must close the socket)
-                If tmpSocket = INVALID_SOCKET Then
-                    Let Bind = INVALID_SOCKET
-                Else
-                    If apiBind(tmpSocket, tmpSocketAddr, SOCKADDR_SIZE) = SOCKET_ERROR Then 'Socket Number, Socket Address space / Name, Name Length ...
-                        Call apiCloseSocket(tmpSocket)
-                        Let Bind = SOCKET_ERROR
-                    Else
-'                        For Bind = 0 To Portal.Sockets ' First search to see if the socket already exists
-'                            If Sockets(Bind).Socket = tmpSocket Then Exit For
-'                        Next Bind
-                        'If Bind = Portal.Sockets + 1 Then ' If we haven't found an address (Hopefully the only case), Search for an open slot in the array
-'                            For Bind = 0 To Portal.Sockets ' First search to see if the socket already exists
-'                                If Sockets(Bind).Socket = soxDisconnected Then Exit For ' Found an open Socket
-'                            Next Bind
-'                            If Bind = Portal.Sockets + 1 Then ' If we haven't found an address (Hopefully the only case), Search for an open slot in the array
-'                                If Bind < UBound(Sockets) Then
-'                                    DoReAlloc = False
-'                                End If
-'                                If DoReAlloc Then ReDim Preserve Sockets(Bind) As typSocket
-'                                Let Portal.Sockets = Bind
-                                Bind = UBound(Sockets) + 1
-                                Socks.Add Bind, CStr(tmpSocket)
-                                ReDim Preserve Sockets(Bind)
-                                Portal.Sockets = Portal.Sockets + 1
-                                InternalDebug "Portal.Sockets: " & CStr(Portal.Sockets)
-                        'End If
-                        Let Sockets(Bind).Socket = tmpSocket
-                        Let Sockets(Bind).SocketAddr = tmpSocketAddr 'Set the details of the new socket/client
-                        Call RaiseState(Bind, soxBound)
-                    End If
-                End If
-            End If
-        End If
+        
+        Debug.Print "OK Destroyed socket " & m_lngSocketHandle
+        modSox.UnregisterSocket m_lngSocketHandle
+        m_lngSocketHandle = INVALID_SOCKET
+    
     End If
-End Function
-
-'At the moment, we are closing all the sockets in their respectful areas, eg. Connect closes it's own sockets, we may in future need to close all sockets here (Cannot do this as Async will fail and the socket will not be closed properly, Create another private Function to do this)
-Public Function CloseIt(insox As Long) As Long 'OCX Returns # of errors in collection, so should we :)))
-On Error Resume Next
-InternalDebug "CloseIt"
-'    If insox < Ports Then  ' Detect out of Range of our Array ...
-'        Let CloseIt = INVALID_SOCKET
-'        SendSvrMsg "Closure of socket " & insox & " denied!"
-'    Else
-        If apiGetSockOpt(Sockets(insox).Socket, SOL_SOCKET, soxSO_ERROR, CloseIt, 4) = SOCKET_ERROR Then
-              Let CloseIt = SOCKET_ERROR
-        Else
-            If apiShutDown(Sockets(insox).Socket, SD_BOTH) = SOCKET_ERROR Then
-                Let CloseIt = SOCKET_ERROR
-            Else
-                TerminateSocket Sockets(insox).Socket
-                Call RaiseState(insox, soxClosing)
-                With Sockets(insox)
-                    .Socket = 0
-                    .State = 0
-                    .uMsg = 0
-                End With
-            End If
-        End If
-    'End If
-End Function
-
-Public Function Connect(Optional RemoteHost As String, Optional RemotePort As Integer) As Long 'Returns the new Sox Number / SOCKET_ERROR On Error
-On Error Resume Next
-InternalDebug "Connect"
-    If Not IsIP(RemoteHost) Then
-        RemoteHost = NameToAddress(RemoteHost)
-    End If
-    Dim tmpSocket As Long
-    Dim tmpSocketAddr As typSocketAddr
-    Let tmpSocketAddr.sin_family = AF_INET
-    Let tmpSocketAddr.sin_port = apiHToNS(RemotePort) ' apiHToNS(RemotePort)
-    If tmpSocketAddr.sin_port = INVALID_SOCKET Then
-        InternalDebug "Invalid Socket"
-        Let Connect = INVALID_SOCKET
-    Else
-        Let tmpSocketAddr.sin_addr = apiIPToNL(RemoteHost) 'If this is Zero, it will assign 0.0.0.0 !!!
-        If tmpSocketAddr.sin_addr = INADDR_NONE Then 'If 255.255.255.255 is returned ... we have a problem ... I think :)
-            InternalDebug "Invalid Socket"
-            Let Connect = INVALID_SOCKET
-        Else
-            Let tmpSocket = apiSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP) 'This is where you specify what type of protocol to use and what type of Streaming to use, returns a new socket number 4 us (NB - From here, if any further steps fail after this one succeeds, we must close the socket)
-            If tmpSocket = INVALID_SOCKET Then
-                InternalDebug "Invalid Socket"
-                Let Connect = INVALID_SOCKET
-            Else
-                If apiConnect(tmpSocket, tmpSocketAddr, SOCKADDR_SIZE) = SOCKET_ERROR Then
-                    Call apiCloseSocket(tmpSocket)
-                    Let Connect = SOCKET_ERROR
-                Else
-                    If apiWSAAsyncSelect(tmpSocket, Portal.hWnd, ByVal soxCLIENT, ByVal FD_ACCEPT Or FD_CLOSE Or FD_CONNECT Or FD_READ Or FD_WRITE) = SOCKET_ERROR Then ' Reassign this Socket to Send and Receive on the DATA channel
-                        Call apiCloseSocket(tmpSocket)
-                        Let Connect = SOCKET_ERROR
-                    Else
-                        InternalDebug "Connect OK!"
-                        Connect = UBound(Sockets) + 1
-                        Socks.Add Connect, CStr(tmpSocket)
-                        ReDim Preserve Sockets(Connect)
-                        Portal.Sockets = Portal.Sockets + 1
-                        InternalDebug CStr(Portal.Sockets)
-                        
-                        
-                        Let Sockets(Connect).Socket = tmpSocket
-                        Let Sockets(Connect).SocketAddr = tmpSocketAddr 'Set the details of the new socket/client
-                        Let Sockets(Connect).uMsg = soxSERVER ' This is a Server connection - We have connected to it (Could even be another Client computer but the fact is we connected to it)
-                        Call RaiseState(Connect, soxConnecting)
-                    End If
-                End If
-            End If
-        End If
-    End If
-End Function
-
-Private Sub GetData(insox As Long) ' Extracts data from the WinSock Recv buffers and places it in our local buffer (data() array)
-On Error Resume Next
-InternalDebug "GetData Called"
-Dim I As Long
-    Dim tmpRecv As Long 'Holds how much data we actually received
-    tmpRecv = 1
-    Dim tmpBuffer() As Byte, InData$, buf$ 'This buffer could be optimized for small data, eg. A chat program, if you set it's size, to say 255 (256 in total), it could retrieve data faster
-        ' First we will disable further notification of FD_READ, because if we extract data with the Recv function, WinSock API posts ANOTHER FD_READ notification to say there's more ...
-        ' This is a valid (dare I say recommended) procedure according to WinSock API documentation on MSDN
-        Call apiWSAAsyncSelect(Sockets(insox).Socket, Portal.hWnd, ByVal Sockets(insox).uMsg, 0&)   ' Reassign this Socket to Send and Receive on the DATA channel
-            If Sockets(insox).State = soxConnected Then Call RaiseState(insox, soxDataRecv)
-            Do While tmpRecv > 0
-                ReDim tmpBuffer(0 To 511) As Byte
-                tmpRecv = apiRecv(Sockets(insox).Socket, tmpBuffer(0), 512, 0)
-                Select Case tmpRecv
-                    Case 0 ' The Socket was Gracefully closed
-                        Call Sox_Close(insox)
-                    Case -1
-                        RaiseError insox, WSAGetLastError, "GetData", "Rec"
-                    Case Else
-                        buf = StrConv(tmpBuffer, vbUnicode)
-                        I = InStr(1, buf, vbNullChar)
-                        If I = 0 Then
-                            InData = InData & buf
-                        Else
-                            InData = InData & Left$(buf, I)
-                        End If
-                End Select
-            Loop
-'-------------- CUT BY DILL BECAUSE ABOVE IS ALL-SUFFICIENT --------------
-    apiWSAAsyncSelect Sockets(insox).Socket, Portal.hWnd, ByVal Sockets(insox).uMsg, ByVal FD_CLOSE Or FD_READ Or FD_WRITE
-Call Sox_DataArrival(insox, InData)
-End Sub
-
-'Creates a socket and sets it in listen mode. This method works only for TCP connections
-Public Function Listen(inAddress As String, inPort As Integer) As Long   'Returns Sox number / SOCKET_ERROR On Error
-On Error Resume Next
-    InternalDebug "Listen Called"
-    Dim tmpSocket As Long
-    Dim tmpSocketAddr As typSocketAddr
-    Let tmpSocketAddr.sin_family = AF_INET
-    Let tmpSocketAddr.sin_port = apiHToNS(inPort)
-    If tmpSocketAddr.sin_port = INVALID_SOCKET Then
-        Let Listen = INVALID_SOCKET
-    Else
-        Let tmpSocketAddr.sin_addr = apiIPToNL(inAddress) 'If this is Zero, it will assign 0.0.0.0 !!!
-        If tmpSocketAddr.sin_addr = INADDR_NONE Then 'If 255.255.255.255 is returned ... we have a problem ... I think :)
-            Let Listen = INVALID_SOCKET
-        Else
-            Let tmpSocket = apiSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP) 'This is where you specify what type of protocol to use and what type of Streaming to use, returns a new socket number 4 us (NB - From here, if any further steps fail after this one succeeds, we must close the socket)
-            If tmpSocket = INVALID_SOCKET Then
-                Let Listen = INVALID_SOCKET
-            Else
-                If apiBind(tmpSocket, tmpSocketAddr, SOCKADDR_SIZE) = SOCKET_ERROR Then 'Socket Number, Socket Address space / Name, Name Length ...
-                    Call apiCloseSocket(tmpSocket)
-                    Let Listen = SOCKET_ERROR
-                Else
-                    If apiListen(ByVal tmpSocket, ByVal SOMAXCONN) = SOCKET_ERROR Then ' 5 = Maximum connections
-                        Call apiCloseSocket(tmpSocket)
-                        Let Listen = SOCKET_ERROR
-                    Else
-                        If apiWSAAsyncSelect(tmpSocket, Portal.hWnd, ByVal soxSERVER, ByVal FD_CONNECT Or FD_READ Or FD_ACCEPT Or FD_CLOSE Or FD_WRITE) = SOCKET_ERROR Then ' Reassign this Socket to Send and Receive on the DATA channel
-                            Call apiCloseSocket(tmpSocket)
-                            Let Listen = SOCKET_ERROR
-                        Else
-'                            For Listen = 0 To Portal.Sockets ' First search to see if the socket already exists
-'                                If Sockets(Listen).Socket = tmpSocket Then Exit For
-'                            Next Listen
-'                            If Listen = Portal.Sockets + 1 Then ' If we haven't found an address (Hopefully the only case), Search for an open slot in the array
-'                                For Listen = 0 To Portal.Sockets ' First search to see if the socket already exists
-'                                    If Sockets(Listen).Socket = soxDisconnected Then Exit For ' Found an open Socket
-'                                Next Listen
-'                                If Listen = Portal.Sockets + 1 Then ' If we haven't found an address (Hopefully the only case), Search for an open slot in the array
-'                                    ReDim Preserve Sockets(Listen) As typSocket
-'                                    Let Portal.Sockets = Listen
-'                                End If
-'                            End If
-                            Listen = UBound(Sockets) + 1
-                            Socks.Add Listen, CStr(tmpSocket)
-                            ReDim Preserve Sockets(Listen)
-                            Portal.Sockets = Portal.Sockets + 1
-                            InternalDebug "Portal.Sockets: " & CStr(Portal.Sockets)
-                            
-                            Let Sockets(Listen).Socket = tmpSocket
-                            Let Sockets(Listen).SocketAddr = tmpSocketAddr 'Set the details of the new socket/client
-                            Let Sockets(Listen).uMsg = soxSERVER
-'                            Let Sockets(Listen).DataLen = -1
-'                            Erase Sockets(Listen).Data
-                            Call RaiseState(Listen, soxListening)
-                        End If
-                    End If
-                End If
-            End If
-        End If
-    End If
-End Function
-
-Private Function WinSockEvent(ByVal lParam As Long) As Integer 'WSAGETSELECTEVENT
-On Error Resume Next
-    If (lParam And &HFFFF&) > &H7FFF Then
-        Let WinSockEvent = (lParam And &HFFFF&) - &H10000
-    Else
-        Let WinSockEvent = lParam And &HFFFF&
-    End If
-End Function
-
-Private Function WinSockError(ByVal lParam As Long) As Integer 'WSAGETSELECTERROR
-On Error Resume Next
-    Let WinSockError = (lParam And &HFFFF0000) \ &H10000
-End Function
-
-Private Sub RaiseState(insox As Long, inState As enmSoxState)
-On Error Resume Next
-InternalDebug "RaiseState"
-    Let Sockets(insox).State = inState
-End Sub
-Public Sub Hook()
-On Error Resume Next
-    If Portal.WndProc = 0 Then Let Portal.WndProc = apiSetWindowLong(Portal.hWnd, GWL_WNDPROC, AddressOf WindowProc)
-End Sub
-Public Sub Unhook()
-On Error Resume Next
-    Call apiSetWindowLong(Portal.hWnd, GWL_WNDPROC, Portal.WndProc)
-    Let Portal.WndProc = 0
-End Sub
-
-Private Function StringFromPointer(ByVal lPointer As Long) As String
-On Error Resume Next
-    Let StringFromPointer = Space$(apiLStrLen(ByVal lPointer))
-    Call apiLstrCpy(ByVal StringFromPointer, ByVal lPointer)
-End Function
-
-Public Function WndProc(ByVal hWnd As Long, ByVal uMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
-On Error Resume Next
-InternalDebug "WndProc"
-    'Const Procedure As String = "WndProc"
-    Select Case uMsg
-        Case soxSERVER
-            Select Case WinSockEvent(lParam)
-                Case FD_ACCEPT
-                    '#If Debugging = 1 Then
-                    '    Call RaiseStatus(IsInSox(wParam), "WndProc", "Server received: FD_ACCEPT")
-                    '#End If
-                    Select Case WinSockError(lParam)
-                        Case 0: Accept (wParam)
-                        Case Else: Call RaiseError(IsInSox(wParam), WinSockError(lParam), "WndProc", "On FD_ACCEPT -- lParam: " & lParam)
-                    End Select
-                    '#If Debugging = 1 Then
-                    '    Case FD_CONNECT
-                    '        Call RaiseStatus(IsInSox(wParam), "WndProc", "Server received: FD_CONNECT")
-                    '#End If
-                Case FD_READ
-                    '#If Debugging = 1 Then
-                    '    Call RaiseStatus(IsInSox(wParam), "WndProc", "Server received: FD_READ")
-                    '#End If
-                    Call GetData(IsInSox(wParam))
-                Case FD_WRITE
-                    '#If Debugging = 1 Then
-                    '    Call RaiseStatus(IsInSox(wParam), "WndProc", "Server received: FD_WRITE") ' A Server Client is ready to Send
-                    '#End If
-                    Select Case WinSockError(lParam)
-                        Case 0
-                            Select Case Sockets(IsInSox(wParam)).State
-                                Case soxConnecting
-                                    Call RaiseState(IsInSox(wParam), soxConnected)
-                                Case soxDataSend: Let Sockets(IsInSox(wParam)).State = soxConnected
-                            End Select
-                        Case Else: Call RaiseError(IsInSox(wParam), WinSockError(lParam), "WndProc", "On FD_WRITE -- lParam: " & lParam)
-                    End Select
-                Case FD_CLOSE
-                    '#If Debugging = 1 Then
-                    '    Call RaiseStatus(IsInSox(wParam), "WndProc", "Server received: FD_CLOSE")
-                    '#End If
-                    Call Sox_Close(IsInSox(wParam))
-                    Select Case WinSockError(lParam)
-                        Case 0
-                            Select Case Sockets(IsInSox(wParam)).State
-                                Case soxClosing: Call ShutDown(IsInSox(wParam))
-                                Case Else
-                                    Call CloseIt(IsInSox(wParam))
-                                    Call ShutDown(IsInSox(wParam))
-                            End Select
-                        Case Else
-                            Call ShutDown(IsInSox(wParam))
-                            Call RaiseError(IsInSox(wParam), WinSockError(lParam), "WndProc", "On FD_CLOSE -- lParam: " & lParam)
-                    End Select
-                Case Else
-            End Select
-        Case soxCLIENT
-            Select Case WinSockEvent(lParam)
-                Case FD_ACCEPT
-                    Call Sox_Connect(IsInSox(wParam), False)
-                Case FD_CLOSE
-                    Call Sox_Close(IsInSox(wParam))
-                    Select Case WinSockError(lParam)
-                        Case 0
-                            Select Case Sockets(IsInSox(wParam)).State
-                                Case soxClosing: Call ShutDown(IsInSox(wParam))
-                                Case Else
-                                    Call CloseIt(IsInSox(wParam))
-                                    Call ShutDown(IsInSox(wParam))
-                            End Select
-                        Case Else
-                            Call ShutDown(IsInSox(wParam))
-                            Call RaiseError(IsInSox(wParam), WinSockError(lParam), "WndProc", "On FD_CLOSE -- lParam: " & lParam)
-                    End Select
-                Case FD_CONNECT
-                    '#If Debugging = 1 Then
-                    '    Call RaiseStatus(IsInSox(wParam), "WndProc", "Client received: FD_CONNECT")
-                    '#End If
-                    Call Sox_Connect(IsInSox(wParam), False)
-                Case FD_READ
-                    '#If Debugging = 1 Then
-                    '    Call RaiseStatus(IsInSox(wParam), "WndProc", "Client received: FD_READ")
-                    '#End If
-                    Call GetData(IsInSox(wParam))
-                Case FD_WRITE
-                    '#If Debugging = 1 Then
-                    '    Call RaiseStatus(IsInSox(wParam), "WndProc", "Client received: FD_WRITE")
-                    '#End If
-                    Select Case WinSockError(lParam)
-                        Case 0
-                            Select Case Sockets(IsInSox(wParam)).State
-                                Case soxConnecting
-                                    Call RaiseState(IsInSox(wParam), soxConnected)
-                                    Call Sox_Connect(IsInSox(wParam), False)
-                                Case soxDataSend: Let Sockets(IsInSox(wParam)).State = soxConnected
-                            End Select
-                        Case Else: Call RaiseError(IsInSox(wParam), WinSockError(lParam), "WndProc", "On FD_WRITE -- lParam: " & lParam)
-                    End Select
-                Case Else
-            End Select
-        Case Else: Let WndProc = apiCallWindowProc(Portal.WndProc, hWnd, uMsg, wParam, lParam)
-    End Select
-End Function
-
-Public Function IsInSox(inSocket As Long) As Long ' Returns the Sockets() address of a WinSock Socket
-On Error Resume Next
-IsInSox = Socks(CStr(inSocket))
-If IsInSox = 0 Then IsInSox = -1
-End Function
-
-Public Function SetOption(insox As Long, inOption As enmSoxOptions, inValue As Long) As Long
-On Error Resume Next
-        Select Case inOption
-            Case soxSO_TCP_NODELAY
-                If apiSetSockOpt(Sockets(insox).Socket, IPPROTO_TCP, Not inOption, inValue, 4) = SOCKET_ERROR Then
-                    Let SetOption = SOCKET_ERROR
-                End If
-            Case Else
-                If apiSetSockOpt(Sockets(insox).Socket, SOL_SOCKET, inOption, inValue, 4) = SOCKET_ERROR Then
-                    Let SetOption = SOCKET_ERROR
-                End If
-        End Select
-End Function
-
-Public Function GetOption(insox As Long, inOption As enmSoxOptions) As Long
-On Error Resume Next
-        Select Case inOption
-            Case soxSO_TCP_NODELAY
-                If apiGetSockOpt(Sockets(insox).Socket, IPPROTO_TCP, Not inOption, GetOption, 4) = SOCKET_ERROR Then
-                    Let GetOption = SOCKET_ERROR
-                End If
-            Case Else
-                If apiGetSockOpt(Sockets(insox).Socket, SOL_SOCKET, inOption, GetOption, 4) = SOCKET_ERROR Then
-                    Let GetOption = SOCKET_ERROR
-                End If
-        End Select
-End Function
-
-Public Function SocketHandle(insox As Long) As Long
-On Error Resume Next
-    Let SocketHandle = Sockets(insox).Socket
-End Function
-
-Public Function State(insox As Long) As enmSoxState
-On Error Resume Next
-    Let State = Sockets(insox).State
-End Function
-
-Public Function Address(insox As Long) As String ' Returns the address used by a Socket (Either Local or Remote)
-On Error Resume Next
-    Let Address = StringFromPointer(apiNLToIP(Sockets(insox).SocketAddr.sin_addr))
-End Function
-Public Function Port(insox As Long) As Long
-On Error Resume Next
-    Let Port = apiNToHS(Sockets(insox).SocketAddr.sin_port)
-End Function
-
-Private Sub ShutDown(insox As Long)
-On Error Resume Next
-InternalDebug "ShutDown"
-        If apiWSAAsyncSelect(Sockets(insox).Socket, Portal.hWnd, ByVal FD_CLOSE, 0&) <> SOCKET_ERROR Then       'FD_READ Or FD_WRITE Or FD_CLOSE Or FD_ACCEPT
-            If apiCloseSocket(Sockets(insox).Socket) <> SOCKET_ERROR Then  'I can't get the API that checks the current status of the socket to work :(((
-                TerminateSocket Sockets(insox).Socket
-                With Sockets(insox)
-                    .Socket = 0
-                    .State = 0
-                    .uMsg = 0
-                End With
-                Call RaiseState(insox, soxDisconnected)
-                Call Sox_Close(insox)
-            End If
-        End If
-End Sub
-
-Private Sub RaiseError(insox As Long, inCode As Long, inProcedure As String, inSnipet As String)   'Returns EXACTLY the same value as inError but raises the corresponding event if this is an error
-On Error Resume Next
-InternalDebug "RaiseError"
-    Select Case inCode
-        Case WSABASEERR: Call Sox_Error(insox, inCode, "General Winsock subsystem failure", inProcedure, inSnipet) 'Just sounds cool :)))
-        Case WSAEINTR: Call Sox_Error(insox, inCode, "Interrupted function call", inProcedure, inSnipet)
-        Case WSAEBADF: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
-        Case WSAEACCES: Call Sox_Error(insox, inCode, "Permission Denied", inProcedure, inSnipet)
-        Case WSAEFAULT: Call Sox_Error(insox, inCode, "Bad address", inProcedure, inSnipet)
-        Case WSAEINVAL: Call Sox_Error(insox, inCode, "Invalid argument", inProcedure, inSnipet)
-        Case WSAEMFILE: Call Sox_Error(insox, inCode, "Too many open files", inProcedure, inSnipet)
-        'Case WSAEWOULDBLOCK: Call Sox_Error(insox, inCode, "Resource temporarily unavailable", inProcedure, inSnipet)
-        Case WSAEINPROGRESS: Call Sox_Error(insox, inCode, "Operation now in progress", inProcedure, inSnipet)
-        Case WSAEALREADY: Call Sox_Error(insox, inCode, "Operation already in progress", inProcedure, inSnipet)
-        Case WSAENOTSOCK: Call Sox_Error(insox, inCode, "Socket operation on non-socket", inProcedure, inSnipet)
-        Case WSAEDESTADDRREQ: Call Sox_Error(insox, inCode, "Destination address required", inProcedure, inSnipet)
-        Case WSAEMSGSIZE: Call Sox_Error(insox, inCode, "Message too long", inProcedure, inSnipet)
-        Case WSAEPROTOTYPE: Call Sox_Error(insox, inCode, "Protocol wrong type for socket", inProcedure, inSnipet)
-        Case WSAENOPROTOOPT: Call Sox_Error(insox, inCode, "Bad protocol option", inProcedure, inSnipet)
-        Case WSAEPROTONOSUPPORT: Call Sox_Error(insox, inCode, "Protocol not supported", inProcedure, inSnipet)
-        Case WSAESOCKTNOSUPPORT: Call Sox_Error(insox, inCode, "Socket type not supported", inProcedure, inSnipet)
-        Case WSAEOPNOTSUPP: Call Sox_Error(insox, inCode, "Operation not supported", inProcedure, inSnipet)
-        Case WSAEPFNOSUPPORT: Call Sox_Error(insox, inCode, "Protocol family not supported", inProcedure, inSnipet)
-        Case WSAEAFNOSUPPORT: Call Sox_Error(insox, inCode, "Address family not supported by protocol family", inProcedure, inSnipet)
-        Case WSAEADDRINUSE: Call Sox_Error(insox, inCode, "Address already in use", inProcedure, inSnipet)
-        Case WSAEADDRNOTAVAIL: Call Sox_Error(insox, inCode, "Cannot assign requested address", inProcedure, inSnipet)
-        Case WSAENETDOWN: Call Sox_Error(insox, inCode, "Network is down", inProcedure, inSnipet)
-        Case WSAENETUNREACH: Call Sox_Error(insox, inCode, "Network is unreachable", inProcedure, inSnipet)
-        Case WSAENETRESET: Call Sox_Error(insox, inCode, "Network dropped connection on reset", inProcedure, inSnipet)
-        Case WSAECONNABORTED: Call Sox_Error(insox, inCode, "Software caused connection abort", inProcedure, inSnipet)
-        Case WSAECONNRESET: Call Sox_Error(insox, inCode, "Connection reset by peer", inProcedure, inSnipet)
-        Case WSAENOBUFS: Call Sox_Error(insox, inCode, "No buffer space available", inProcedure, inSnipet)
-        Case WSAEISCONN: Call Sox_Error(insox, inCode, "Socket is already connected", inProcedure, inSnipet)
-        Case WSAENOTCONN: Call Sox_Error(insox, inCode, "Socket is not connected", inProcedure, inSnipet)
-        Case WSAESHUTDOWN: Call Sox_Error(insox, inCode, "Cannot send after socket shutdown", inProcedure, inSnipet)
-        Case WSAETOOMANYREFS: Call Sox_Error(insox, inCode, "Too many references: can't splice", inProcedure, inSnipet)  ' UnConfirmed Description
-        Case WSAETIMEDOUT: Call Sox_Error(insox, inCode, "Connection timed out", inProcedure, inSnipet)
-        Case WSAECONNREFUSED: Call Sox_Error(insox, inCode, "Connection refused", inProcedure, inSnipet)
-        Case WSAELOOP: Call Sox_Error(insox, inCode, "Too many levels of symbolic links", inProcedure, inSnipet)  ' UnConfirmed Description
-        Case WSAENAMETOOLONG: Call Sox_Error(insox, inCode, "File name too long", inProcedure, inSnipet)  ' UnConfirmed Description
-        Case WSAEHOSTDOWN: Call Sox_Error(insox, inCode, "Host is down", inProcedure, inSnipet)
-        Case WSAEHOSTUNREACH: Call Sox_Error(insox, inCode, "No route to host", inProcedure, inSnipet)
-        Case WSAENOTEMPTY: Call Sox_Error(insox, inCode, "Directory not empty", inProcedure, inSnipet)  ' UnConfirmed Description
-        Case WSAEPROCLIM: Call Sox_Error(insox, inCode, "Too many processes", inProcedure, inSnipet)
-        Case WSAEUSERS: Call Sox_Error(insox, inCode, "Too many users", inProcedure, inSnipet)  ' UnConfirmed Description
-        Case WSAEDQUOT: Call Sox_Error(insox, inCode, "Disk quota exceeded", inProcedure, inSnipet)  ' UnConfirmed Description
-        Case WSAESTALE: Call Sox_Error(insox, inCode, "Stale NFS file handle", inProcedure, inSnipet) ' UnConfirmed Description
-        Case WSAEREMOTE: Call Sox_Error(insox, inCode, "Too many levels of remote in path", inProcedure, inSnipet)  ' UnConfirmed Description
-        Case WSASYSNOTREADY: Call Sox_Error(insox, inCode, "Network subsystem is unavailable", inProcedure, inSnipet)
-        Case WSAVERNOTSUPPORTED: Call Sox_Error(insox, inCode, "Winsock.DLL version out of range", inProcedure, inSnipet)
-        Case WSANOTINITIALISED: Call Sox_Error(insox, inCode, "Successful WSAStartup not yet performed", inProcedure, inSnipet)
-        Case WSAEDISCON1: Call Sox_Error(insox, inCode, "Graceful shutdown in progress", inProcedure, inSnipet)
-        Case WSAEDISCON2: Call Sox_Error(insox, inCode, "Graceful shutdown in progress", inProcedure, inSnipet)
-        Case WSAENOMORE: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
-        Case WSAECANCELLED: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
-        Case WSAEINVALIDPROCTABLE: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
-        Case WSAEINVALIDPROVIDER: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
-        Case WSAEPROVIDERFAILEDINIT: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
-        Case WSASYSCALLFAILURE: Call Sox_Error(insox, inCode, "System call failure", inProcedure, inSnipet)
-        Case WSASERVICE_NOT_FOUND: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
-        Case WSATYPE_NOT_FOUND: Call Sox_Error(insox, inCode, "Class type not found", inProcedure, inSnipet)
-        Case WSA_E_NO_MORE: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
-        Case WSA_E_CANCELLED: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
-        Case WSAEREFUSED: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
-        Case WSAHOST_NOT_FOUND: Call Sox_Error(insox, inCode, "Host not found", inProcedure, inSnipet)
-        Case WSATRY_AGAIN: Call Sox_Error(insox, inCode, "Non-authoritative host not found", inProcedure, inSnipet)
-        Case WSANO_RECOVERY: Call Sox_Error(insox, inCode, "This is a non-recoverable error", inProcedure, inSnipet)
-        Case WSANO_DATA: Call Sox_Error(insox, inCode, "Valid name, no data record of requested type", inProcedure, inSnipet)
-        'Case Else: Call Sox_Error(insox, inCode, "Unrecognized WinSock error", inProcedure, inSnipet)
-    End Select
-End Sub
-Public Sub TerminateSocket(hSocket As Long)
-InternalDebug "TerminateSocket called"
-On Error Resume Next
-Call apiShutDown(hSocket, SD_BOTH)
-Call apiCloseSocket(hSocket)
-Dim index&
-index = Socks(CStr(hSocket))
-If index > 0 Then
-    Socks.Remove CStr(hSocket)
+    
 End If
 End Sub
 
+Public Sub CloseSck()
+If m_lngSocketHandle = INVALID_SOCKET Then Exit Sub
+
+m_enmState = sckClosing: Debug.Print "STATE: sckClosing"
+CleanResolutionSystem
+DestroySocket
+     
+m_lngLocalPortBind = 0
+m_strRemoteHostIP = ""
+m_strRecvBuffer = ""
+m_strSendBuffer = ""
+m_lngSendBufferLen = 0
+m_lngRecvBufferLen = 0
+
+m_enmState = sckClosed: Debug.Print "STATE: sckClosed"
+
+End Sub
+
+'Tries to create a socket if there isn't one yet and registers
+'it to the control list.
+'Returns TRUE if it has success
+Private Function SocketExists() As Boolean
+SocketExists = True
+Dim lngResult As Long
+Dim lngErrorCode As Long
+
+'check if there is a socket already
+If m_lngSocketHandle = INVALID_SOCKET Then
+    
+    'decide what kind of socket we are creating, TCP or UDP
+    If m_enmProtocol = sckTCPProtocol Then
+        lngResult = api_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)
+    Else
+        lngResult = api_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
+    End If
+    
+    If lngResult = INVALID_SOCKET Then
+        
+        m_enmState = sckError: Debug.Print "STATE: sckError"
+        Debug.Print "ERROR trying to create socket"
+        SocketExists = False
+        lngErrorCode = Err.LastDllError
+        Dim blnCancelDisplay As Boolean
+        blnCancelDisplay = True
+        Call Sox_Error(lngErrorCode, GetErrorDescription(lngErrorCode), 0, "CSocketMaster.SocketExists", "")
+        If blnCancelDisplay = False Then MsgBox GetErrorDescription(lngErrorCode), vbOKOnly, "CSocketMaster.SocketExists"
+    Else
+        
+        Debug.Print "OK Created socket: " & lngResult
+        m_lngSocketHandle = lngResult
+        'set and get some socket options
+        ProcessOptions
+        SocketExists = modSox.RegisterSocket(m_lngSocketHandle, ObjPtr(Me), True)
+    
+    End If
+End If
+End Function
+
+'Tries to connect to RemoteHost if it was passed, or uses
+'m_strRemoteHost instead. If it is a hostname tries to
+'resolve it first.
+Public Sub Connect(Optional RemoteHost As Variant, Optional RemotePort As Variant)
+InternalDebug "Connecting..."
+If m_enmState <> sckClosed Then
+    Err.Raise sckInvalidOp, "CSocketMaster.Connect", "Invalid operation at current state"
+End If
+
+If Not IsMissing(RemoteHost) Then
+        m_strRemoteHost = CStr(RemoteHost)
+End If
+
+'for some reason we get a GPF if we try to
+'resolve a null string, so we replace it with
+'an empty string
+If m_strRemoteHost = vbNullString Then
+    m_strRemoteHost = ""
+End If
+
+'check if RemotePort is a number between 1 and 65535
+If Not IsMissing(RemotePort) Then
+    If IsNumeric(RemotePort) Then
+        If CLng(RemotePort) > 65535 Or CLng(RemotePort) < 1 Then
+            Err.Raise sckInvalidArg, "CSocketMaster.Connect", "The argument passed to a function was not in the correct format or in the specified range."
+        Else
+            m_lngRemotePort = CLng(RemotePort)
+        End If
+    Else
+        Err.Raise sckUnsupported, "CSocketMaster.Connect", "Unsupported variant type."
+    End If
+End If
+InternalDebug "checking if sock exists"
+'create a socket if there isn't one yet
+If Not SocketExists Then Exit Sub
+InternalDebug "doesn't exist"
+'Here we bind the socket
+DoEvents
+If Not BindInternal Then Exit Sub
+InternalDebug "binded"
+DoEvents
+'If we are using UDP we just exit silently.
+'Remember UDP is a connectionless protocol.
+If m_enmProtocol = sckUDPProtocol Then
+    m_enmState = sckOpen: Debug.Print "STATE: sckOpen"
+    Exit Sub
+End If
+
+'try to get a 32 bits long that is used to identify a host
+Dim lngAddress As Long
+lngAddress = ResolveIfHostname(m_strRemoteHost)
+
+'We've got two options here:
+'1) m_strRemoteHost was an IP, so a resolution wasn't
+'   necessary, and now lngAddress is a 32 bits long and
+'   we proceed to connect.
+'2) m_strRemoteHost was a hostname, so a resolution was
+'   necessary and it's taking place right now. We leave
+'   silently.
+
+If lngAddress <> vbNull Then
+    ConnectToIP lngAddress, 0
+End If
+
+End Sub
+
+'When the system resolves a hostname in asynchronous way we
+'call this function to decide what to do with the result.
+Private Sub PostResolution(ByVal lngAsynHandle As Long, ByVal lngErrorCode As Long)
+
+'erase that record from the collection since we won't need it any longer
+m_colWaitingResolutions.Remove "R" & lngAsynHandle
+UnregisterResolution lngAsynHandle
+
+If m_enmState <> sckResolvingHost Then Exit Sub
+
+If lngErrorCode = 0 Then 'if there weren't errors trying to resolve the hostname
+    
+    m_enmState = sckHostResolved: Debug.Print "STATE: sckHostResolved"
+    
+    Dim udtHostent As HOSTENT
+    Dim lngPtrToIP As Long
+    Dim arrIpAddress(1 To 4) As Byte
+    Dim lngRemoteHostAddress As Long
+    Dim Count As Integer
+    Dim strIpAddress As String
+    
+    api_CopyMemory udtHostent, ByVal m_lngMemoryPointer, LenB(udtHostent)
+    api_CopyMemory lngPtrToIP, ByVal udtHostent.hAddrList, 4
+    api_CopyMemory arrIpAddress(1), ByVal lngPtrToIP, 4
+    api_CopyMemory lngRemoteHostAddress, ByVal lngPtrToIP, 4
+    
+    'free memory, won't need it any longer
+    FreeMemory
+    
+    'We turn the 32 bits long into a readable string.
+    'Note: we don't need this string. I put this here just
+    'in case you need it.
+    For Count = 1 To 4
+        strIpAddress = strIpAddress & arrIpAddress(Count) & "."
+    Next
+        
+    strIpAddress = Left$(strIpAddress, Len(strIpAddress) - 1)
+    
+    ConnectToIP lngRemoteHostAddress, 0
+    
+Else 'there were errors trying to resolve the hostname
+
+    'free buffer memory
+    FreeMemory
+    
+    ConnectToIP vbNull, lngErrorCode
+
+End If
+End Sub
+
+'This procedure is called by the WindowProc callback function.
+'The lngEventID argument is an ID of the network event
+'occurred for the socket. The lngErrorCode argument contains
+'an error code only if an error was occurred during an
+'asynchronous execution.
+Private Sub PostSocket(ByVal lngEventID As Long, ByVal lngErrorCode As Long)
+
+Dim blnCancelDisplay As Boolean
+
+'handle any possible error
+If lngErrorCode <> 0 Then
+    m_enmState = sckError: Debug.Print "STATE: sckError"
+    blnCancelDisplay = True
+    Call Sox_Error(lngErrorCode, GetErrorDescription(lngErrorCode), 0, "CSocketMaster.PostSocket", "")
+    If blnCancelDisplay = False Then MsgBox GetErrorDescription(lngErrorCode), vbOKOnly, "CSocketMaster.PostSocket"
+    Exit Sub
+End If
+
+Dim udtSockAddr As sockaddr_in
+Dim lngResult As Long
+Dim lngBytesReceived As Long
+
+Select Case lngEventID
+
+'======================================================================
+
+Case FD_CONNECT
+
+    'Arrival of this message means that the connection initiated by the call
+    'of the connect Winsock API function was successfully established.
+
+    Debug.Print "FD_CONNECT " & m_lngSocketHandle
+    
+    If m_enmState <> sckConnecting Then
+        Debug.Print "WARNING: Omitting FD_CONNECT"
+        Exit Sub
+    End If
+    
+    'Get the local parameters
+    GetLocalInfo m_lngSocketHandle, m_lngLocalPortBind, m_strLocalIP
+   
+    'Get the connection local end-point parameters
+    GetRemoteInfo m_lngSocketHandle, m_lngRemotePort, m_strRemoteHostIP, m_strRemoteHost
+    
+    m_enmState = sckConnected: Debug.Print "STATE: sckConnected"
+    Call Sox_Connect(m_lngSocketHandle)
+
+'======================================================================
+
+Case FD_WRITE
+
+    'This message means that the socket in a write-able
+    'state, that is, buffer for outgoing data of the transport
+    'service is empty and ready to receive data to send through
+    'the network.
+    
+    Debug.Print "FD_WRITE " & m_lngSocketHandle
+    
+    If m_enmState <> sckConnected Then
+        Debug.Print "WARNING: Omitting FD_WRITE"
+        Exit Sub
+    End If
+    
+    If Len(m_strSendBuffer) > 0 Then
+        SendBufferedData
+    End If
+    
+'======================================================================
+
+Case FD_READ
+
+    'Some data has arrived for this socket.
+
+    Debug.Print "FD_READ " & m_lngSocketHandle
+    
+    If m_enmProtocol = sckTCPProtocol Then
+        
+        If m_enmState <> sckConnected Then
+            Debug.Print "WARNING: Omitting FD_READ"
+            Exit Sub
+        End If
+        
+        'Call the RecvDataToBuffer function that move arrived data
+        'from the Winsock buffer to the local one and returns number
+        'of bytes received.
+    
+        lngBytesReceived = RecvDataToBuffer
+    
+        If lngBytesReceived > 0 Then
+            Call Sox_DataArrival(Len(m_strRecvBuffer))
+        End If
+    
+    Else 'UDP protocol
+        
+        If m_enmState <> sckOpen Then
+            Debug.Print "WARNING: Omitting FD_READ"
+            Exit Sub
+        End If
+        
+        'If we use UDP we don't remove data from winsock buffer.
+        'We just let the user know the amount received so
+        'he/she can decide what to do.
+        
+        lngBytesReceived = GetBufferLenUDP
+        
+        If lngBytesReceived > 0 Then
+            Call Sox_DataArrival(lngBytesReceived)
+        End If
+        
+        
+        'Now the buffer is emptied no matter what the user
+        'dicided to do with the received data
+        EmptyBuffer
+    End If
+    
+    
+'======================================================================
+
+Case FD_ACCEPT
+
+    'When the socket is in a listening state, arrival of this message
+    'means that a connection request was received. Call the accept
+    'Winsock API function in oreder to create a new socket for the
+    'requested connection.
+  
+    Debug.Print "FD_ACCEPT " & m_lngSocketHandle
+    If m_enmState <> sckListening Then
+        Debug.Print "WARNING: Omitting FD_ACCEPT"
+        Exit Sub
+    End If
+    
+    lngResult = api_accept(m_lngSocketHandle, udtSockAddr, LenB(udtSockAddr))
+    
+    If lngResult = INVALID_SOCKET Then
+        lngErrorCode = Err.LastDllError
+        m_enmState = sckError: Debug.Print "STATE: sckError"
+        blnCancelDisplay = True
+        Call Sox_Error(lngErrorCode, GetErrorDescription(lngErrorCode), 0, "CSocketMaster.PostSocket", "")
+        If blnCancelDisplay = False Then MsgBox GetErrorDescription(lngErrorCode), vbOKOnly, "CSocketMaster.PostSocket"
+    Else
+        'We assign a temporal instance of CSocketMaster to
+        'handle this new socket until user accepts (or not)
+        'the new connection
+        modSox.RegisterAccept lngResult
+        
+        'We change remote info before firing ConnectionRequest
+        'event so the user can see which host is trying to
+        'connect.
+        
+        Dim lngTempRP As Long
+        Dim strTempRHIP As String
+        Dim strTempRH As String
+        lngTempRP = m_lngRemotePort
+        strTempRHIP = m_strRemoteHostIP
+        strTempRH = m_strRemoteHost
+        
+        GetRemoteInfo lngResult, m_lngRemotePort, m_strRemoteHostIP, m_strRemoteHost
+        
+        Debug.Print "OK Accepted socket: " & lngResult
+        'Call sox_ConnectionRequest(lngResult)
+        
+        'we return original info
+        If m_enmState = sckListening Then
+             m_lngRemotePort = lngTempRP
+             m_strRemoteHostIP = strTempRHIP
+             m_strRemoteHost = strTempRH
+        End If
+        
+        'This is very important. If the connection wasn't accepted
+        'we must close the socket.
+        If IsAcceptRegistered(lngResult) Then
+            api_closesocket lngResult
+            modSox.UnregisterSocket lngResult
+            modSox.UnregisterAccept lngResult
+            Debug.Print "OK Closed accepted socket: " & lngResult
+        End If
+    End If
+    
+'======================================================================
+    
+Case FD_CLOSE
+    
+    'This message means that the remote host is closing the conection
+    
+    Debug.Print "FD_CLOSE " & m_lngSocketHandle
+    
+    If m_enmState <> sckConnected Then
+        Debug.Print "WARNING: Omitting FD_CLOSE"
+        Exit Sub
+    End If
+    
+    m_enmState = sckClosing: Debug.Print "STATE: sckClosing"
+    Call Sox_Close(m_lngSocketHandle)
+    
+End Select
+End Sub
+
+'Connect to a given 32 bits long ip
+Private Sub ConnectToIP(ByVal lngRemoteHostAddress As Long, ByVal lngErrorCode As Long)
+InternalDebug "ConnectToIP"
+Dim blnCancelDisplay As Boolean
+
+'Check and handle errors
+If lngErrorCode <> 0 Then
+    m_enmState = sckError: Debug.Print "STATE: sckError"
+    blnCancelDisplay = True
+    Call Sox_Error(lngErrorCode, GetErrorDescription(lngErrorCode), 0, "CSocketMaster.ConnectToIP", "")
+    If blnCancelDisplay = False Then MsgBox GetErrorDescription(lngErrorCode), vbOKOnly, "CSocketMaster.ConnectToIP"
+    Exit Sub
+End If
+
+Debug.Print "OK Connecting to: " + m_strRemoteHost + " " + m_strRemoteHostIP
+m_enmState = sckConnecting: Debug.Print "STATE: sckConnecting"
+
+Dim udtSockAddr As sockaddr_in
+Dim lngResult As Long
+
+'Build the sockaddr_in structure to pass it to the connect
+'Winsock API function as an address of the remote host.
+With udtSockAddr
+    .sin_addr = lngRemoteHostAddress
+    .sin_family = AF_INET
+    .sin_port = api_htons(modSox.UnsignedToInteger(m_lngRemotePort))
+End With
+
+'Call the connect Winsock API function in order to establish connection.
+lngResult = api_connect(m_lngSocketHandle, udtSockAddr, LenB(udtSockAddr))
+
+'Check and handle errors
+If lngResult = SOCKET_ERROR Then
+    lngErrorCode = Err.LastDllError
+    If lngErrorCode <> WSAEWOULDBLOCK Then
+        If lngErrorCode = WSAEADDRNOTAVAIL Then
+            Err.Raise WSAEADDRNOTAVAIL, "CSocketMaster.ConnectToIP", GetErrorDescription(WSAEADDRNOTAVAIL)
+        Else
+            m_enmState = sckError: Debug.Print "STATE: sckError"
+            blnCancelDisplay = True
+            Call Sox_Error(lngErrorCode, GetErrorDescription(lngErrorCode), 0, "CSocketMaster.ConnectToIP", "")
+            If blnCancelDisplay = False Then MsgBox GetErrorDescription(lngErrorCode), vbOKOnly, "CSocketMaster.ConnectToIP"
+        End If
+    End If
+End If
+
+End Sub
+
+Public Sub Bind(Optional LocalPort As Variant, Optional LocalIP As Variant)
+If m_enmState <> sckClosed Then
+    Err.Raise sckInvalidOp, "CSocketMaster.Bind", "Invalid operation at current state"
+End If
+
+If BindInternal(LocalPort, LocalIP) Then
+    m_enmState = sckOpen: Debug.Print "STATE: sckOpen"
+End If
+End Sub
+
+'This function binds a socket to a local port and IP.
+'Retunrs TRUE if it has success.
+Private Function BindInternal(Optional ByVal varLocalPort As Variant, Optional ByVal varLocalIP As Variant) As Boolean
+If m_enmState = sckOpen Then
+    BindInternal = True
+    Exit Function
+End If
+
+Dim lngLocalPortInternal As Long
+Dim strLocalHostInternal As String
+Dim strIP As String
+Dim lngAddressInternal As Long
+Dim lngResult As Long
+Dim lngErrorCode As Long
+
+BindInternal = False
+
+'Check if varLocalPort is a number between 0 and 65535
+If Not IsMissing(varLocalPort) Then
+    
+    If IsNumeric(varLocalPort) Then
+        If varLocalPort < 0 Or varLocalPort > 65535 Then
+            BindInternal = False
+            Err.Raise sckInvalidArg, "CSocketMaster.BindInternal", "The argument passed to a function was not in the correct format or in the specified range."
+        Else
+            lngLocalPortInternal = CLng(varLocalPort)
+        End If
+    Else
+        BindInternal = False
+        Err.Raise sckUnsupported, "CSocketMaster.BindInternal", "Unsupported variant type."
+    End If
+    
+Else
+    
+    lngLocalPortInternal = m_lngLocalPort
+    
+End If
+
+If Not IsMissing(varLocalIP) Then
+    If varLocalIP <> vbNullString Then
+        strLocalHostInternal = CStr(varLocalIP)
+    Else
+        strLocalHostInternal = ""
+    End If
+Else
+    strLocalHostInternal = ""
+End If
+
+'get a 32 bits long IP
+lngAddressInternal = ResolveIfHostnameSync(strLocalHostInternal, strIP, lngResult)
+
+If lngResult <> 0 Then
+    Err.Raise sckInvalidArg, "CSocketMaster.BindInternal", "Invalid argument"
+End If
+
+'create a socket if there isn't one yet
+If Not SocketExists Then Exit Function
+
+Dim udtSockAddr As sockaddr_in
+
+With udtSockAddr
+    .sin_addr = lngAddressInternal
+    .sin_family = AF_INET
+    .sin_port = api_htons(modSox.UnsignedToInteger(lngLocalPortInternal))
+End With
+
+'bind the socket
+lngResult = api_bind(m_lngSocketHandle, udtSockAddr, LenB(udtSockAddr))
+
+If lngResult = SOCKET_ERROR Then
+
+    lngErrorCode = Err.LastDllError
+    Err.Raise lngErrorCode, "CSocketMaster.BindInternal", GetErrorDescription(lngErrorCode)
+    
+Else
+
+    If lngLocalPortInternal <> 0 Then
+    
+        Debug.Print "OK Bind HOST: " & strLocalHostInternal & " PORT: " & lngLocalPortInternal
+        m_lngLocalPort = lngLocalPortInternal
+        
+    Else
+        lngResult = GetLocalPort(m_lngSocketHandle)
+        
+        If lngResult = SOCKET_ERROR Then
+            lngErrorCode = Err.LastDllError
+            Err.Raise lngErrorCode, "CSocketMaster.BindInternal", GetErrorDescription(lngErrorCode)
+        Else
+            Debug.Print "OK Bind HOST: " & strLocalHostInternal & " PORT: " & lngResult
+            m_lngLocalPortBind = lngResult
+        End If
+        
+    End If
+    
+    BindInternal = True
+End If
+End Function
+
+'Allocate some memory for HOSTEN structure and returns
+'a pointer to this buffer if no error occurs.
+'Returns 0 if it fails.
+Private Function AllocateMemory() As Long
+m_lngMemoryHandle = api_GlobalAlloc(GMEM_FIXED, MAXGETHOSTSTRUCT)
+
+If m_lngMemoryHandle <> 0 Then
+    m_lngMemoryPointer = api_GlobalLock(m_lngMemoryHandle)
+    
+    If m_lngMemoryPointer <> 0 Then
+        api_GlobalUnlock (m_lngMemoryHandle)
+        AllocateMemory = m_lngMemoryPointer
+    Else
+        api_GlobalFree (m_lngMemoryHandle)
+        AllocateMemory = m_lngMemoryPointer '0
+    End If
+
+Else
+    AllocateMemory = m_lngMemoryHandle '0
+End If
+End Function
+
+'Free memory allocated by AllocateMemory
+Private Sub FreeMemory()
+If m_lngMemoryHandle <> 0 Then
+    m_lngMemoryPointer = 0
+    api_GlobalFree m_lngMemoryHandle
+    m_lngMemoryHandle = 0
+    Debug.Print "OK Freed resolution memory"
+End If
+End Sub
+
+Private Function GetLocalHostName() As String
+Dim strHostNameBuf As String * LOCAL_HOST_BUFF
+Dim lngResult As Long
+
+lngResult = api_gethostname(strHostNameBuf, LOCAL_HOST_BUFF)
+
+If lngResult = SOCKET_ERROR Then
+    GetLocalHostName = vbNullString
+    Dim lngErrorCode As Long
+    lngErrorCode = Err.LastDllError
+    Err.Raise lngErrorCode, "CSocketMaster.GetLocalHostName", GetErrorDescription(lngErrorCode)
+Else
+    GetLocalHostName = Left(strHostNameBuf, InStr(1, strHostNameBuf, vbNullChar) - 1)
+End If
+End Function
+
+'Get local IP when the socket isn't connected yet
+Private Function GetLocalIP() As String
+Dim lngResult As Long
+Dim lngPtrToIP As Long
+Dim strLocalHost As String
+Dim arrIpAddress(1 To 4) As Byte
+Dim Count As Integer
+Dim udtHostent As HOSTENT
+Dim strIpAddress As String
+
+strLocalHost = GetLocalHostName
+
+lngResult = api_gethostbyname(strLocalHost)
+
+If lngResult = 0 Then
+    GetLocalIP = vbNullString
+    Dim lngErrorCode As Long
+    lngErrorCode = Err.LastDllError
+    Err.Raise lngErrorCode, "CSocketMaster.GetLocalIP", GetErrorDescription(lngErrorCode)
+Else
+    api_CopyMemory udtHostent, ByVal lngResult, LenB(udtHostent)
+    api_CopyMemory lngPtrToIP, ByVal udtHostent.hAddrList, 4
+    api_CopyMemory arrIpAddress(1), ByVal lngPtrToIP, 4
+   
+    For Count = 1 To 4
+        strIpAddress = strIpAddress & arrIpAddress(Count) & "."
+    Next
+   
+    strIpAddress = Left$(strIpAddress, Len(strIpAddress) - 1)
+    GetLocalIP = strIpAddress
+End If
+End Function
+
+'If Host is an IP doesn't resolve anything and returns a
+'a 32 bits long IP.
+'If Host isn't an IP then returns vbNull, tries to resolve it
+'in asynchronous way.
+Private Function ResolveIfHostname(ByVal Host As String) As Long
+Dim lngAddress As Long
+lngAddress = api_inet_addr(Host)
+
+If lngAddress = INADDR_NONE Then 'if Host isn't an IP
+    
+    ResolveIfHostname = vbNull
+    m_enmState = sckResolvingHost: Debug.Print "STATE: sckResolvingHost"
+    
+    If AllocateMemory Then
+        
+        Dim lngAsynHandle As Long
+        lngAsynHandle = modSox.ResolveHost(Host, m_lngMemoryPointer, ObjPtr(Me))
+        
+        If lngAsynHandle = 0 Then
+            FreeMemory
+            m_enmState = sckError: Debug.Print "STATE: sckError"
+            Dim lngErrorCode As Long
+            lngErrorCode = Err.LastDllError
+            Dim blnCancelDisplay As Boolean
+            blnCancelDisplay = True
+            Call Sox_Error(lngErrorCode, GetErrorDescription(lngErrorCode), 0, "CSocketMaster.ResolveIfHostname", "")
+            If blnCancelDisplay = False Then MsgBox GetErrorDescription(lngErrorCode), vbOKOnly, "CSocketMaster.ResolveIfHostname"
+        Else
+            m_colWaitingResolutions.Add lngAsynHandle, "R" & lngAsynHandle
+            Debug.Print "Resolving host " & Host; " with handle " & lngAsynHandle
+        End If
+        
+    Else
+        
+        m_enmState = sckError: Debug.Print "STATE: sckError"
+        Debug.Print "Error trying to allocate memory"
+        Err.Raise sckOutOfMemory, "CSocketMaster.ResolveIfHostname", "Out of memory"
+        
+    End If
+    
+Else 'if Host is an IP doen't need to resolve anything
+    ResolveIfHostname = lngAddress
+End If
+End Function
+
+'Resolves a host (if necessary) in synchronous way
+'If succeeds returns a 32 bits long IP,
+'strHostIP = readable IP string and lngErrorCode = 0
+'If fails returns vbNull,
+'strHostIP = vbNullString and lngErrorCode <> 0
+Private Function ResolveIfHostnameSync(ByVal Host As String, ByRef strHostIP As String, ByRef lngErrorCode As Long) As Long
+Dim lngPtrToHOSTENT As Long
+Dim udtHostent As HOSTENT
+Dim lngAddress As Long
+Dim lngPtrToIP As Long
+Dim arrIpAddress(1 To 4) As Byte
+Dim Count As Integer
+
+lngAddress = api_inet_addr(Host)
+
+If lngAddress = INADDR_NONE Then 'if Host isn't an IP
+    
+    lngPtrToHOSTENT = api_gethostbyname(Host)
+    
+    If lngPtrToHOSTENT = 0 Then
+        lngErrorCode = Err.LastDllError
+        strHostIP = vbNullString
+        ResolveIfHostnameSync = vbNull
+    Else
+        api_CopyMemory udtHostent, ByVal lngPtrToHOSTENT, LenB(udtHostent)
+        api_CopyMemory lngPtrToIP, ByVal udtHostent.hAddrList, 4
+        api_CopyMemory arrIpAddress(1), ByVal lngPtrToIP, 4
+        api_CopyMemory lngAddress, ByVal lngPtrToIP, 4
+        
+        For Count = 1 To 4
+            strHostIP = strHostIP & arrIpAddress(Count) & "."
+        Next
+        
+        strHostIP = Left$(strHostIP, Len(strHostIP) - 1)
+        
+        lngErrorCode = 0
+        ResolveIfHostnameSync = lngAddress
+    End If
+    
+Else 'if Host is an IP doen't need to resolve anything
+    
+    lngErrorCode = 0
+    strHostIP = Host
+    ResolveIfHostnameSync = lngAddress
+    
+End If
+End Function
+
+'Returns local port from a connected or bound socket.
+'Returns SOCKET_ERROR if fails.
+Private Function GetLocalPort(ByVal lngSocket As Long) As Long
+Dim udtSockAddr As sockaddr_in
+Dim lngResult As Long
+
+lngResult = api_getsockname(lngSocket, udtSockAddr, LenB(udtSockAddr))
+
+If lngResult = SOCKET_ERROR Then
+    GetLocalPort = SOCKET_ERROR
+Else
+    GetLocalPort = modSox.IntegerToUnsigned(api_ntohs(udtSockAddr.sin_port))
+End If
+End Function
+
+Public Sub SendData(Data As Variant)
+
+Dim arrData() As Byte 'We store the data here before send it
+
+If m_enmProtocol = sckTCPProtocol Then
+    If m_enmState <> sckConnected Then
+        Err.Raise sckBadState, "CSocketMaster.SendData", "Wrong protocol or connection state for the requested transaction or request"
+        Exit Sub
+    End If
+Else 'If we use UDP we create a socket if there isn't one yet
+    If Not SocketExists Then Exit Sub
+    If Not BindInternal Then Exit Sub
+    m_enmState = sckOpen: Debug.Print "STATE: sckOpen"
+End If
+
+'We need to convert data variant into a byte array
+Select Case varType(Data)
+        Case vbString
+            Dim strData As String
+            strData = CStr(Data)
+            If Len(strData) = 0 Then Exit Sub
+            ReDim arrData(Len(strData) - 1)
+            arrData() = StrConv(strData, vbFromUnicode)
+        Case vbArray + vbByte
+            Dim strArray As String
+            strArray = StrConv(Data, vbUnicode)
+            If Len(strArray) = 0 Then Exit Sub
+            arrData() = StrConv(strArray, vbFromUnicode)
+        Case vbBoolean
+            Dim blnData As Boolean
+            blnData = CBool(Data)
+            ReDim arrData(LenB(blnData) - 1)
+            api_CopyMemory arrData(0), blnData, LenB(blnData)
+        Case vbByte
+            Dim bytData As Byte
+            bytData = CByte(Data)
+            ReDim arrData(LenB(bytData) - 1)
+            api_CopyMemory arrData(0), bytData, LenB(bytData)
+        Case vbCurrency
+            Dim curData As Currency
+            curData = CCur(Data)
+            ReDim arrData(LenB(curData) - 1)
+            api_CopyMemory arrData(0), curData, LenB(curData)
+        Case vbDate
+            Dim datData As Date
+            datData = CDate(Data)
+            ReDim arrData(LenB(datData) - 1)
+            api_CopyMemory arrData(0), datData, LenB(datData)
+        Case vbDouble
+            Dim dblData As Double
+            dblData = CDbl(Data)
+            ReDim arrData(LenB(dblData) - 1)
+            api_CopyMemory arrData(0), dblData, LenB(dblData)
+        Case vbInteger
+            Dim intData As Integer
+            intData = CInt(Data)
+            ReDim arrData(LenB(intData) - 1)
+            api_CopyMemory arrData(0), intData, LenB(intData)
+        Case vbLong
+            Dim lngData As Long
+            lngData = CLng(Data)
+            ReDim arrData(LenB(lngData) - 1)
+            api_CopyMemory arrData(0), lngData, LenB(lngData)
+        Case vbSingle
+            Dim sngData As Single
+            sngData = CSng(Data)
+            ReDim arrData(LenB(sngData) - 1)
+            api_CopyMemory arrData(0), sngData, LenB(sngData)
+        Case Else
+            Err.Raise sckUnsupported, "CSocketMaster.SendData", "Unsupported variant type."
+    End Select
+
+'if there's already something in the buffer that means we are
+'already sending data, so we put the new data in the buffer
+'and exit silently
+If Len(m_strSendBuffer) > 0 Then
+    m_strSendBuffer = m_strSendBuffer + StrConv(arrData(), vbUnicode)
+    Exit Sub
+Else
+    m_strSendBuffer = m_strSendBuffer + StrConv(arrData(), vbUnicode)
+End If
+
+'send the data
+SendBufferedData
+
+End Sub
+
+'Check which protocol we are using to decide which
+'function should handle the data sending.
+Private Sub SendBufferedData()
+If m_enmProtocol = sckTCPProtocol Then
+    SendBufferedDataTCP
+Else
+    SendBufferedDataUDP
+End If
+End Sub
+
+'Send buffered data if we are using UDP protocol.
+Private Sub SendBufferedDataUDP()
+Dim lngAddress As Long
+Dim udtSockAddr As sockaddr_in
+Dim arrData() As Byte
+Dim lngBufferLength As Long
+Dim lngResult As Long
+Dim lngErrorCode As Long
+
+   
+Dim strTemp As String
+lngAddress = ResolveIfHostnameSync(m_strRemoteHost, strTemp, lngErrorCode)
+    
+If lngErrorCode <> 0 Then
+    m_strSendBuffer = ""
+    
+    If lngErrorCode = WSAEAFNOSUPPORT Then
+        Err.Raise lngErrorCode, "CSocketMaster.SendBufferedDataUDP", GetErrorDescription(lngErrorCode)
+    Else
+        Err.Raise sckInvalidArg, "CSocketMaster.SendBufferedDataUDP", "Invalid argument"
+    End If
+End If
+
+With udtSockAddr
+    .sin_addr = lngAddress
+    .sin_family = AF_INET
+    .sin_port = api_htons(modSox.UnsignedToInteger(m_lngRemotePort))
+End With
+    
+lngBufferLength = Len(m_strSendBuffer)
+    
+arrData() = StrConv(m_strSendBuffer, vbFromUnicode)
+    
+m_strSendBuffer = ""
+
+lngResult = api_sendto(m_lngSocketHandle, arrData(0), lngBufferLength, 0&, udtSockAddr, LenB(udtSockAddr))
+    
+If lngResult = SOCKET_ERROR Then
+    lngErrorCode = Err.LastDllError
+    m_enmState = sckError: Debug.Print "STATE: sckError"
+    Dim blnCancelDisplay As Boolean
+    blnCancelDisplay = True
+    Call Sox_Error(lngErrorCode, GetErrorDescription(lngErrorCode), 0, "CSocketMaster.SendBufferedDataUDP", "")
+    If blnCancelDisplay = False Then MsgBox GetErrorDescription(lngErrorCode), vbOKOnly, "CSocketMaster.SendBufferedDataUDP"
+End If
+    
+End Sub
+
+'Send buffered data if we are using TCP protocol.
+Private Sub SendBufferedDataTCP()
+
+Dim arrData()       As Byte
+Dim lngBufferLength As Long
+Dim lngResult    As Long
+Dim lngTotalSent As Long
+
+Do Until lngResult = SOCKET_ERROR Or Len(m_strSendBuffer) = 0
+
+    lngBufferLength = Len(m_strSendBuffer)
+
+    If lngBufferLength > m_lngSendBufferLen Then
+        lngBufferLength = m_lngSendBufferLen
+        arrData() = StrConv(Left$(m_strSendBuffer, m_lngSendBufferLen), vbFromUnicode)
+    Else
+        arrData() = StrConv(m_strSendBuffer, vbFromUnicode)
+    End If
+
+    lngResult = api_send(m_lngSocketHandle, arrData(0), lngBufferLength, 0&)
+
+    If lngResult = SOCKET_ERROR Then
+        Dim lngErrorCode As Long
+        lngErrorCode = Err.LastDllError
+    
+        If lngErrorCode = WSAEWOULDBLOCK Then
+            Debug.Print "WARNING: Send buffer full, waiting..."
+            'If lngTotalSent > 0 Then RaiseEvent SendProgress(lngTotalSent, Len(m_strSendBuffer))
+        Else
+            m_enmState = sckError: Debug.Print "STATE: sckError"
+            Dim blnCancelDisplay As Boolean
+            blnCancelDisplay = True
+            Call Sox_Error(lngErrorCode, GetErrorDescription(lngErrorCode), 0, "CSocketMaster.SendBufferedData", "")
+            If blnCancelDisplay = False Then MsgBox GetErrorDescription(lngErrorCode), vbOKOnly, "CSocketMaster.SendBufferedData"
+        End If
+
+    Else
+        Debug.Print "OK Bytes sent: " & lngResult
+        lngTotalSent = lngTotalSent + lngResult
+        If Len(m_strSendBuffer) > lngResult Then
+            m_strSendBuffer = Mid$(m_strSendBuffer, lngResult + 1)
+        Else
+            Debug.Print "OK Finished SENDING"
+            m_strSendBuffer = ""
+            Dim lngTemp As Long
+            lngTemp = lngTotalSent
+            lngTotalSent = 0
+            'RaiseEvent SendProgress(lngTemp, 0)
+            'RaiseEvent SendComplete
+        End If
+    End If
+
+Loop
+
+End Sub
+
+'This function retrieves data from the Winsock buffer
+'into the class local buffer. The function returns number
+'of bytes retrieved (received).
+Private Function RecvDataToBuffer() As Long
+Dim arrBuffer() As Byte
+Dim lngBytesReceived As Long
+Dim strBuffTemporal As String
+
+ReDim arrBuffer(m_lngRecvBufferLen - 1)
+
+lngBytesReceived = api_recv(m_lngSocketHandle, arrBuffer(0), m_lngRecvBufferLen, 0&)
+
+If lngBytesReceived = SOCKET_ERROR Then
+    
+    m_enmState = sckError: Debug.Print "STATE: sckError"
+    Dim lngErrorCode As Long
+    lngErrorCode = Err.LastDllError
+    Err.Raise lngErrorCode, "CSocketMaster.RecvDataToBuffer", GetErrorDescription(lngErrorCode)
+    
+ElseIf lngBytesReceived > 0 Then
+    
+    strBuffTemporal = StrConv(arrBuffer(), vbUnicode)
+    m_strRecvBuffer = m_strRecvBuffer & Left$(strBuffTemporal, lngBytesReceived)
+    RecvDataToBuffer = lngBytesReceived
+    
+End If
+
+End Function
+
+'Retrieves some socket options.
+'If it is an UDP socket also sets SO_BROADCAST option.
+Private Sub ProcessOptions()
+Dim lngResult As Long
+Dim lngBuffer As Long
+Dim lngErrorCode As Long
+
+If m_enmProtocol = sckTCPProtocol Then
+    lngResult = api_getsockopt(m_lngSocketHandle, SOL_SOCKET, SO_RCVBUF, lngBuffer, LenB(lngBuffer))
+    
+    If lngResult = SOCKET_ERROR Then
+        lngErrorCode = Err.LastDllError
+        Err.Raise lngErrorCode, "CSocketMaster.ProcessOptions", GetErrorDescription(lngErrorCode)
+    Else
+        m_lngRecvBufferLen = lngBuffer
+    End If
+
+    lngResult = api_getsockopt(m_lngSocketHandle, SOL_SOCKET, SO_SNDBUF, lngBuffer, LenB(lngBuffer))
+
+    If lngResult = SOCKET_ERROR Then
+        lngErrorCode = Err.LastDllError
+        Err.Raise lngErrorCode, "CSocketMaster.ProcessOptions", GetErrorDescription(lngErrorCode)
+    Else
+        m_lngSendBufferLen = lngBuffer
+    End If
+
+Else
+    lngBuffer = 1
+    lngResult = api_setsockopt(m_lngSocketHandle, SOL_SOCKET, SO_BROADCAST, lngBuffer, LenB(lngBuffer))
+    
+    lngResult = api_getsockopt(m_lngSocketHandle, SOL_SOCKET, SO_MAX_MSG_SIZE, lngBuffer, LenB(lngBuffer))
+
+    If lngResult = SOCKET_ERROR Then
+        lngErrorCode = Err.LastDllError
+        Err.Raise lngErrorCode, "CSocketMaster.ProcessOptions", GetErrorDescription(lngErrorCode)
+    Else
+        m_lngRecvBufferLen = lngBuffer
+        m_lngSendBufferLen = lngBuffer
+    End If
+End If
+
+
+Debug.Print "Winsock buffer size for sends: " & m_lngRecvBufferLen
+Debug.Print "Winsock buffer size for receives: " & m_lngSendBufferLen
+End Sub
+
+Public Sub GetData(ByRef Data As Variant, Optional varType As Variant, Optional maxLen As Variant)
+
+If m_enmProtocol = sckTCPProtocol Then
+    If m_enmState <> sckConnected And Not m_blnAcceptClass Then
+        Err.Raise sckBadState, "CSocketMaster.GetData", "Wrong protocol or connection state for the requested transaction or request"
+        Exit Sub
+    End If
+Else
+    If m_enmState <> sckOpen Then
+        Err.Raise sckBadState, "CSocketMaster.GetData", "Wrong protocol or connection state for the requested transaction or request"
+        Exit Sub
+    End If
+    If GetBufferLenUDP = 0 Then Exit Sub
+End If
+
+If Not IsMissing(maxLen) Then
+    If IsNumeric(maxLen) Then
+        If CLng(maxLen) < 0 Then
+            Err.Raise sckInvalidArg, "CSocketMaster.GetData", "The argument passed to a function was not in the correct format or in the specified range."
+        End If
+    Else
+        If m_enmProtocol = sckTCPProtocol Then
+            maxLen = Len(m_strRecvBuffer)
+        Else
+            maxLen = GetBufferLenUDP
+        End If
+    End If
+End If
+
+Dim lngBytesRecibidos  As Long
+
+lngBytesRecibidos = RecvData(Data, False, varType, maxLen)
+Debug.Print "OK Bytes obtained from buffer: " & lngBytesRecibidos
+
+End Sub
+
+Public Sub PeekData(ByRef Data As Variant, Optional varType As Variant, Optional maxLen As Variant)
+
+If m_enmProtocol = sckTCPProtocol Then
+    If m_enmState <> sckConnected Then
+        Err.Raise sckBadState, "CSocketMaster.PeekData", "Wrong protocol or connection state for the requested transaction or request"
+        Exit Sub
+    End If
+Else
+    If m_enmState <> sckOpen Then
+        Err.Raise sckBadState, "CSocketMaster.PeekData", "Wrong protocol or connection state for the requested transaction or request"
+        Exit Sub
+    End If
+    If GetBufferLenUDP = 0 Then Exit Sub
+End If
+
+If Not IsMissing(maxLen) Then
+    If IsNumeric(maxLen) Then
+        If CLng(maxLen) < 0 Then
+            Err.Raise sckInvalidArg, "CSocketMaster.PeekData", "The argument passed to a function was not in the correct format or in the specified range."
+        End If
+    Else
+        If m_enmProtocol = sckTCPProtocol Then
+            maxLen = Len(m_strRecvBuffer)
+        Else
+            maxLen = GetBufferLenUDP
+        End If
+    End If
+End If
+
+Dim lngBytesRecibidos  As Long
+
+lngBytesRecibidos = RecvData(Data, True, varType, maxLen)
+Debug.Print "OK Bytes obtained from buffer: " & lngBytesRecibidos
+End Sub
+
+
+'This function is to retrieve data from the buffer. If we are using TCP
+'then the data is retrieved from a local buffer (m_strRecvBuffer). If we
+'are using UDP the data is retrieved from winsock buffer.
+'It can be called by two public methods of the class - GetData and PeekData.
+'Behavior of the function is defined by the blnPeek argument. If a value of
+'that argument is TRUE, the function returns number of bytes in the
+'buffer, and copy data from that buffer into the data argument.
+'If a value of the blnPeek is FALSE, then this function returns number of
+'bytes received, and move data from the buffer into the data
+'argument. MOVE means that data will be removed from the buffer.
+Private Function RecvData(ByRef Data As Variant, ByVal blnPeek As Boolean, Optional varClass As Variant, Optional maxLen As Variant) As Long
+
+Dim blnMaxLenMiss   As Boolean
+Dim blnClassMiss    As Boolean
+Dim strRecvData     As String
+Dim lngBufferLen    As Long
+Dim arrBuffer()     As Byte
+Dim lngErrorCode    As Long
+
+If m_enmProtocol = sckTCPProtocol Then
+    lngBufferLen = Len(m_strRecvBuffer)
+Else
+    lngBufferLen = GetBufferLenUDP
+End If
+
+blnMaxLenMiss = IsMissing(maxLen)
+blnClassMiss = IsMissing(varClass)
+
+'Select type of data
+If varType(Data) = vbEmpty Then
+    If blnClassMiss Then varClass = vbArray + vbByte
+Else
+    varClass = varType(Data)
+End If
+
+'As stated on Winsock control documentation if the
+'data type passed is string or byte array type then
+'we must take into account maxLen argument.
+'If it is another type maxLen is ignored.
+If varClass = vbString Or varClass = vbArray + vbByte Then
+
+    If blnMaxLenMiss Then 'if maxLen argument is missing
+    
+        If lngBufferLen = 0 Then
+        
+            RecvData = 0
+        
+            arrBuffer = StrConv("", vbFromUnicode)
+            Data = arrBuffer
+
+            Exit Function
+    
+        Else
+            
+            RecvData = lngBufferLen
+            BuildArray lngBufferLen, blnPeek, lngErrorCode, arrBuffer
+
+        End If
+
+    Else 'if maxLen argument is not missing
+
+        If maxLen = 0 Or lngBufferLen = 0 Then
+
+            RecvData = 0
+        
+            arrBuffer = StrConv("", vbFromUnicode)
+            Data = arrBuffer
+            
+            If m_enmProtocol = sckUDPProtocol Then
+                EmptyBuffer
+                Err.Raise WSAEMSGSIZE, "CSocketMaster.RecvData", GetErrorDescription(WSAEMSGSIZE)
+            End If
+            
+            Exit Function
+        
+        ElseIf maxLen > lngBufferLen Then
+            
+            RecvData = lngBufferLen
+            BuildArray lngBufferLen, blnPeek, lngErrorCode, arrBuffer
+
+        Else
+            
+            RecvData = CLng(maxLen)
+            BuildArray CLng(maxLen), blnPeek, lngErrorCode, arrBuffer
+
+        End If
+    
+    End If
+        
+End If
+
+    Select Case varClass
+    
+    Case vbString
+        Dim strData As String
+        strData = StrConv(arrBuffer(), vbUnicode)
+        Data = strData
+    Case vbArray + vbByte
+        Data = arrBuffer
+    Case vbBoolean
+        Dim blnData As Boolean
+        If LenB(blnData) > lngBufferLen Then Exit Function
+        BuildArray LenB(blnData), blnPeek, lngErrorCode, arrBuffer
+        RecvData = LenB(blnData)
+        api_CopyMemory blnData, arrBuffer(0), LenB(blnData)
+        Data = blnData
+    Case vbByte
+        Dim bytData As Byte
+        If LenB(bytData) > lngBufferLen Then Exit Function
+        BuildArray LenB(bytData), blnPeek, lngErrorCode, arrBuffer
+        RecvData = LenB(bytData)
+        api_CopyMemory bytData, arrBuffer(0), LenB(bytData)
+        Data = bytData
+    Case vbCurrency
+        Dim curData As Currency
+        If LenB(curData) > lngBufferLen Then Exit Function
+        BuildArray LenB(curData), blnPeek, lngErrorCode, arrBuffer
+        RecvData = LenB(curData)
+        api_CopyMemory curData, arrBuffer(0), LenB(curData)
+        Data = curData
+    Case vbDate
+        Dim datData As Date
+        If LenB(datData) > lngBufferLen Then Exit Function
+        BuildArray LenB(datData), blnPeek, lngErrorCode, arrBuffer
+        RecvData = LenB(datData)
+        api_CopyMemory datData, arrBuffer(0), LenB(datData)
+        Data = datData
+    Case vbDouble
+        Dim dblData As Double
+        If LenB(dblData) > lngBufferLen Then Exit Function
+        BuildArray LenB(dblData), blnPeek, lngErrorCode, arrBuffer
+        RecvData = LenB(dblData)
+        api_CopyMemory dblData, arrBuffer(0), LenB(dblData)
+        Data = dblData
+    Case vbInteger
+        Dim intData As Integer
+        If LenB(intData) > lngBufferLen Then Exit Function
+        BuildArray LenB(intData), blnPeek, lngErrorCode, arrBuffer
+        RecvData = LenB(intData)
+        api_CopyMemory intData, arrBuffer(0), LenB(intData)
+        Data = intData
+    Case vbLong
+        Dim lngData As Long
+        If LenB(lngData) > lngBufferLen Then Exit Function
+        BuildArray LenB(lngData), blnPeek, lngErrorCode, arrBuffer
+        RecvData = LenB(lngData)
+        api_CopyMemory lngData, arrBuffer(0), LenB(lngData)
+        Data = lngData
+    Case vbSingle
+        Dim sngData As Single
+        If LenB(sngData) > lngBufferLen Then Exit Function
+        BuildArray LenB(sngData), blnPeek, lngErrorCode, arrBuffer
+        RecvData = LenB(sngData)
+        api_CopyMemory sngData, arrBuffer(0), LenB(sngData)
+        Data = sngData
+    Case Else
+        Err.Raise sckUnsupported, "CSocketMaster.RecvData", "Unsupported variant type."
+       
+    End Select
+
+'if BuildArray returns an error is handled here
+If lngErrorCode <> 0 Then
+    Err.Raise lngErrorCode, "CSocketMaster.RecvData", GetErrorDescription(lngErrorCode)
+End If
+
+End Function
+
+'Returns a byte array of Size bytes filled with incoming buffer data.
+Private Sub BuildArray(ByVal Size As Long, ByVal blnPeek As Boolean, ByRef lngErrorCode As Long, ByRef bytArray() As Byte)
+Dim strData As String
+
+If m_enmProtocol = sckTCPProtocol Then
+        
+    strData = Left$(m_strRecvBuffer, CLng(Size))
+    bytArray = StrConv(strData, vbFromUnicode)
+                
+    If Not blnPeek Then
+        m_strRecvBuffer = Mid$(m_strRecvBuffer, Size + 1)
+    End If
+
+Else 'UDP protocol
+    Dim arrBuffer() As Byte
+    Dim lngResult As Long
+    Dim udtSockAddr As sockaddr_in
+    Dim lngFlags As Long
+    
+    If blnPeek Then lngFlags = MSG_PEEK
+    
+    ReDim arrBuffer(Size - 1)
+    
+    lngResult = api_recvfrom(m_lngSocketHandle, arrBuffer(0), Size, lngFlags, udtSockAddr, LenB(udtSockAddr))
+    
+    If lngResult = SOCKET_ERROR Then
+        lngErrorCode = Err.LastDllError
+    End If
+    
+    bytArray = arrBuffer
+    GetRemoteInfoFromSI udtSockAddr, m_lngRemotePort, m_strRemoteHostIP, m_strRemoteHost
+    
+End If
+End Sub
+
+'Clean resolution system that is in charge of
+'asynchronous hostname resolutions.
+Private Sub CleanResolutionSystem()
+Dim varAsynHandle As Variant
+Dim lngResult As Long
+
+'cancel async resolutions if they're still running
+For Each varAsynHandle In m_colWaitingResolutions
+    lngResult = api_WSACancelAsyncRequest(varAsynHandle)
+    If lngResult = 0 Then
+        modSox.UnregisterResolution varAsynHandle
+        
+        Set m_colWaitingResolutions = Nothing
+        Set m_colWaitingResolutions = New Collection
+
+        'free memory buffer where resolution results are stored
+        FreeMemory
+        
+    End If
+Next
+
+End Sub
+
+Public Sub Listen()
+If m_enmState <> sckClosed And m_enmState <> sckOpen Then
+    Err.Raise sckInvalidOp, "CSocketMaster.Listen", "Invalid operation at current state"
+End If
+
+If Not SocketExists Then Exit Sub
+If Not BindInternal Then Exit Sub
+
+Dim lngResult As Long
+
+lngResult = api_listen(m_lngSocketHandle, SOMAXCONN)
+
+If lngResult = SOCKET_ERROR Then
+    Dim lngErrorCode As Long
+    lngErrorCode = Err.LastDllError
+    Err.Raise lngErrorCode, "CSocketMaster.Listen", GetErrorDescription(lngErrorCode)
+Else
+    m_enmState = sckListening: Debug.Print "STATE: sckListening"
+End If
+
+End Sub
+
+Public Sub Accept(requestID As Long)
+If m_enmState <> sckClosed Then
+    Err.Raise sckInvalidOp, "CSocketMaster.Accept", "Invalid operation at current state"
+End If
+
+m_lngSocketHandle = requestID
+m_enmProtocol = sckTCPProtocol
+ProcessOptions
+
+If Not modSox.IsAcceptRegistered(requestID) Then
+    If IsSocketRegistered(requestID) Then
+        m_lngSocketHandle = INVALID_SOCKET
+        m_lngRecvBufferLen = 0
+        m_lngSendBufferLen = 0
+        Err.Raise sckBadState, "CSocketMaster.Accept", "Wrong protocol or connection state for the requested transaction or request"
+    Else
+        m_blnAcceptClass = True
+        m_enmState = sckConnected: Debug.Print "STATE: sckConnected"
+        GetLocalInfo m_lngSocketHandle, m_lngLocalPortBind, m_strLocalIP
+        modSox.RegisterSocket m_lngSocketHandle, ObjPtr(Me), False
+        Exit Sub
+    End If
+End If
+
+Dim clsSocket As clsSox
+Set clsSocket = GetAcceptClass(requestID)
+modSox.UnregisterAccept requestID
+
+GetLocalInfo m_lngSocketHandle, m_lngLocalPortBind, m_strLocalIP
+GetRemoteInfo m_lngSocketHandle, m_lngRemotePort, m_strRemoteHostIP, m_strRemoteHost
+
+m_enmState = sckConnected: Debug.Print "STATE: sckConnected"
+
+If clsSocket.BytesReceived > 0 Then
+    clsSocket.GetData m_strRecvBuffer
+End If
+
+modSox.Subclass_ChangeOwner requestID, ObjPtr(Me)
+
+If Len(m_strRecvBuffer) > 0 Then Call Sox_DataArrival(Len(m_strRecvBuffer))
+
+If clsSocket.State = sckClosing Then
+    m_enmState = sckClosing: Debug.Print "STATE: sckClosing"
+    Call Sox_Close(m_lngSocketHandle)
+End If
+
+Set clsSocket = Nothing
+End Sub
+
+'Retrieves local info from a connected socket.
+'If succeeds returns TRUE and loads the arguments.
+'If fails returns FALSE and arguments are not loaded.
+Private Function GetLocalInfo(ByVal lngSocket As Long, ByRef lngLocalPort As Long, ByRef strLocalIP As String) As Boolean
+GetLocalInfo = False
+Dim lngResult As Long
+Dim udtSockAddr As sockaddr_in
+
+lngResult = api_getsockname(lngSocket, udtSockAddr, LenB(udtSockAddr))
+
+If lngResult = SOCKET_ERROR Then
+    lngLocalPort = 0
+    strLocalIP = ""
+Else
+    GetLocalInfo = True
+    lngLocalPort = IntegerToUnsigned(api_ntohs(udtSockAddr.sin_port))
+    strLocalIP = StringFromPointer(api_inet_ntoa(udtSockAddr.sin_addr))
+End If
+
+End Function
+
+'Retrieves remote info from a connected socket.
+'If succeeds returns TRUE and loads the arguments.
+'If fails returns FALSE and arguments are not loaded.
+Private Function GetRemoteInfo(ByVal lngSocket As Long, ByRef lngRemotePort As Long, ByRef strRemoteHostIP As String, ByRef strRemoteHost As String) As Boolean
+GetRemoteInfo = False
+Dim lngResult As Long
+Dim udtSockAddr As sockaddr_in
+
+lngResult = api_getpeername(lngSocket, udtSockAddr, LenB(udtSockAddr))
+
+If lngResult = 0 Then
+    GetRemoteInfo = True
+    GetRemoteInfoFromSI udtSockAddr, lngRemotePort, strRemoteHostIP, strRemoteHost
+Else
+   lngRemotePort = 0
+   strRemoteHostIP = ""
+   strRemoteHost = ""
+End If
+End Function
+
+'Gets remote info from a sockaddr_in structure.
+Private Sub GetRemoteInfoFromSI(ByRef udtSockAddr As sockaddr_in, ByRef lngRemotePort As Long, ByRef strRemoteHostIP As String, ByRef strRemoteHost As String)
+
+'Dim lngResult As Long
+'Dim udtHostent As HOSTENT
+
+lngRemotePort = IntegerToUnsigned(api_ntohs(udtSockAddr.sin_port))
+strRemoteHostIP = StringFromPointer(api_inet_ntoa(udtSockAddr.sin_addr))
+'lngResult = api_gethostbyaddr(udtSockAddr.sin_addr, 4&, AF_INET)
+
+'If lngResult <> 0 Then
+'    api_CopyMemory udtHostent, ByVal lngResult, LenB(udtHostent)
+'    strRemoteHost = StringFromPointer(udtHostent.hName)
+'Else
+    strRemoteHost = ""
+'End If
+
+End Sub
+
+'Returns winsock incoming buffer length from an UDP socket.
+Private Function GetBufferLenUDP() As Long
+Dim lngResult As Long
+Dim lngBuffer As Long
+lngResult = api_ioctlsocket(m_lngSocketHandle, FIONREAD, lngBuffer)
+
+If lngResult = SOCKET_ERROR Then
+    GetBufferLenUDP = 0
+Else
+    GetBufferLenUDP = lngBuffer
+End If
+End Function
+
+'Empty winsock incoming buffer from an UDP socket.
+Private Sub EmptyBuffer()
+Dim B As Byte
+api_recv m_lngSocketHandle, B, Len(B), 0&
+End Sub

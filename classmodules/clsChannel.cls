@@ -28,7 +28,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsChannel.cls,v 1.11 2004/08/01 09:35:13 ziggythehamster Exp $
+' $Id: clsChannel.cls,v 1.13 2004/09/25 19:28:37 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -48,6 +48,7 @@ Option Explicit
 #Const Debugging = 0
 
 'General Settings -Dill
+Public GUID As String
 Public Name As String
 Public Topic As String
 Public TopcSetAt As Long
@@ -70,6 +71,7 @@ Public IsModerated As Boolean
 Public IsRegistered As Boolean
 Public IsOperOnly As Boolean
 Public IsPersistant As Boolean
+Public IsStatic As Boolean
 Public Limit As Long
 Public Key As String
 
@@ -138,6 +140,8 @@ Set Hosts = New clsHosts
 Set Voices = New clsVoices
 Set Member = New clsChanMemberHashTable
 Set Invites = New Collection
+GUID = CreateGUID
+Prop_OID = 0
 #If Debugging = 1 Then
     SendSvrMsg "Channel class created"
 #End If

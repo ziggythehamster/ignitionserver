@@ -9,7 +9,7 @@ Attribute VB_Name = "modMain"
 'Released under the GNU General Public License
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
 '
-' $Id: modMain.bas,v 1.3 2004/06/29 19:15:28 ziggythehamster Exp $
+' $Id: modMain.bas,v 1.5 2004/09/12 04:00:56 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -26,26 +26,11 @@ Attribute VB_Name = "modMain"
 
 
 Option Explicit
-Public Declare Function SetTimer Lib "user32" (ByVal hWnd As Long, ByVal nIDEvent As Long, ByVal uElapse As Long, ByVal lpTimerFunc As Long) As Long
-Public Declare Function KillTimer Lib "user32" (ByVal hWnd As Long, ByVal nIDEvent As Long) As Long
-Public Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
-Public Declare Function Send Lib "wsock32.dll" Alias "send" (ByVal s As Long, buf As Any, ByVal buflen As Long, ByVal flags As Long) As Long
-Public Declare Function GetTickCount& Lib "kernel32" ()
-Private Bye As Boolean
-Public StartIS As Boolean
-Public StopIS As Boolean
-Public ISPort As Integer
-Public AppVersion As String
+Public ISPort As Long
 Public Sockets As clsSox
-Public Portal As typPortal
-Public Type typPortal 'Class specific variables
-    hWnd As Long 'The handle to the window we create on initialization that will receive WinSock messages
-    WndProc As Long 'Pointer to the origional WindowProc of our window (We need to give control of ALL messages back to it before we destroy it)
-    Sockets As Long 'How many Sockets are comming through the Portal, Actually hold the Socket array count. NB - MUST change with Redim of Sockets
-End Type
-Public CanKill As Boolean
-Public mySocketHandle As Long
-Public myInSox As Long
+Public AppVersion As String
+Public StartIS As Boolean: Public StopIS As Boolean: Public RestartIS As Boolean
+Public RehashIS As Boolean
 
 
 Public Sub Main()
@@ -61,17 +46,18 @@ Parameters() = Split(Command, " ")
 ' * COMMAND LINE PARAMETERS            *
 ' *  -start   : start the server       *
 ' *  -stop    : stop the server        *
+' *  -restart : restart the server     *
+' *  -rehash  : rehash the server      *
 ' *  -p nnnn  : set server port        *
 ' **************************************
 ' * PLANNED PARAMETERS                 *
-' *  -restart : restart the server     *
-' *  -rehash  : rehash the server      *
 ' *  -motd    : rehash the motd        *
 ' *  -gc      : garbage collection     *
 ' **************************************/
 
 InternalDebug "Processing parameters..."
 ISPort = 6667
+Set Sockets = New clsSox
 
 For A = LBound(Parameters) To UBound(Parameters)
   If LCase$(Left$(Parameters(A), 2)) = "-p" Then
@@ -86,23 +72,37 @@ For A = LBound(Parameters) To UBound(Parameters)
     StopIS = False
   ElseIf LCase$(Left$(Parameters(A), 5)) = "-stop" Then
     InternalDebug "Stopping ignitionServer..."
-    Set Sockets = New clsSox
+    Sockets.Protocol = sckTCPProtocol
+    Sockets.RemoteHost = "127.0.0.1"
     Sockets.Connect "127.0.0.1", ISPort
     StartIS = False
     StopIS = True
+    RestartIS = False
+    RehashIS = False
+  ElseIf LCase$(Left$(Parameters(A), 8)) = "-restart" Then
+    InternalDebug "Restarting ignitionServer..."
+    Sockets.Protocol = sckTCPProtocol
+    Sockets.RemoteHost = "127.0.0.1"
+    Sockets.Connect "127.0.0.1", ISPort
+    StartIS = False
+    StopIS = False
+    RehashIS = False
+    RestartIS = True
+  ElseIf LCase$(Left$(Parameters(A), 7)) = "-rehash" Then
+    InternalDebug "Rehashing ignitionServer..."
+    Sockets.Protocol = sckTCPProtocol
+    Sockets.RemoteHost = "127.0.0.1"
+    Sockets.Connect "127.0.0.1", ISPort
+    StartIS = False
+    StopIS = False
+    RehashIS = True
+    RestartIS = False
   End If
 Next A
-
-If StopIS = True Then
-Do: DoEvents: Sleep 100: Loop Until CanKill = True
-Sockets.TerminateSocket mySocketHandle
-Terminate
-End If
 End Sub
 Public Sub Terminate()
 InternalDebug "Terminating..."
 On Error Resume Next
-Sockets.Unhook
 'Destroy the core classes -Dill
 Set Sockets = Nothing
 InternalDebug "Terminated..."

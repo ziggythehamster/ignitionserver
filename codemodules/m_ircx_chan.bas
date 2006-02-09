@@ -14,7 +14,7 @@ Attribute VB_Name = "m_ircx_chan"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: m_ircx_chan.bas,v 1.20 2004/08/08 06:54:14 ziggythehamster Exp $
+' $Id: m_ircx_chan.bas,v 1.24 2004/09/11 23:43:27 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -47,8 +47,13 @@ Public Function m_create(cptr As clsClient, sptr As clsClient, parv$()) As Long
 Dim Chan As clsChannel
 Dim CurrentInfo As String
 If cptr.AccessLevel = 4 Then
-'Todo
+'TODO: Accept CREATE from server
 Else
+  If cptr.IsIRCX = False Then
+    'IRC clients should not be allowed to use this command
+    SendWsock cptr.index, ERR_UNKNOWNCOMMAND & " " & cptr.Nick, TranslateCode(ERR_UNKNOWNCOMMAND, , , "CREATE")
+    Exit Function
+  End If
   If Len(parv(0)) = 0 Then    'need more params
     CurrentInfo = "need more parameters"
     SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "CREATE")
@@ -85,6 +90,11 @@ Else
       SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , , parv(0))
       Exit Function
   End If
+  If cptr.IsOnChan(parv(0)) Then 'already on the channel, complain -zg
+      CurrentInfo = "already on channel"
+      SendWsock cptr.index, IRCERR_ALREADYONCHANNEL & " " & cptr.Nick, TranslateCode(IRCERR_ALREADYONCHANNEL, , cptr.OnChannels.Item(parv(0)).Name)
+      Exit Function
+  End If
   If MaxChannelsPerUser > 0 Then
     If cptr.OnChannels.Count >= MaxChannelsPerUser Then
         'this could be turned into its own S: line thing
@@ -95,38 +105,27 @@ Else
         Exit Function
     End If
   End If
-  If cptr.IsOnChan(parv(0)) Then Exit Function
   Set Chan = Channels(parv(0))
   If Chan Is Nothing Then
     CurrentInfo = "channel does not exist"
     'channel does not exist
+    If CreateMode = 1 Then
+      If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
+        SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+        Exit Function
+      End If
+    ElseIf CreateMode = 2 Then
+      If Not ((cptr.IsLocOperator Or cptr.IsGlobOperator) Or (cptr.IsRegistered)) Then
+        SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
+        Exit Function
+      End If
+    End If
     Set Chan = Channels.Add(parv(0), New clsChannel)
     Chan.Name = parv(0)
     Chan.Prop_Creation = UnixTime
     Chan.Prop_Name = parv(0)
-    'quick mode scan for create flags
-    'set temp vars for use very soon
-    Dim JoinClient As Boolean
-    JoinClient = False
-    If IRCX_CreateJoin = True Then
-        Dim F As Long
-        If IRCX_CreateJoinReqOp = True And Not ((cptr.IsLocOperator) Or (cptr.IsGlobOperator)) Then
-            'if +c requires you to be IRC Operator, and you aren't, join!
-            JoinClient = True
-        Else
-          'either IRCX_CreateJoinReqOp is False, or it's true and the user is an IRC Operator
-          'let them selectively use +c
-          JoinClient = False
-          For F = 1 To Len(parv(1))
-              If Chr(cmCreateJoin) = Mid$(parv(1), F, 1) Then
-                JoinClient = True
-              End If
-          Next F
-        End If
-    Else
-        'autojoin everyone!
-        JoinClient = True
-    End If
+    
+    'parse the modes
     If UBound(parv) = 3 Then
       Call ParseModes(parv(1) & " " & parv(2) & " " & parv(3), Chan)
     ElseIf UBound(parv) = 2 Then
@@ -134,27 +133,56 @@ Else
     ElseIf UBound(parv) = 1 Then
       Call ParseModes(parv(1), Chan)
     End If
+    
+    'send CREATE message
     SendWsock cptr.index, "CREATE " & parv(0) & " 0", vbNullString
-    If JoinClient Then
-        Chan.Member.Add ChanOwner, cptr
-        cptr.OnChannels.Add Chan, Chan.Name
-        SendWsock cptr.index, cptr.Prefix & " JOIN " & parv(0), vbNullString, , True
-        If cptr.IsIRCX Then
-          SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " = " & parv(0), ":." & cptr.Nick
-        Else
-          'why you'd be non-IRCX and send CREATE... i dunno
-          SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " = " & parv(0), ":@" & cptr.Nick
-        End If
-        SendWsock cptr.index, SPrefix & " " & RPL_ENDOFNAMES & " " & cptr.Nick & " " & Chan.Name & " :End of /NAMES list.", vbNullString, , True
-        SendToServer "JOIN " & Chan.Name, cptr.Nick
-    End If
+    Chan.Member.Add ChanOwner, cptr
+    cptr.OnChannels.Add Chan, Chan.Name
+    SendWsock cptr.index, cptr.Prefix & " JOIN " & parv(0), vbNullString, , True
+    SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " = " & parv(0), ":." & cptr.Nick
+    SendWsock cptr.index, SPrefix & " " & RPL_ENDOFNAMES & " " & cptr.Nick & " " & Chan.Name & " :End of /NAMES list.", vbNullString, , True
+    SendToServer "JOIN " & Chan.Name, cptr.Nick
+    
     GenerateEvent "CHANNEL", "CREATE", Chan.Name, Chan.Name & " +" & Split(GetModes(Chan), " ")(0) & " " & Replace(cptr.Prefix, ":", "")
-    If JoinClient Then
-        GenerateEvent "MEMBER", "JOIN", Replace(cptr.Prefix, ":", ""), Chan.Name & " " & Replace(cptr.Prefix, ":", "") & " +q"
-    End If
+    GenerateEvent "MEMBER", "JOIN", Replace(cptr.Prefix, ":", ""), Chan.Name & " " & Replace(cptr.Prefix, ":", "") & " +q"
   Else
     CurrentInfo = "channel exists"
-    SendWsock cptr.index, IRCERR_CHANNELEXIST & " " & cptr.Nick, TranslateCode(IRCERR_CHANNELEXIST, , parv(0))
+    'they're trying to use CREATE to JOIN
+    'because they're on crack or something
+    If UBound(parv) > 0 Then
+      If InStr(1, parv(1), "c") <> 0 Then
+        '+c flag was passed, which is quite unfortunate, because the channel already exists.
+        SendWsock cptr.index, IRCERR_CHANNELEXIST & " " & cptr.Nick, TranslateCode(IRCERR_CHANNELEXIST, , parv(0))
+        Exit Function
+      End If
+    End If
+    'now, we'll want to check to see if the user can join
+    'instead of repeating a buttload of code, we'll just
+    '"fake" a call to m_join, just as soon as we check to
+    'see if the command contains k and a password
+    Dim tmpChan As clsChannel
+    Dim tmpParv() As String
+    
+    Set tmpChan = New clsChannel
+    
+    If UBound(parv) = 3 Then
+      Call ParseModes(parv(1) & " " & parv(2) & " " & parv(3), tmpChan)
+    ElseIf UBound(parv) = 2 Then
+      Call ParseModes(parv(1) & " " & parv(2), tmpChan)
+    ElseIf UBound(parv) = 1 Then
+      Call ParseModes(parv(1), tmpChan)
+    End If
+    
+    If Len(tmpChan.Key) > 0 Then
+      ReDim tmpParv(1)
+      tmpParv(0) = parv(0)
+      tmpParv(1) = tmpChan.Key
+    Else
+      ReDim tmpParv(0)
+      tmpParv(0) = parv(0)
+    End If
+    
+    m_join cptr, sptr, tmpParv
   End If
 End If
 End Function
@@ -202,7 +230,7 @@ For A = 1 To Len(ModesArray(0))
   If Chr(cmKey) = Mid$(ModesArray(0), A, 1) Then
     If UBound(ModesArray) > 0 And UBound(ModesArray) >= CurParam Then
       Chan.Key = CStr(ModesArray(CurParam))
-      Chan.Prop_Memberkey = CStr(ModesArray(CurParam))
+      Chan.Prop_Memberkey = UTF8_Unescape(CStr(ModesArray(CurParam)))
       CurParam = CurParam + 1
      End If
   End If
@@ -216,18 +244,18 @@ Public Function m_whisper(cptr As clsClient, sptr As clsClient, parv$()) As Long
 '/*****************************************************
 '* I know, this is basically a copy of m_message -_-  *
 '******************************************************/
-Dim cmd$, RecList$(), I, x&, Chan As clsChannel, Recp As clsClient, RecvServer() As clsClient, ChM As clsChanMember
+Dim cmd$, RecList$(), i, x&, Chan As clsChannel, Recp As clsClient, RecvServer() As clsClient, ChM As clsChanMember
 If cptr.AccessLevel = 4 Then
     Set Chan = Channels(parv(0))
     If Chan Is Nothing Then Exit Function
     
     RecList = Split(parv(1), ",")
-    For Each I In RecList
-        If AscW(CStr(I)) = 35 Then
+    For Each i In RecList
+        If AscW(CStr(i)) = 35 Then
             'you can't whisper to a channel...
             GoTo NextCmd
         Else
-            Set Recp = GlobUsers(CStr(I))
+            Set Recp = GlobUsers(CStr(i))
             If Recp Is Nothing Then
                 GoTo NextCmd
             End If
@@ -272,21 +300,21 @@ Else
     End If
     
     RecList = Split(parv(1), ",")
-    For Each I In RecList
-      If Len(I) = 0 Then GoTo nextmsg
-      If AscW(CStr(I)) = 35 Then
-        SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, CStr(I))
+    For Each i In RecList
+      If Len(i) = 0 Then GoTo nextmsg
+      If AscW(CStr(i)) = 35 Then
+        SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, CStr(i))
         GoTo nextmsg
       Else
         'user message -Dill
-        If InStr(1, I, "*") <> 0 Then
+        If InStr(1, i, "*") <> 0 Then
           If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then 'Can't send to wildcarded recipient list if not an oper -Dill
             SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
             Exit Function
           Else
             'WILDCARD recievelist -Dill
             Dim Umask$, Target() As clsClient
-            Umask = ":" & CreateMask(CStr(I))
+            Umask = ":" & CreateMask(CStr(i))
             Target = GlobUsers.Values
             For x = LBound(Target) To UBound(Target)
                 If Target(x).Prefix Like Umask Then
@@ -305,9 +333,9 @@ Else
         On Local Error Resume Next
         'to avoid possible confusion
         'we're using sptr in order to not waste memory with initializing another client class
-        Set sptr = GlobUsers(CStr(I))
+        Set sptr = GlobUsers(CStr(i))
         If sptr Is Nothing Then 'in case user does not exist -Dill
-          SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, CStr(I))
+          SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, CStr(i))
           GoTo nextmsg
         End If
         Dim tmpChan As clsChannel

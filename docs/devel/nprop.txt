@@ -1,0 +1,49 @@
+NPROP - Network PROP Command
+============================
+
+NPROP is an unofficial IRCX command. I say unofficial because I
+just made it up. NPROP does the same thing for networked servers
+that NJOIN does: it reduces bandwidth, and allows for easier
+parsing of properties. The message is as follows:
+
+:<server> NPROP #ChannelName CreationTime OID :Property1=PropertyValue Property2=PropertyValue Property3=PropertyValue
+
+In order to preserve the value properly, the following escape
+sequences are used:
+
++-------------------+----------------------------+
+| Escape Sequence   | Description                |
++-------------------+----------------------------+
+| \b                | ASCII 32 (space)           |
+| \c                | ASCII 44 (comma)           |
+| \\                | ASCII 92 (backslash)       |
+| \r                | ASCII 13 (carriage return) |
+| \n                | ASCII 10 (line feed)       |
+| \t                | ASCII  9 (horizontal tab)  |
+| \e                | ASCII 61 (equals sign)     |
++-------------------+----------------------------+
+
+There is a field for creation time. This allows the server to
+parse the rest of the properties while knowing the time the
+channel being introduced was created. In a netsplit, servers
+should ignore NPROPs if the creation time is newer than the
+creation time that they have locally.
+
+All properties should be sent, even if the properties are
+null (if the property is null, PROPERTY= should be sent). The
+only properties that do not need to be sent are CREATION, OID,
+and NAME.
+
+Here are some examples, using SOME of the properties (using
+all of them in an example would be a waste of space).
+
+Topic is "cheese pizza =)", ownerkey is "bacon", language is
+"xx-klingon", and OID is 0.
+:irc.ignition-project.com NPROP #Star_Trek 1092602125 0 :TOPIC=cheese\bpizza\b\e) OWNERKEY=bacon LANGUAGE=xx-klingon (and so on)
+
+All properties are null.
+:irc.ignition-project.com NPROP #NullProp 1092601234 0 :TOPIC= OWNERKEY= HOSTKEY= LANGUAGE= MEMBERKEY= (and so on)
+
+This command should NOT be allowed from clients who are not
+servers. The server should just ignore the command, or return
+an error (unknown command?).

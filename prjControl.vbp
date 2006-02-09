@@ -1,5 +1,5 @@
 Type=Exe
-Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#..\..\..\..\..\WINDOWS\system32\stdole2.tlb#OLE Automation
+Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#..\..\..\..\..\WINDOWS\System32\stdole2.tlb#OLE Automation
 Module=modMain; control\modMain.bas
 Class=clsSox; control\clsSox.cls
 Module=modSox; control\modSox.bas
@@ -15,7 +15,7 @@ Description="ignitionServer Command Line Controller"
 CompatibleMode="0"
 MajorVer=0
 MinorVer=3
-RevisionVer=4
+RevisionVer=5
 AutoIncrementVer=0
 ServerSupportFiles=0
 VersionCompanyName="The Ignition Project"

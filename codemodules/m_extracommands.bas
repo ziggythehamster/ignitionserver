@@ -14,7 +14,7 @@ Attribute VB_Name = "m_extracommands"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: m_extracommands.bas,v 1.10 2004/07/25 23:00:25 ziggythehamster Exp $
+' $Id: m_extracommands.bas,v 1.15 2004/09/12 19:18:13 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -54,12 +54,12 @@ If Len(parv(1)) = 0 Then
   Exit Function
 End If
 Set Chan = Channels(parv(0))
-If parv(1) = Chan.Prop_Ownerkey And Len(Chan.Prop_Ownerkey) > 0 Then
+If UTF8_Unescape(parv(1)) = Chan.Prop_Ownerkey And Len(Chan.Prop_Ownerkey) > 0 Then
     Chan.Member.Item(cptr.Nick).IsOwner = True
     SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +q " & cptr.Nick, 0
     SendToServer "MODE " & Chan.Name & " +q " & cptr.Nick, cptr.Nick
 End If
-If parv(1) = Chan.Prop_Hostkey And Len(Chan.Prop_Hostkey) > 0 And Chan.Member.Item(cptr.Nick).IsOwner = False Then
+If UTF8_Unescape(parv(1)) = Chan.Prop_Hostkey And Len(Chan.Prop_Hostkey) > 0 And Chan.Member.Item(cptr.Nick).IsOwner = False Then
     Chan.Member.Item(cptr.Nick).IsOp = True
     SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +o " & cptr.Nick, 0
     SendToServer "MODE " & Chan.Name & " +o " & cptr.Nick, cptr.Nick
@@ -124,24 +124,24 @@ SendSvrMsg "*** " & cptr.Nick & " changed the nickname of " & tmpNick & " to " &
 'now to do the standard nick change -z
 Dim AllVisible As New Collection
 Dim NickX As Long
-Dim I As Integer
+Dim i As Integer
 ReDim RecvArr(1)
 'notify channels -z
 For NickX = 1 To User.OnChannels.Count
   Members = User.OnChannels.Item(NickX).Member.Values
-  For I = LBound(Members) To UBound(Members)
-    If Members(I).Member.Hops = 0 Then
-      If Not Members(I).Member Is User Then
+  For i = LBound(Members) To UBound(Members)
+    If Members(i).Member.Hops = 0 Then
+      If Not Members(i).Member Is User Then
         On Local Error Resume Next
-        AllVisible.Add Members(I).Member.index, CStr(Members(I).Member.index)
+        AllVisible.Add Members(i).Member.index, CStr(Members(i).Member.index)
       End If
     End If
-  Next I
+  Next i
 Next NickX
-For I = 1 To AllVisible.Count
+For i = 1 To AllVisible.Count
   'send notificaiton -z
-  Call SendWsock(AllVisible(I), "NICK", parv(1), tmpPrefix)
-Next I
+  Call SendWsock(AllVisible(i), "NICK", parv(1), tmpPrefix)
+Next i
 SendToServer "NICK :" & parv(1), tmpNick
 SendWsock User.index, "NICK", parv(1), tmpPrefix
 
@@ -228,7 +228,7 @@ If Len(parv(0)) = 0 Then
     SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "MDIE")
     Exit Function
 End If
-If cptr.IP <> "127.0.0.1" Then
+If cptr.IP <> MonitorIP Then
   SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
   Exit Function
 End If
@@ -244,16 +244,90 @@ Input #F, ID
 Close #F
 
 If parv(0) = ID Then
-    Dim I As Long   'close all connection properly -Dill
-    For I = 1 To UBound(Users)
-        If Not Users(I) Is Nothing Then
-            SendWsock I, "NOTICE " & Users(I).Nick, SPrefix & " is quitting."
-            Sockets.CloseIt I
-            m_error Users(I), "Closing Link: (" & ServerName & " is quitting)"
+    Dim i As Long   'close all connection properly -Dill
+    For i = 1 To UBound(Users)
+        If Not Users(i) Is Nothing Then
+            SendWsock i, "NOTICE " & Users(i).Nick, SPrefix & " is quitting."
+            Sockets.CloseIt i
+            m_error Users(i), "Closing Link: (" & ServerName & " is quitting)"
         End If
-    Next I
+    Next i
     Kill App.Path & "\monitor.id" '// prevent exploitation if it ever occurs -zg
     Terminate
+Else
+    SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+    Exit Function
+End If
+End Function
+Public Function m_mrestart(cptr As clsClient, sptr As clsClient, parv$()) As Long
+#If Debugging = 1 Then
+SendSvrMsg "*** Notice -- MRESTART called! (" & cptr.Nick & ")"
+#End If
+On Error Resume Next
+If Len(parv(0)) = 0 Then
+    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "MRESTART")
+    Exit Function
+End If
+If cptr.IP <> MonitorIP Then
+  SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+  Exit Function
+End If
+Dim ID As Long
+Dim F As Long
+F = FreeFile
+If Dir(App.Path & "\monitor.id") = vbNullString Then
+  SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+  Exit Function
+End If
+Open App.Path & "\monitor.id" For Input As #F
+Input #F, ID
+Close #F
+
+If parv(0) = ID Then
+    Dim i As Long   'close all connection properly -Dill
+    For i = 1 To UBound(Users)
+        If Not Users(i) Is Nothing Then
+            SendWsock i, "NOTICE " & Users(i).Nick, SPrefix & " is restarting."
+            Sockets.CloseIt i
+            m_error Users(i), "Closing Link: (" & ServerName & " is restarting)"
+        End If
+    Next i
+    Kill App.Path & "\monitor.id" '// prevent exploitation if it ever occurs -zg
+    Terminate False: Main
+Else
+    SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+    Exit Function
+End If
+End Function
+Public Function m_mrehash(cptr As clsClient, sptr As clsClient, parv$()) As Long
+#If Debugging = 1 Then
+SendSvrMsg "*** Notice -- MREHASH called! (" & cptr.Nick & ")"
+#End If
+On Error Resume Next
+If Len(parv(0)) = 0 Then
+    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "MREHASH")
+    Exit Function
+End If
+If cptr.IP <> MonitorIP Then
+  SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+  Exit Function
+End If
+Dim ID As Long
+Dim F As Long
+F = FreeFile
+If Dir(App.Path & "\monitor.id") = vbNullString Then
+  SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+  Exit Function
+End If
+Open App.Path & "\monitor.id" For Input As #F
+Input #F, ID
+Close #F
+
+If parv(0) = ID Then
+    Rehash vbNullString
+    Kill App.Path & "\monitor.id" '// prevent exploitation if it ever occurs -zg
+    m_error cptr, "Closing Link: (Rehash Successful)"
+    SendSvrMsg "*** Notice -- " & ServerName & " has rehashed on the request of the administrator"
 Else
     SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
     Exit Function

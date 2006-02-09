@@ -16,10 +16,10 @@
 ; HM NIS Edit Wizard helper defines
 SetCompressor lzma
 !define PRODUCT_NAME "ignitionServer"
-!define PRODUCT_VERSION "0.3.4"
+!define PRODUCT_VERSION "0.3.5"
 !define PRODUCT_VERSION_MAJOR "0"
 !define PRODUCT_VERSION_MINOR "3"
-!define PRODUCT_VERSION_REVISION "4"
+!define PRODUCT_VERSION_REVISION "5"
 !define PRODUCT_PUBLISHER "The Ignition Project"
 !define PRODUCT_WEB_SITE "http://www.ignition-project.com/"
 !define PRODUCT_DOCUMENTATION "http://www.ignition-project.com/ignition/server/docs/"
@@ -168,7 +168,7 @@ Section -Post
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLUpdateInfo" "http://www.ignition-project.com/ignition/server/"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "HelpLink" "http://forums.ignition-project.com/"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "HelpLink" "http://www.ignition-project.com/forum/"
   WriteRegDWORD ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "VersionMajor" "${PRODUCT_VERSION_MAJOR}"
   WriteRegDWORD ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "VersionMinor" "${PRODUCT_VERSION_MINOR}"
   WriteRegDWORD ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "VersionRevision" "${PRODUCT_VERSION_REVISION}" ; in case of future Windows updates :P

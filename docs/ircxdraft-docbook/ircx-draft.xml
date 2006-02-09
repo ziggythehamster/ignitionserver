@@ -624,8 +624,8 @@
          </section>
          <section><title>Possible Errors</title>
             <para>
-               ERR_CHANNELEXIST<sbr />
-               ERR_ALREADYONCHANNEL<sbr />
+               IRCERR_CHANNELEXIST<sbr />
+               IRCERR_ALREADYONCHANNEL<sbr />
                ERR_NEEDMOREPARAMS<sbr />
                ERR_INVITEONLYCHAN<sbr />
                ERR_CHANNELISFULL<sbr />
@@ -2180,7 +2180,317 @@
                list of current events that the client is interested in.
             </para>
          </section>
+         <section><title>810 - IRCRPL_EVENTEND</title>
+            <para><synopsis>:End of events</synopsis></para>
+            <para>
+               Response to the EVENT LIST <token>&lt;event&gt;</token> message that indicates the
+               end of the event list.
+            </para>
+         </section>
+         <section><title>811 - IRCRPL_LISTXSTART</title>
+            <para><synopsis>:Start of ListX</synopsis></para>
+            <para>
+               First reply to a LISTX (extended list) command.  Will always
+               be followed by a reply of type 812, 816 or 817.
+            </para>
+         </section>
+         <section><title>812 - IRCRPL_LISTXLIST</title>
+            <para><synopsis>&lt;channel&gt; &lt;modes&gt; &lt;members&gt; &lt;member limit&gt; :&lt;topic&gt;</synopsis></para>
+            <para>
+               Single list item in an extended list of channels. The
+               <token>&lt;channel&gt;</token> is the name of the channel in the list. The <token>&lt;modes&gt;</token>
+               specify the current modes set on the channel.  <token>&lt;members&gt;</token> lists
+               the members currently in the channel. <token>&lt;member limit&gt;</token> returns
+               the member limit of the channel.  <token>&lt;topic&gt;</token> returns the topic of
+               the channel.
+            </para>
+         </section>
+         <section><title>813 - IRCRPL_LISTXPICS</title>
+            <para><synopsis>:&lt;PICS-rating&gt;</synopsis></para>
+            <para>
+               PICS rating string for the last channel listed (follows an 812
+               message).
+            </para>
+         </section>
+         <section><title>816 - IRCRPL_LISTXTRUNC</title>
+            <para><synopsis>:Truncation of ListX</synopsis></para>
+            <para>
+               Last reply to a LISTX command, either because the user asked
+               for a limited list of channels or because the server truncated
+               the list to prevent output flooding.  Always follows a reply
+               of type 811, 812 or 813.
+            </para>
+         </section>
+         <section><title>817 - IRCRPL_LISTXEND</title>
+            <para><synopsis>:End of ListX</synopsis></para>
+            <para>
+               Last reply to a LISTX command, indicating that the list has
+               ended.  Always follows a reply of type 811, 812 or 813.
+            </para>
+         </section>
+         <section><title>818 - IRCRPL_PROPLIST</title>
+            <para><synopsis>&lt;object&gt; &lt;property&gt; :&lt;value&gt;</synopsis></para>
+            <para>
+               A value in a property list. The <token>&lt;object&gt;</token> is the name of the
+               object (i.e., channel name).  The <token>&lt;property&gt;</token> is the property
+               in the list.  The <token>&lt;value&gt;</token> is the value of the property listed.
+            </para>
+         </section>
+         <section><title>819 - IRCRPL_PROPEND</title>
+            <para><synopsis>&lt;object&gt; :End of properties</synopsis></para>
+            <para>Last message in a property list.</para>
+         </section>
       </section>
+      <section><title>IRCX Error Replies</title>
+         <section><title>900 - IRCERR_BADCOMMAND</title>
+            <para><synopsis>&lt;command&gt; :Bad command</synopsis></para>
+            <para>Response to an incorrectly formatted command.</para>
+         </section>
+         <section><title>901 - IRCERR_TOOMANYARGUMENTS</title>
+            <para><synopsis>&lt;command&gt; :Too many arguments</synopsis></para>
+            <para>Response to too many arguments being provided for a command.</para>
+         </section>
+         <section><title>902 - IRCERR_BADFUNCTION</title>
+            <para><synopsis>&lt;command&gt; :Bad function</synopsis></para>
+            <para>
+               Response to a command that supports functions, with invalid
+               function sent by the user.  For example, the EVENT command
+               supports functions.
+            </para>
+         </section>
+         <section><title>903 - IRCERR_BADLEVEL</title>
+            <para><synopsis>&lt;command&gt; :Bad level</synopsis></para>
+            <para>
+               Response to an ACCESS command with a bad level specified (i.e.
+               not GRANT, DENY...)
+            </para>
+         </section>
+         <section><title>904 - IRCERR_BADTAG</title>
+            <para><synopsis>&lt;command&gt; :Bad message tag.</synopsis></para>
+            <para>
+               Response to a DATA/REQUEST/REPLY with an incorrect message
+               tag.
+            </para>
+         </section>
+         <section><title>905 - IRCERR_BADPROPERTY</title>
+            <para><synopsis>&lt;channel&gt; :Bad property specified</synopsis></para>
+            <para>
+               Response to a channel property command with a bad property
+               specified.
+            </para>
+         </section>
+         <section><title>906 - IRCERR_BADVALUE</title>
+            <para><synopsis>&lt;channel&gt; :Bad value specified</synopsis></para>
+            <para>
+               Response to an attempt to set an integer property to a string
+               value (PROP command).
+            </para>
+         </section>
+         <section><title>907 - IRCERR_RESOURCE</title>
+            <para><synopsis>:Not enough resources</synopsis></para>
+            <para>Server does not have enough resources to perform command.</para>
+         </section>
+         <section><title>908 - IRCERR_SECURITY</title>
+            <para><synopsis>:No permissions to perform command</synopsis></para>
+            <para>
+               For security reasons, the command/function/operation is not
+               permitted for this level of client.
+            </para>
+         </section>
+         <section><title>909 - IRCERR_ALREADYAUTHENTICATED</title>
+            <para><synopsis>&lt;package&gt; :Already authenticated</synopsis></para>
+            <para>The client is already authenticated with the server.</para>
+         </section>
+         <section><title>910 - IRCERR_AUTHENTICATIONFAILED</title>
+            <para><synopsis>&lt;package&gt; :Authentication failed</synopsis></para>
+            <para>
+               The authentication failed due to a bad userid/password or
+               server/network failure.
+            </para>
+         </section>
+         <section><title>911 - IRCERR_AUTHENTICATIONSUSPENDED</title>
+            <para><synopsis>&lt;package&gt; :Authentication suspended for this IP</synopsis></para>
+            <para>
+               Authentication has been temporary disabled due to too many
+               authentication failures from this IP.
+            </para>
+         </section>
+         <section><title>912 - IRCERR_UNKNOWNPACKAGE</title>
+            <para><synopsis>&lt;package&gt; :Unsupported authentication package</synopsis></para>
+            <para>
+               The authentication package specified is not known to the
+               server.  ISIRCX command will return a list of supported
+               authentication packages.
+            </para>
+         </section>
+         <section><title>913 - IRCERR_NOACCESS</title>
+            <para><synopsis>&lt;command&gt; :No access</synopsis></para>
+            <para>
+               Response to a user trying to change the ACCESS list for an
+               object the user does not have sufficient privileges to alter.
+            </para>
+         </section>
+         <section><title>914 - IRCERR_DUPACCESS</title>
+            <para><synopsis>:Duplicate access entry</synopsis></para>
+            <para>An access entry already exists for the specified user mask.</para>
+         </section>
+         <section><title>915 - IRCERR_MISACCESS</title>
+            <para><synopsis>:Unknown access entry</synopsis></para>
+            <para>
+               Response to ACCESS DELETE command when server does not
+               recognize the entry to be removed.
+            </para>
+         </section>
+         <section><title>916 - IRCERR_TOOMANYACCESSES</title>
+            <para><synopsis>:Too many access entries</synopsis></para>
+            <para>
+               Response to ACCESS ADD command when maximum number of access
+               entries has been reached.
+            </para>
+         </section>
+         <section><title>918 - IRCERR_EVENTDUP</title>
+            <para><synopsis>&lt;event&gt; &lt;mask&gt; :Duplicate event entry</synopsis></para>
+            <para>The user has asked for an event that is already being sent.</para>
+         </section>
+         <section><title>919 - IRCERR_EVENTMIS</title>
+            <para><synopsis>&lt;event&gt; &lt;mask&gt; :Unknown event entry</synopsis></para>
+            <para>
+               Response to event remove command when user is not already
+               receiving the event specified.
+            </para>
+         </section>
+         <section><title>920 - IRCERR_NOSUCHEVENT</title>
+            <para><synopsis>&lt;event&gt; :No such event type</synopsis></para>
+            <para>
+               Response to event add command when server does not recognize
+               the event specified.
+            </para>
+         </section>
+         <section><title>921 - IRCERR_TOOMANYEVENTS</title>
+            <para><synopsis>&lt;event&gt; :Too many events specified</synopsis></para>
+            <para>
+               Response to event add command when user may not add another
+               event to monitor.
+            </para>
+         </section>
+         <section><title>923 - IRCERR_NOWHISPER</title>
+            <para><synopsis>&lt;object&gt; :Does not permit whispers</synopsis></para>
+            <para>
+               Response to whisper command when channel does not permit
+               whispers.
+            </para>
+         </section>
+         <section><title>926 - IRCERR_CHANNELEXIST</title>
+            <para><synopsis>&lt;channel&gt; :Channel already exists.</synopsis></para>
+            <para>
+               The channel name in the CREATE command already exists on the
+               server and the +c mode was specified.
+            </para>
+         </section>
+         <section><title>927 - IRCERR_ALREADYONCHANNEL</title>
+            <para><synopsis>&lt;channel&gt; :Already in the channel.</synopsis></para>
+            <para>Response to join command when user is already in the channel.</para>
+         </section>
+         <section><title>999 - IRCERR_UNKNOWNERROR</title>
+            <para><synopsis>:Unknown error code &lt;error-code&gt;</synopsis></para>
+            <para>
+               The internal error generated doesn't map to a valid IRCX error
+               reply.  The error code is implementation-dependent.
+            </para>
+         </section>
+      </section>
+   </chapter>
+   <chapter><title>Security Considerations</title>
+      <para>
+         Security issues are also discussed in the authentication
+         section.
+      </para>
+      <para>
+         The IRCX and ISIRCX commands return a set of authentication
+         mechanisms supported by the server. This method is open to a
+         middle man attack whereby an attacker modifies the list of
+         returned authentication methods and only offers a clear-text
+         password  transaction.  In  order to avoid this type of
+         attack, only authentication methods with a challenge response
+         mechanism should be used.
+      </para>
+      <para>
+         Since all administration commands for RFC1459 and IRCX are
+         sent in clear text, a stream layer encryption mechanism like
+         SSL[5] or IPSEC is required to protect the integrity and
+         confidentiality of the transactions.  The mechanisms for
+         establishing these connection are outside the scope of this
+         document.
+      </para>
+   </chapter>
+   <chapter><title>Acknowledgements</title>
+      <para>
+         Specific acknowledgments must be extended to the following
+         people as the editors of the previous versions:
+      </para>
+      <para>
+         Kent Cedola, Lisa Dusseault, and Thomas Pfenning
+      </para>
+      <para>
+         In addition it has benefited from many rounds of review and
+         comments. As so, any list of contributors is bound to be
+         incomplete; please regard the following as only a selection
+         from the group of people who have contributed to make this
+         document what it is today.
+      </para>
+      <para>
+         In alphabetical order:
+      </para>
+      <para>
+         Josh Cohen, Alex Hoppman, David Kurlander, Robert Uttecht, and
+         Teoman Smith
+      </para>
+      <note><title>Editor's Note</title>
+         <para>As the unofficial editor of this draft, I wish to thank Dalen Abraham for
+               adding to and improving this draft.</para>
+      </note>
+   </chapter>
+   <chapter><title>References</title>
+      <para>
+         [1] "Internet Relay Chat Protocol", Network Working Group RFC
+         1459, J. Oikarinen, D. Reed, May 1993
+      </para>
+      <para>
+         [2]  The Unicode Consortium, "The Unicode Standard Version
+         2.0", Addison Wesley Developers Press, July 1996
+      </para>
+      <para>
+         [3] "INTERNET MESSAGE ACCESS PROTOCOL - VERSION 4rev1",
+         Network  Working Group RFC 2060, M. Crispin, December 1996
+      </para>
+      <para>
+         [4] "Simple Authentication and Security Layer (SASL)", Work
+         in Progress, draft-myers-auth-sasl-07.txt, J. Myers, December
+         1996
+      </para>
+      <para>
+         [5] "The SSL Protocol Version 3.0", Work in Progress, draft-
+         ietf-tls-ssl-version3-00.txt, Alan O. Freier, Philip Karlton,
+         Paul C. Kocher, November 1996
+      </para>
+      <para>
+         [6] "Tags for the Identification of Languages", Network
+         Working Group RFC 1766, H. Alvestrand, March 1995
+      </para>
+   </chapter>
+   <chapter><title>Authors' Addresses</title>
+      <para>
+         Dalen Abraham<sbr />
+         Microsoft Corporation<sbr />
+         One Microsoft Way<sbr />
+         Redmond, WA 98052<sbr />
+         EMail: dalena at microsoft dot com
+      </para>
+      <para>
+         Keith Gable<sbr />
+         The Ignition Project<sbr />
+         EMail: ziggy at ignition-project dot com
+      </para>
    </chapter>
    <!-- this goes at the end -->
    <appendix id="gfdl">

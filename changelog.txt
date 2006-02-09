@@ -6,7 +6,7 @@
 # DG = DigiGuy (digi_guy@users.sourceforge.net)
 # AW = Airwalk (airwalk@ignition-project.com)
 #
-# $Id: changelog.txt,v 1.148 2004/08/13 00:35:08 ziggythehamster Exp $
+# $Id: changelog.txt,v 1.190 2004/10/09 23:09:05 ziggythehamster Exp $
 #
 ### Project Start ###
 #
@@ -566,3 +566,71 @@ Zg - [12-Aug] - Removed X:CREATEMODE from the config files and stuff because /cr
 Zg - [12-Aug] - Updated the MigWiz Config Template
 Zg - [12-Aug] - Updated Release Notes too
 Zg - [13-Aug] - ignitionServer's currently passing QA tests, time to take -cvs from the name
+#
+### RELEASE - 0.3.4 - BETA 4 ###
+#
+Zg - [14-Aug] - Finished IRCX draft DocBook! Whee!
+Zg - [14-Aug] - Fixed bug #1007675 (CREATE is entirely wrong)
+Zg - [14-Aug] - Removed X:CREATEMODE from ignitionServer, it no longer has a purpose
+Zg - [14-Aug] - Reformatted the config file slightly
+Zg - [14-Aug] - Added B: lines to the config file -- planned feature
+Zg - [15-Aug] - Reverted back to C: and N: lines
+Zg - [15-Aug] - Linking is now working beautifully (need to do some tweaks here and there, but at least the servers don't attack eachother :))
+Zg - [15-Aug] - Fixed bug #1006680 (complete linking failure)
+Zg - [15-Aug] - Devel-doc for new command NPROP
+Zg - [20-Aug] - All KILL messages coming from clients are now in quotes -- so server kills can't be faked (such as nickname collision)
+Zg - [20-Aug] - Fixed bug #1001732 (no nick collision detection while linking)
+Zg - [21-Aug] - Added some "proper" ServerTraffic code -- it should be much more accurate. Still needs work.
+Zg - [21-Aug] - Added RFC1459 to the 005 token list
+Zg - [22-Aug] - Changed code that generates GUIDs -- the GUIDs are now Windows style GUIDs
+Zg - [22-Aug] - Channels now have GUIDs, and a GUID property (which is read like the OID property)
+Zg - [22-Aug] - Added B: lines (and they're working :))
+Zg - [24-Aug] - Recent talks in #ignition-project warrant a readme update
+Zg - [25-Aug] - Fixed bug #1015181 (Max Local/Global is inaccurate)
+Zg - [25-Aug] - Updated a security bulletin that had wrong instructions
+Zg - [26-Aug] - Fixed bug #1016496 (USER.NICK shows wrong nickname)
+Zg - [26-Aug] - Fixed bug #1016500 (NICK changes don't have a hostname)
+Zg - [27-Aug] - I think I've implemented all of ircx.conf into ignitionserver.xml. Maybe not B: lines, yet...
+Zg - [4-Sep] - NPROP support is half done. Someone make sure that properties don't get "corrupted" (topics should be unescaped, for example)
+Zg - [5-Sep] - And some code for NPROP!
+Zg - [5-Sep] - Cleared release notes
+Zg - [5-Sep] - Added code to IRCxCore for NPROP to work
+Zg - [5-Sep] - TODO: Store stat data for more commands (NPROP/NJOIN are examples)
+Zg - [8-Sep] - Completed feature request #1016952 (NPROP instead of 10 PROPs -- needs testing though)
+Zg - [8-Sep] - Fixed bug #997723 (ServerTraffic is slightly off)
+Zg - [11-Sep] - LISTX flags! Well, sort of. I haven't tested them yet.
+Zg - [11-Sep] - Actually, LISTX appears to be properly working now! Yay for us :)
+Zg - [11-Sep] - ..and do LISTX comma-seperated channel searching thing
+Zg - [11-Sep] - And support query limiting...
+Zg - [11-Sep] - Completed task #93216 (LISTX flags)
+Zg - [11-Sep] - Completed feature request #1016948 (X:CREATEMODE)
+Zg - [11-Sep] - Some documentation work
+Zg - [12-Sep] - Updated the license a bit (using an XHTML version of their docbook for the HTML version, redid the RTF)
+Zg - [12-Sep] - Updated the installer
+Zg - [12-Sep] - Updated command line controller with new, more efficient code
+Zg - [12-Sep] - Added restart to command line controller.
+Zg - [12-Sep] - Updated monitor to have a restart button
+Zg - [12-Sep] - Added monitor support for rehash
+Zg - [12-Sep] - Fixed a small MREHASH bug
+Zg - [12-Sep] - Fixed bug #1026533 (control.exe needs rewrite)
+Zg - [12-Sep] - Fixed bug #1026739 (monitor needs to stop using MSWINSCK.OCX)
+Zg - [12-Sep] - Removed OLE Automation from monitor -- don't use it, and it's much faster now.
+Zg - [12-Sep] - Fixed bug #1026823 (need X:MONITORIP for Server 2003 users)
+Zg - [13-Sep] - Added a warning to the m_nick code used to verify the password. It now yells at you if you've made a really stupid mistake in ircx.conf.
+Zg - [13-Sep] - Worked on release notes a little bit.
+Zg - [23-Sep] - Fixed bug #1026974 (make B: lines use 010 reply)
+Zg - [23-Sep] - Fixed possible buffer overrun bug
+Zg - [23-Sep] - Fixed some problems with bad B: line replies
+Zg - [23-Sep] - Updated release notes.
+Zg - [24-Sep] - Release notes again...
+Zg - [25-Sep] - Working static channels!
+Zg - [25-Sep] - Fixed possible bug where users could make channels they're parting cease to exist
+Zg - [25-Sep] - Completed feature request #1016956 (X:STATICCHAN)
+Zg - [1-Oct] - Added some compile-time stuff that allows you to change the symbol used to denote user levels. Mainly for advanced users, or users who might want to make owners and hosts both show as @. Someone needs to look over the code and make sure I didn't miss any spots.
+Zg - [9-Oct] - Fixed bug #1043391 (Cannot kick hosts)
+Zg - [9-Oct] - Oops, update release notes.
+Zg - [9-Oct] - Also, remove those awful B: line defaults from ircx.conf.
+Zg - [9-Oct] - Removed -cvs token for release
+Zg - [9-Oct] - Installer tweak
+Zg - [9-Oct] - Also a good idea to set X:DIE to 1 :)
+Zg - [9-Oct] - And a much better idea to remove the default static channels

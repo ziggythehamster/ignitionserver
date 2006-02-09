@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_NativeFunctions"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_NativeFunctions.bas,v 1.18 2004/07/20 22:11:43 ziggythehamster Exp $
+' $Id: mod_NativeFunctions.bas,v 1.21 2004/09/11 22:02:37 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -75,7 +75,7 @@ Public Function GetStats(Nick As String, AccessLvl As Long, Flag As String, Opti
 #If Debugging = 1 Then
     SendSvrMsg "GETSTATS called! (" & Flag & ")"
 #End If
-Dim CurUT&, I&, x&
+Dim CurUT&, i&, x&
 Dim TempIsGlobOper As Boolean
 Select Case Flag
     'list all oline hosts and ids -Dill
@@ -131,9 +131,9 @@ Select Case Flag
         Dim Links() As clsClient
         Links = Servers.Values
         If Not Links(0) Is Nothing Then
-          For I = 0 To UBound(Links)
-            GetStats = GetStats & SPrefix & " " & RPL_STATSLINKINFO & " " & Nick & " " & Links(I).ServerName & " " & Len(Links(I).SendQ) & vbCrLf
-          Next I
+          For i = 0 To UBound(Links)
+            GetStats = GetStats & SPrefix & " " & RPL_STATSLINKINFO & " " & Nick & " " & Links(i).ServerName & " " & Len(Links(i).SendQ) & vbCrLf
+          Next i
         End If
     'Send current uptime -Dill
     Case "u"
@@ -220,12 +220,12 @@ Public Sub SendSvrMsg(Msg As String, Optional Glob As Boolean = False, Optional 
 If ServerMsg.Count = 0 Then Exit Sub
 If Len(Origin) = 0 Then Origin = ServerName
 On Error Resume Next
-Dim I As Long, Recv() As clsClient
+Dim i As Long, Recv() As clsClient
 Recv = ServerMsg.Values
 If Recv(0) Is Nothing Then Exit Sub
-For I = LBound(Recv) To UBound(Recv)
-    SendWsock Recv(I).index, "NOTICE " & Recv(I).Nick, ":" & Msg, ":" & Origin
-Next I
+For i = LBound(Recv) To UBound(Recv)
+    SendWsock Recv(i).index, "NOTICE " & Recv(i).Nick, ":" & Msg, ":" & Origin
+Next i
 If Glob Then SendToServer "GNOTICE :" & Msg, Origin
 End Sub
 Public Sub SendWallOp(Msg As String, Origin As String, Optional Glob As Boolean = True)
@@ -236,14 +236,14 @@ Public Sub SendWallOp(Msg As String, Origin As String, Optional Glob As Boolean 
 If WallOps.Count = 0 Then Exit Sub
 If Len(Origin) = 0 Then Origin = ServerName
 On Error Resume Next
-Dim I As Long, Recv() As clsClient
+Dim i As Long, Recv() As clsClient
 Recv = WallOps.Values
 
 If Recv(0) Is Nothing Then Exit Sub
 
-For I = LBound(Recv) To UBound(Recv)
-    SendWsock Recv(I).index, "WALLOPS", ":" & Msg, ":" & Origin
-Next I
+For i = LBound(Recv) To UBound(Recv)
+    SendWsock Recv(i).index, "WALLOPS", ":" & Msg, ":" & Origin
+Next i
 
 'notify servers!
 If Glob = True Then SendToServer "WALLOPS :" & Msg, Origin
@@ -260,12 +260,12 @@ Close #F
 If ServerMsg.Count = 0 Then Exit Sub
 If Len(Origin) = 0 Then Origin = ServerName
 On Error Resume Next
-Dim I As Long, Recv() As clsClient
+Dim i As Long, Recv() As clsClient
 Recv = ServerMsg.Values
 If Recv(0) Is Nothing Then Exit Sub
-For I = LBound(Recv) To UBound(Recv)
-    SendWsock Recv(I).index, "NOTICE " & Recv(I).Nick, ":" & Msg, ":" & Origin
-Next I
+For i = LBound(Recv) To UBound(Recv)
+    SendWsock Recv(i).index, "NOTICE " & Recv(i).Nick, ":" & Msg, ":" & Origin
+Next i
 If Glob Then SendToServer "GNOTICE :" & Msg, Origin
 End Sub
 
@@ -281,16 +281,16 @@ Public Function GetServer(Mask$) As clsClient
 #If Debugging = 1 Then
     SendSvrMsg "GETSERVER called! (" & Mask & ")"
 #End If
-Dim I&, ClientVal() As clsClient
+Dim i&, ClientVal() As clsClient
 ClientVal = Servers.Values
-For I = LBound(ClientVal) To UBound(ClientVal)
-    If Not ClientVal(I).Hops = 0 Then
-        If ClientVal(I).ServerName Like Mask Then
-            Set GetServer = ClientVal(I)
+For i = LBound(ClientVal) To UBound(ClientVal)
+    If Not ClientVal(i).Hops = 0 Then
+        If ClientVal(i).ServerName Like Mask Then
+            Set GetServer = ClientVal(i)
             Exit Function
         End If
     End If
-Next I
+Next i
 End Function
 
 Public Function MakeNumber(strString As String) As Long
@@ -311,4 +311,46 @@ If Len(tmpNewString) > 0 Then
 Else
   MakeNumber = 0
 End If
+End Function
+Public Function UTF8_Unescape(strString As String, Optional EscapeEqualSpace As Boolean = False, Optional EscapeLISTX As Boolean = False) As String
+Dim tmpString As String
+tmpString = strString
+If EscapeEqualSpace Then tmpString = Replace(tmpString, "\b", " ")
+tmpString = Replace(tmpString, "\c", ",")
+tmpString = Replace(tmpString, "\r", vbCr)
+tmpString = Replace(tmpString, "\n", vbLf)
+tmpString = Replace(tmpString, "\t", Chr(9))
+If EscapeEqualSpace Then tmpString = Replace(tmpString, "\e", "=")
+If EscapeLISTX Then tmpString = Replace(tmpString, "\*", "*")
+If EscapeLISTX Then tmpString = Replace(tmpString, "\?", "?")
+tmpString = Replace(tmpString, "\\", "\")
+UTF8_Unescape = tmpString
+End Function
+Public Function UTF8_Escape(strString As String, Optional EscapeEqualSpace As Boolean = False, Optional EscapeLISTX As Boolean = False) As String
+'+-------------------+----------------------------+
+'| Escape Sequence   | Description                |
+'+-------------------+----------------------------+
+'| \b                | ASCII 32 (space)           |
+'| \c                | ASCII 44 (comma)           |
+'| \\                | ASCII 92 (backslash)       |
+'| \r                | ASCII 13 (carriage return) |
+'| \n                | ASCII 10 (line feed)       |
+'| \t                | ASCII  9 (horizontal tab)  |
+'| \e                | ASCII 61 (equals sign)     |
+'+-------------------+----------------------------+
+'| \*                | *                          |
+'| \?                | ?                          |
+'+-------------------+----------------------------+
+Dim tmpString As String
+tmpString = strString
+tmpString = Replace(tmpString, "\", "\\")
+tmpString = Replace(tmpString, ",", "\c")
+tmpString = Replace(tmpString, vbCr, "\r")
+tmpString = Replace(tmpString, vbLf, "\n")
+tmpString = Replace(tmpString, Chr(9), "\t")
+If EscapeEqualSpace Then tmpString = Replace(tmpString, "=", "\e")
+If EscapeEqualSpace Then tmpString = Replace(tmpString, " ", "\b")
+If EscapeLISTX Then tmpString = Replace(tmpString, "*", "\*")
+If EscapeLISTX Then tmpString = Replace(tmpString, "?", "\?")
+UTF8_Escape = tmpString
 End Function

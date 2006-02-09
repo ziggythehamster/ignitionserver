@@ -16,7 +16,7 @@ same line, etc. All comments are enclosed
 with characters like this comment block is.
 It shouldn't be too hard to figure out :).
 
-P.S. DON'T FORGET! Remove the <die /> line,
+P.S. DON'T FORGET! Set the "die" option line,
 or else your server will say it's misconfigured!
 -->
    <core>
@@ -382,7 +382,7 @@ or else your server will say it's misconfigured!
       Description of Fields:
       hostmask: a mask of the host to kill
       message: the message to kill the user with
-      identmask: a mask of the ident of the user -- for example, you could kline a user with
+      identmask: a mask of the ident of the user - for example, you could kline a user with
                  an ident matching that of a known clonebot.
                  
       Examples:
@@ -410,4 +410,53 @@ or else your server will say it's misconfigured!
       <zline ipmask="*" message="Go away." /> - bans everybody on connection
       -->
    </zlines>
+   <options>
+      <!--
+      ignitionServer Generic Options
+      ==============================
+      
+      These are options that cannot be categorized elsewhere. Values depend on the setting.
+      Compare to "classic" X: lines.
+      -->
+      <!-- Die: Prevent the server from starting; requires you to at least look at this file -->
+      <!-- Set this to anything except 1. ANYTHING! You could set it to 0, or off, or monkey. I don't care, just not 1 -->
+      <option id="die" value="1" />
+      <!-- Offline Mode: Switch the server online or offline. 0 = normal operation, 1 = offline -->
+      <option id="offlinemode" value="0" />
+      <!-- Offline Message: The message to give users when the server is offline -->
+      <option id="offlinemessage" value="This server is under maintenance and offline." />
+      <!-- Custom Auth Notice: A custom message to give users when connecting. If null, no custom message is sent. -->
+      <option id="cnotice" value="Welcome to our IRC network, powered by ignitionServer: http://www.ignition-project.com/ignition/server/" />
+      <!-- DNS Masking, Operator Protection, and Encryption: Please see the security section -->
+      <!-- Server Location: Please see the core section -->
+      <!-- Allow Multiple Instances: [ADVANCED FEATURE] Allow ignitionServer to be started multiple times. This will break the monitor, and will require a lot of configuration checks on your part -->
+      <option id="allowmultiple" value="0" />
+      <!--
+         Gag Mode - Set how gag (usermode +z) functions
+         0 - Do not show the user getting gagged that they are getting gagged (IRCX defined method)
+         1 - Show the user getting gagged they are getting gagged
+         2 - Do not show the user getting gagged and do not bounce messages (the user will not see any messages bounce and will likely blame it on the server)
+      -->
+      <option id="gagmode" value="0" />
+      <!--
+         IRCX Method - Set how to send IRCX-specific raws
+         0 - Use "Transitional" compatibility, for replies that have an IRCX equavilent, send the RFC1459 reply
+         1 - Use "IRCX" compatibility, for replies that have an IRCX equavilent, send RFC1459 clients the RFC1459 reply and IRCX clients the IRCX reply
+         2 - Both, send both the IRCX reply and the RFC1459 reply to all clients. Ensures the most compatibility, but causes some IRCX-compatible clients to show messages twice (mIRC for example)
+         - NOTE -
+         When setting MODE +k, it will always get sent. In this case, only both and IRCX/Strict have an effect (when setting PROP MEMBERKEY, however, it is normal)           
+      -->
+      <option id="ircxmethod" value="0" />
+      <!--
+         Registered Channel Mode - Set whether or not registered channels are handled as persistant
+         0 - Registered channels always stay open
+         1 - Registered channels never stay open
+         2 - Registered channels with mode +R always stay open; all others do not
+      -->
+      <option id="regchanmode" value="0" />
+      <!-- Error Log: Critical errors are logged here. 0 = off, 1 = on -->
+      <option id="errorlog" value="1" />
+      <!-- Auto V: Host: Automatically give operators VHosts if a VHost exists with the same username and password as the oper. 0 = off, 1 = on. See README for more info -->
+      <option id="autovhost" value="1" />
+   </options>
 </ignitionserver>

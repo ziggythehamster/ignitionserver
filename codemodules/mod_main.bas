@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_main"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_main.bas,v 1.31 2004/08/08 21:14:32 ziggythehamster Exp $
+' $Id: mod_main.bas,v 1.41 2004/10/01 05:04:29 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -37,21 +37,43 @@ Public Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Public Declare Function Send Lib "wsock32.dll" Alias "send" (ByVal s As Long, buf As Any, ByVal buflen As Long, ByVal flags As Long) As Long
 Public Declare Function GetTickCount& Lib "kernel32" ()
 Private Declare Function CoCreateGuid Lib "ole32" (ID As Any) As Long
+Private Declare Function StringFromGUID2 Lib "ole32.dll" (rguid As Any, ByVal lpstrClsId As Long, ByVal cbMax As Long) As Long
 Private Bye As Boolean
+Private Type GUID
+    Data1 As Long
+    Data2 As Long
+    Data3 As Long
+    Data4(8) As Byte
+End Type
 #Const Debugging = 0 'enabling debugging here also turns on ircx.log
 #Const CanDie = 1
 #Const CanRestart = 1
 #Const EnableNonstandard = 0
 
 Public Function CreateGUID() As String
-#If Debugging = 1 Then
-    SendSvrMsg "CREATEGUID called!"
-#End If
-    Dim ID(0 To 15) As Byte, Cnt As Long
-    Call CoCreateGuid(ID(0))
-    For Cnt = 0 To 15
-        CreateGUID = CreateGUID & Hex$(ID(Cnt))
-    Next Cnt
+  #If Debugging = 1 Then
+      SendSvrMsg "CREATEGUID called!"
+  #End If
+  'This generates "Windows Style" GUIDs
+  'as opposed to the weird string of numbers that we were
+  'using. This might be slightly slower, but the GUIDs
+  'generated are "more random" in that there's more
+  'possible combinations. That, and they look a little bit
+  'better on the eyes.
+  Dim uGuid As GUID
+  Dim sGuid As String
+  Dim bGuid() As Byte
+  Dim lRet As Long
+  Dim lLen As Long
+  lLen = 40
+  bGuid = String(lLen, 0)
+  CoCreateGuid uGuid
+  lRet = StringFromGUID2(uGuid, VarPtr(bGuid(0)), lLen)
+  sGuid = bGuid
+  If (Asc(Mid$(sGuid, lRet, 1)) = 0) Then
+      lRet = lRet - 1
+  End If
+  CreateGUID = Left$(sGuid, lRet)
 End Function
 
 Public Sub Main()
@@ -92,7 +114,7 @@ ServerMsg.IgnoreCase = True
 WallOps.IgnoreCase = True
 
 Set Sockets = New clsSox
-Rehash vbNullString
+Rehash vbNullString, True
 If ErrorLog = True Then
   Open App.Path & "\errorlog.txt" For Append As F
   Print #F, "(" & Now & ") ignitionServer " & AppVersion & " loaded and ready to go."
@@ -123,7 +145,7 @@ On Error Resume Next
 'Release memory used by Channel and User/Server classes -Dill
 Erase Users: Channels.RemoveAll: GlobUsers.RemoveAll: Opers.RemoveAll
 'Realease Memory used by Configuration Types -Dill
-Erase ILine: Erase YLine: Erase ZLine: Erase KLine: Erase QLine: Erase OLine: Erase LLine ': Erase CLine - Coming Soon
+Erase ILine: Erase YLine: Erase ZLine: Erase KLine: Erase QLine: Erase OLine: Erase NLine: Erase CLine
 'reset ircd stats -Dill
 With IrcStat
     .Channels = 0
@@ -372,6 +394,7 @@ Do
     End If
     cmd = UCase$(cmd)
     cptr.LastAction = UnixTime
+    Dim A As Long
     Select Case cmd 'Process the command -Dill
         Case "PRIVMSG": Cmds.Privmsg = Cmds.Privmsg + 1: Cmds.PrivmsgBW = Cmds.PrivmsgBW + cmdLen
           If Not cptr.HasRegistered Then
@@ -517,6 +540,20 @@ Do
                         End If
                     End If
                     'generate User Logon event
+                    If Len(GetBLine(.RealHost).HostMask) > 0 Then
+                      Dim tmpRedirect As String
+                      tmpRedirect = DoBLine(.RealHost)
+                      tmpRedirect = Trim$(tmpRedirect)
+                      If .IsIRCX Then
+                        SendDirectRaw cptr, SPrefix & " REDIRECT " & tmpRedirect & vbCrLf
+                      End If
+                      If InStr(1, tmpRedirect, ",") = 0 Then tmpRedirect = tmpRedirect & ","
+                      SendDirectRaw cptr, SPrefix & " 010 " & .Nick & " " & Trim$(Split(Split(tmpRedirect, ",")(0), ":")(0)) & " " & Trim$(Split(Split(tmpRedirect, ",")(0), ":")(1)) & " :" & DoBLineMsg(.RealHost) & vbCrLf
+                      m_error cptr, "Closing Link: (""" & DoBLineMsg(.RealHost) & """)"
+                      'm_error cptr, "Redirect: (""" & DoBLineMsg(.RealHost) & """ (" & Split(tmpRedirect, " ")(0) & "))"
+                      KillStruct .Nick
+                      GoTo nextmsg
+                    End If
                     GenerateEvent "USER", "LOGON", .Nick & "!" & .User & "@" & .RealHost, .Nick & "!" & .User & "@" & .RealHost & " " & .IP & ":" & .RemotePort & " " & ServerLocalAddr & ":" & .LocalPort & " +"
                     SendWsock .index, SPrefix & " 001 " & .Nick & " :Welcome to the " & IRCNet & " IRC Network, " & .Nick & "!" & .User & "@" & .RealHost, vbNullString, , True
                     SendWsock .index, SPrefix & " 002 " & .Nick & " :Your host is " & ServerName & ", running version ignitionServer-" & AppVersion, vbNullString, , True
@@ -527,13 +564,15 @@ Do
                     End If
                     SendWsock .index, SPrefix & " 004 " & .Nick & " " & ServerName & " ignitionServer-" & AppVersion & " " & UserModes & " " & ChanModes, vbNullString, , True
                     If MaxChannelsPerUser > 0 Then
-                      SendWsock .index, SPrefix & " 005 " & .Nick & " IRCX CHANTYPES=# CHANLIMIT=#:" & MaxChannelsPerUser & " NICKLEN=" & NickLen & " PREFIX=(qov).@+ CHANMODES=" & ChanModesX & " NETWORK=" & Replace(IRCNet, " ", "_") & " CASEMAPPING=ascii CHARSET=ascii MAXTARGETS=5 MAXCLONES=" & MaxConnectionsPerIP & " :are supported by this server", vbNullString, , True
+                      SendWsock .index, SPrefix & " 005 " & .Nick & " IRCX CHANTYPES=# CHANLIMIT=#:" & MaxChannelsPerUser & " NICKLEN=" & NickLen & " PREFIX=(qov)" & Level_Owner & Level_Host & Level_Voice & " CHANMODES=" & ChanModesX & " NETWORK=" & Replace(IRCNet, " ", "_") & " CASEMAPPING=ascii CHARSET=ascii MAXTARGETS=5 MAXCLONES=" & MaxConnectionsPerIP & " RFC1459 :are supported by this server", vbNullString, , True
                     Else
-                      SendWsock .index, SPrefix & " 005 " & .Nick & " IRCX CHANTYPES=# NICKLEN=" & NickLen & " PREFIX=(qov).@+ CHANMODES=" & ChanModesX & " NETWORK=" & Replace(IRCNet, " ", "_") & " CASEMAPPING=ascii CHARSET=ascii MAXTARGETS=5 MAXCLONES=" & MaxConnectionsPerIP & " :are supported by this server", vbNullString, , True
+                      SendWsock .index, SPrefix & " 005 " & .Nick & " IRCX CHANTYPES=# NICKLEN=" & NickLen & " PREFIX=(qov)" & Level_Owner & Level_Host & Level_Voice & " CHANMODES=" & ChanModesX & " NETWORK=" & Replace(IRCNet, " ", "_") & " CASEMAPPING=ascii CHARSET=ascii MAXTARGETS=5 MAXCLONES=" & MaxConnectionsPerIP & " RFC1459 :are supported by this server", vbNullString, , True
                     End If
                     IrcStat.GlobUsers = IrcStat.GlobUsers + 1: IrcStat.LocUsers = IrcStat.LocUsers + 1
-                    If IrcStat.MaxGlobUsers < IrcStat.GlobUsers Then IrcStat.MaxGlobUsers = IrcStat.MaxGlobUsers + 1
-                    If IrcStat.MaxLocUsers < IrcStat.LocUsers Then IrcStat.MaxLocUsers = IrcStat.MaxLocUsers + 1
+                    'If IrcStat.MaxGlobUsers < IrcStat.GlobUsers Then IrcStat.MaxGlobUsers = IrcStat.MaxGlobUsers + 1
+                    'If IrcStat.MaxLocUsers < IrcStat.LocUsers Then IrcStat.MaxLocUsers = IrcStat.MaxLocUsers + 1
+                    If IrcStat.MaxGlobUsers < GlobUsers.Count Then IrcStat.MaxGlobUsers = GlobUsers.Count
+                    If IrcStat.MaxLocUsers < GlobUsers.m_LocCount Then IrcStat.MaxLocUsers = GlobUsers.m_LocCount
                     SendWsock .index, GetLusers(.Nick), vbNullString, , True
                     SendWsock .index, ReadMotd(.Nick), vbNullString, , True
                     .HasRegistered = True
@@ -547,6 +586,19 @@ Do
                     " " & .User & " " & .RealHost & " " & ServerName & " :" & .Name
                     .Prefix = ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host
                     .UpLink = ServerName
+                    Dim tmpParv(0) As String
+                    #If Debugging = 1 Then
+                      SendSvrMsg "cycling through autojoinchannels"
+                    #End If
+                    If Len(AutoJoinChannels(2)) > 0 Then
+                      For A = 2 To UBound(AutoJoinChannels)
+                        tmpParv(0) = AutoJoinChannels(A)
+                        #If Debugging = 1 Then
+                          SendSvrMsg "autojoinchannels[a]: " & tmpParv(0)
+                        #End If
+                        m_join cptr, sptr, tmpParv
+                      Next A
+                    End If
                   End If
                 End If
             End If
@@ -685,6 +737,8 @@ Do
           Call m_server(cptr, sptr, arglist)
         Case "NJOIN"
           Call m_njoin(cptr, sptr, arglist)
+        Case "NPROP"
+          Call m_nprop(cptr, sptr, arglist)
         Case "HELP": Cmds.Help = Cmds.Help + 1: Cmds.HelpBW = Cmds.HelpBW + cmdLen
           Call m_help(cptr, sptr, arglist(0))
         Case "IRCDHELP": Cmds.Help = Cmds.Help + 1: Cmds.HelpBW = Cmds.HelpBW + cmdLen
@@ -842,6 +896,10 @@ Do
             Call m_squit(cptr, sptr, arglist)
         Case "MDIE"
           Call m_mdie(cptr, sptr, arglist)
+        Case "MRESTART"
+          Call m_mrestart(cptr, sptr, arglist)
+        Case "MREHASH"
+          Call m_mrehash(cptr, sptr, arglist)
         Case "ERROR"
             If cptr.AccessLevel = 4 Then
                 If Not cptr.HasRegistered Then
@@ -943,11 +1001,11 @@ Public Function GetRand() As Long
     SendSvrMsg "GETRAND called!"
 #End If
 Randomize
-Dim MyValue As Long, I As Long, r As Long
-For I = 1 To 4
+Dim MyValue As Long, i As Long, r As Long
+For i = 1 To 4
     MyValue = Int((9 * Rnd) + 0)
     r = CLng(CStr(r) & CStr(MyValue))
-Next I
+Next i
 GetRand = r
 End Function
 
@@ -977,7 +1035,7 @@ Public Sub KillStruct(Name$, Optional InType As enmType = enmTypeClient, Optiona
     SendSvrMsg "KILLSTRUCT called! (" & Name & ")"
 #End If
 On Error Resume Next
-Dim cptr As clsClient, Chan As clsChannel, I&, User() As clsClient
+Dim cptr As clsClient, Chan As clsChannel, i&, User() As clsClient
 If InType = enmTypeClient Then
     
 'we send registered = false before cptr would be valid
@@ -1025,27 +1083,27 @@ ElseIf InType = enmTypeServer Then
     If Name = ServerName Then Exit Sub
     Set cptr = Servers(Name)
     User = GlobUsers.Values
-    For I = LBound(User) To UBound(User)
-        With User(I)
+    For i = LBound(User) To UBound(User)
+        With User(i)
             If Not .FromLink Is Nothing Then
                 If .FromLink.ServerName = Name Then
                     Set .FromLink = Nothing
                 End If
             End If
         End With
-    Next I
+    Next i
     User = Servers.Values
-    For I = LBound(User) To UBound(User)
-        With User(I)
+    For i = LBound(User) To UBound(User)
+        With User(i)
             If Not .FromLink Is Nothing Then
                 If .FromLink.ServerName = Name Then
                     Set .FromLink = Nothing
                     Servers.Remove .ServerName
-                    Set User(I) = Nothing
+                    Set User(i) = Nothing
                 End If
             End If
         End With
-    Next I
+    Next i
     Set cptr.FromLink = Nothing
     Servers.Remove Name
 End If
@@ -1057,7 +1115,7 @@ End Function
 
 Public Sub DoSend() '(ByVal hWnd As Long, ByVal nIDEvent As Long, ByVal uElapse As Long, ByVal lpTimerFunc As Long) As Long
 On Error Resume Next
-Dim OutMsg() As Byte, cptr As clsClient, I&, x&
+Dim OutMsg() As Byte, cptr As clsClient, i&, x&
 If ColOutClientMsg.Count = 0 Then Exit Sub
 Do While ColOutClientMsg.Count > 0
     x = x + 1
@@ -1082,9 +1140,9 @@ Do While ColOutClientMsg.Count > 0
                 End If
                 .IsKilled = True
                 'a client flooding us
-                For I = 1 To .OnChannels.Count
-                    SendToChan .OnChannels.Item(I), .Prefix & " QUIT :Max SendQ length exceeded", vbNullString
-                Next I
+                For i = 1 To .OnChannels.Count
+                    SendToChan .OnChannels.Item(i), .Prefix & " QUIT :Max SendQ length exceeded", vbNullString
+                Next i
                 SendToServer "QUIT :Max SendQ length exceeded", .Nick
                 KillStruct cptr.Nick, enmTypeClient
                 m_error cptr, "Closing Link: Max SendQ length exceeded"
@@ -1098,16 +1156,16 @@ Do While ColOutClientMsg.Count > 0
                 .IsKilled = True
                 Dim usr() As clsClient, y&
                 usr = GlobUsers.Values
-                For I = LBound(usr) To UBound(usr)
-                    Set usr(I).FromLink = Nothing
-                    KillStruct usr(I).Nick, enmTypeClient
-                    usr(I).SendQ = vbNullString
+                For i = LBound(usr) To UBound(usr)
+                    Set usr(i).FromLink = Nothing
+                    KillStruct usr(i).Nick, enmTypeClient
+                    usr(i).SendQ = vbNullString
                     For y = 1 To .OnChannels.Count
                         SendToChan .OnChannels.Item(y), .Prefix & " QUIT :Max SendQ length exceeded", vbNullString
                     Next y
-                    Set usr(I) = Nothing
+                    Set usr(i) = Nothing
                     GoTo nextmsg
-                Next I
+                Next i
                 m_error cptr, "Closing Link: Max SendQ length exceeded"
                 SendToServer_ButOne "SQUIT :Max SendQ length exceeded", .ServerName, .ServerName
                 SendSvrMsg "Closing link to " & .ServerName & " (Max SendQ length exceeded)"

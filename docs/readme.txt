@@ -1,7 +1,7 @@
 			#######################
 			#ignitionServer README#
 			#######################
-# $Id: readme.txt,v 1.12 2004/06/29 18:04:06 ziggythehamster Exp $
+# $Id: readme.txt,v 1.14 2004/09/11 23:43:28 ziggythehamster Exp $
 
 
 	===========++++++++===========++++++++===========
@@ -219,4 +219,24 @@ A: The Auto VHost system is very simple to use and set up. Basically, it changes
    (enabled). Once these things are completed, operators can log in (with /oper), and they'll automatically get
    their VHost if they have one. If an operator doesn't have a VHost, it will be the same as if X:AUTOVHOST is off (0).
 
-If you have any more questions, see our forum at http://forums.ignition-project.com/.
+Q: How come I'm getting this error: Error Opening File for Writing: "C:\Program Files\ignitionServer\ignitionServer.exe"?
+A: You are attempting to update or uninstall ignitionServer while ignitionServer is running. This cannot be done.
+   To exit ignitionServer, hit Ctrl-Alt-Del, and the ignitionServer.exe process (or the task, on Win9x).
+
+Q: How come I'm getting this error: Error Opening File for Writing: "C:\Program Files\ignitionServer\monitor.exe"?
+A: You are attempting to update or uninstall ignitionServer while the monitor is running. This cannot be done.
+   To exit the monitor, bring it up (from the system tray or taskbar), and press the close button in the corner.
+
+Q: Why don't my L: lines work anymore?
+A: In 0.3.5, we reverted back to C: and N: lines for compatibility reasons. Please read ircx.conf for instructions on how to
+   use C: and N: lines (they're nearly exactly the same). Sorry for any inconvenience.
+
+Q: What is X:CREATEMODE and how do I use it?
+A: X:CREATEMODE is a new X: line that we added to give server administrators greater control over their server. It allows
+   the administrator to choose what group of users is able to create channels. In most cases, you will just want the default
+   of 0, which allows all users to create channels. If you are setting up a premium chat service, or otherwise will only have
+   a fixed set of channels, you will probably want to use 1, which will only allow IRC operators to create channels. In addition
+   to this, you can force users to register and identify to NickServ before they can create channels. To do this, set X:CREATEMODE to
+   2. For more information, please read ircx.conf in your favorite text editor.
+
+If you have any more questions, see our forum at http://www.ignition-project.com/forums/.

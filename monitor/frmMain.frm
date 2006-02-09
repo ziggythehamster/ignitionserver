@@ -1,5 +1,4 @@
 VERSION 5.00
-Object = "{248DD890-BB45-11CF-9ABC-0080C7E7B78D}#1.0#0"; "mswinsck.ocx"
 Begin VB.Form frmMain 
    BackColor       =   &H00FFFFFF&
    BorderStyle     =   1  'Fixed Single
@@ -35,8 +34,8 @@ Begin VB.Form frmMain
       TabIndex        =   9
       Top             =   960
       Visible         =   0   'False
-      Width           =   735
-      _ExtentX        =   1296
+      Width           =   855
+      _ExtentX        =   1508
       _ExtentY        =   450
       Caption         =   "More Info"
    End
@@ -55,10 +54,10 @@ Begin VB.Form frmMain
       Caption         =   "Start automatically"
       ForeColor       =   &H00000000&
       Height          =   255
-      Left            =   1440
+      Left            =   2880
       TabIndex        =   8
       ToolTipText     =   "Check this box to make ignitionServer start when the ignitionServer Monitor is started."
-      Top             =   1420
+      Top             =   1440
       Width           =   1695
    End
    Begin VB.CheckBox cStartup 
@@ -94,13 +93,6 @@ Begin VB.Form frmMain
       Left            =   7080
       Top             =   840
    End
-   Begin MSWinsockLib.Winsock sckServer 
-      Left            =   7080
-      Top             =   1320
-      _ExtentX        =   741
-      _ExtentY        =   741
-      _Version        =   393216
-   End
    Begin prjMonitor.ctlHoverMenu btnStart 
       Height          =   255
       Left            =   960
@@ -111,19 +103,41 @@ Begin VB.Form frmMain
       _ExtentY        =   450
       Caption         =   "Start"
    End
+   Begin prjMonitor.ctlHoverMenu btnRestart 
+      Height          =   255
+      Left            =   1440
+      TabIndex        =   10
+      Top             =   1440
+      Visible         =   0   'False
+      Width           =   615
+      _ExtentX        =   1085
+      _ExtentY        =   450
+      Caption         =   "Restart"
+   End
+   Begin prjMonitor.ctlHoverMenu btnRehash 
+      Height          =   255
+      Left            =   2140
+      TabIndex        =   11
+      Top             =   1440
+      Visible         =   0   'False
+      Width           =   615
+      _ExtentX        =   1085
+      _ExtentY        =   450
+      Caption         =   "Rehash"
+   End
    Begin VB.Label Label3 
       BackStyle       =   0  'Transparent
-      Caption         =   "This software is currently unsupported."
+      Caption         =   "This software currently cannot be monitored."
       ForeColor       =   &H00C0C0C0&
       Height          =   255
       Left            =   960
       TabIndex        =   4
       Top             =   2040
-      Width           =   2895
+      Width           =   4575
    End
    Begin VB.Label Label2 
       BackStyle       =   0  'Transparent
-      Caption         =   "ignitionServices 0.1.0"
+      Caption         =   "ignitionServices"
       BeginProperty Font 
          Name            =   "Tahoma"
          Size            =   8.25
@@ -166,7 +180,7 @@ Begin VB.Form frmMain
    End
    Begin VB.Label lblServerTitle 
       BackStyle       =   0  'Transparent
-      Caption         =   "ignitionServer 0.3.4"
+      Caption         =   "ignitionServer 0.3.5"
       BeginProperty Font 
          Name            =   "Tahoma"
          Size            =   8.25
@@ -235,7 +249,7 @@ Attribute VB_Exposed = False
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
 '
 '
-' $Id: frmMain.frm,v 1.10 2004/07/25 21:32:01 ziggythehamster Exp $
+' $Id: frmMain.frm,v 1.15 2004/09/25 19:28:38 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -275,13 +289,47 @@ Private Const WM_LBUTTONDBLCLK As Long = &H203
 Private Const WM_RBUTTONUP As Long = &H205
 
 Private nidIcon As NOTIFYICONDATA
+Public WithEvents sckServer As CSocketMaster
+Attribute sckServer.VB_VarHelpID = -1
 
 Private Sub btnMoreInfo_Click()
 frmMoreInfo.Show
 End Sub
 
+Private Sub btnRehash_Click()
+  If Dir(App.Path & "\control.exe") = vbNullString Then
+    MsgBox "ignitionServer cannot be rehashed; the commandline controller (control.exe) is missing."
+    Exit Sub
+  End If
+  lblServerDesc.Caption = "Reloading ircx.conf..."
+  btnStart.Caption = ""
+  btnRestart.Visible = False
+  btnMoreInfo.Visible = False
+  btnRehash.Visible = False
+  cAutomaticIS.Left = 960
+  DoEvents
+  Call Shell(App.Path & "\control.exe -rehash")
+  IsMisconfigured = False
+End Sub
+
+Private Sub btnRestart_Click()
+  If Dir(App.Path & "\control.exe") = vbNullString Then
+    MsgBox "ignitionServer cannot be restarted; the commandline controller (control.exe) is missing."
+    Exit Sub
+  End If
+  lblServerDesc.Caption = "Restarting ignitionServer..."
+  btnStart.Caption = ""
+  btnRestart.Visible = False
+  btnMoreInfo.Visible = False
+  btnRehash.Visible = False
+  cAutomaticIS.Left = 960
+  DoEvents
+  Call Shell(App.Path & "\control.exe -restart")
+  IsMisconfigured = False
+End Sub
+
 Private Sub btnStart_Click()
-sckServer.Close
+sckServer.CloseSck
 Select Case btnStart.Caption
   Case "Start"
     btnStart.Caption = ""
@@ -377,9 +425,10 @@ Private Sub Form_Load()
 On Error Resume Next
 If App.PrevInstance = True Then End
 If Command = "/tray" Then Me.WindowState = 1
+Set sckServer = New CSocketMaster
 Dim c As New cRegistry
 Dim w As String
-Dim X As Long
+Dim x As Long
 With c
   .ClassKey = HKEY_LOCAL_MACHINE
   .SectionKey = "Software\Microsoft\Windows\CurrentVersion\Run"
@@ -400,10 +449,10 @@ With c
   .SectionKey = "Software\The Ignition Project\ignitionServer Monitor"
   .ValueKey = "Autostart ignitionServer"
   .ValueType = REG_DWORD
-  X = .Value
+  x = .Value
 End With
 Err.Clear
-If X = 1 Then
+If x = 1 Then
   btnStart.Caption = ""
   Call Shell(App.Path & "\control.exe -start")
   cAutomaticIS.Value = vbChecked
@@ -414,9 +463,10 @@ Private Sub Form_QueryUnload(Cancel As Integer, UnloadMode As Integer)
 Unload frmMoreInfo
 End Sub
 
-Private Sub picTray_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+
+Private Sub picTray_MouseDown(Button As Integer, Shift As Integer, x As Single, y As Single)
 On Error Resume Next
-Select Case CLng(X \ Screen.TwipsPerPixelX)
+Select Case CLng(x \ Screen.TwipsPerPixelX)
       Case WM_LBUTTONDBLCLK
         WindowState = 0
         Show
@@ -455,7 +505,7 @@ For A = LBound(tmpSplitLF) To UBound(tmpSplitLF)
     Else
       lblServerDesc.Caption = "Monitor was disconnected. Reconnecting..."
     End If
-    sckServer.Close
+    sckServer.CloseSck
   End If
   Select Case UCase$(tmpSplit(1))
     Case "001"
@@ -497,6 +547,10 @@ For A = LBound(tmpSplitLF) To UBound(tmpSplitLF)
       With frmMoreInfo.txtMoreInfo
         .Text = .Text & RightOf(tmpSplitLF(A), ":") & vbCrLf
       End With
+    Case "JOIN"
+      'we don't want the monitor in any channels, sheesh!
+      ':Monitor59!monitor@localhost JOIN :#Lobby
+      sckServer.SendData "PART " & RightOf(tmpSplitLF(A), ":") & " :ignitionServer Monitor" & vbCrLf
   End Select
 NextLine:
 Next A
@@ -523,8 +577,8 @@ F = FreeFile
 Debug.Print strText
 End Sub
 
-Private Sub sckServer_Error(ByVal Number As Integer, Description As String, ByVal Scode As Long, ByVal Source As String, ByVal HelpFile As String, ByVal HelpContext As Long, CancelDisplay As Boolean)
-sckServer.Close
+Private Sub sckServer_Error(ByVal Number As Integer, Description As String, ByVal sCode As Long, ByVal Source As String, ByVal HelpFile As String, ByVal HelpContext As Long, CancelDisplay As Boolean)
+sckServer.CloseSck
 InternalDebug "Error " & Number & " - " & Description
 CancelDisplay = True
 End Sub
@@ -534,7 +588,7 @@ Private Sub timFRetry_Timer()
 'if the socket's state <> connected, close it
 'timServer will recognize this change and
 'automagically try reconnecting
-If sckServer.State <> sckConnected Then sckServer.Close
+If sckServer.State <> sckConnected Then sckServer.CloseSck
 End Sub
 
 Private Sub timLusers_Timer()
@@ -560,18 +614,27 @@ If sckServer.State = sckClosed Then
     btnStart.Caption = "Start"
   End If
   btnMoreInfo.Visible = False
-  sckServer.Close
+  btnRestart.Visible = False
+  btnRehash.Visible = False
+  cAutomaticIS.Left = 1440
+  sckServer.CloseSck
   sckServer.Connect "127.0.0.1", "6667" 'need a UI to change this
 ElseIf sckServer.State = sckConnected Then
   If IsMisconfigured Then
     lblServerDesc.Caption = "ignitionServer is misconfigured. Please see ircx.conf in the ignitionServer folder."
     btnStart.Caption = "Start"
     btnMoreInfo.Visible = False
-    sckServer.Close
+    btnRestart.Visible = False
+    btnRehash.Visible = False
+    cAutomaticIS.Left = 1440
+    sckServer.CloseSck
   Else
     lblServerDesc.Caption = "ignitionServer is up and running!"
+    btnRestart.Visible = True
+    cAutomaticIS.Left = 2880
     btnStart.Caption = "Stop"
     btnMoreInfo.Visible = True
+    btnRehash.Visible = True
   End If
 End If
 DoEvents

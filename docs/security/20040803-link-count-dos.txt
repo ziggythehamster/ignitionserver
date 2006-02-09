@@ -67,7 +67,7 @@ Password: (none)
 Repository Location: /cvsroot/ignition
 Module name: ignitionserver
 
-The tag names are RELEASE_0_2_3 and RELEASE_0_3_1. Use a "diff"
+The tag names are RELEASE_0_3_2 and RELEASE_0_3_1. Use a "diff"
 program for your particular operating system to see the code needed
 to fix it.
 

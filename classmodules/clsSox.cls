@@ -28,7 +28,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsSox.cls,v 1.11 2004/08/08 00:40:35 ziggythehamster Exp $
+' $Id: clsSox.cls,v 1.12 2004/08/15 20:42:37 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -620,7 +620,7 @@ Private Sub GetData(insox As Long) ' Extracts data from the WinSock Recv buffers
 #If Debugging = 1 Then
     SendSvrMsg "GetData called!"
 #End If
-Dim I As Long
+Dim i As Long
     Dim tmpRecv As Long 'Holds how much data we actually received
     tmpRecv = 1
     Dim tmpBuffer() As Byte, InData$, buf$ 'This buffer could be optimized for small data, eg. A chat program, if you set it's size, to say 255 (256 in total), it could retrieve data faster
@@ -638,11 +638,11 @@ Dim I As Long
                         RaiseError insox, WSAGetLastError, "GetData", "Rec"
                     Case Else
                         buf = StrConv(tmpBuffer, vbUnicode)
-                        I = InStr(1, buf, vbNullChar)
-                        If I = 0 Then
+                        i = InStr(1, buf, vbNullChar)
+                        If i = 0 Then
                             InData = InData & buf
                         Else
-                            InData = InData & Left$(buf, I)
+                            InData = InData & Left$(buf, i)
                         End If
                 End Select
             Loop

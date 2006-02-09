@@ -1,7 +1,7 @@
 {\rtf1\ansi\ansicpg1252\deff0\deflang1033\deflangfe1033{\fonttbl{\f0\fswiss\fprq2\fcharset0 Tahoma;}}
 {\*\generator Msftedit 5.41.15.1503;}\viewkind4\uc1\pard\f0\fs52 ignitionServer Readme\fs20\par
 \par
-$Id: readme.rtf,v 1.9 2004/06/29 18:04:05 ziggythehamster Exp $\par
+$Id: readme.rtf,v 1.11 2004/09/11 23:43:28 ziggythehamster Exp $\par
 \par
 \par
 \tab ===========++++++++===========++++++++===========\par
@@ -213,6 +213,26 @@ A: The Auto VHost system is very simple to use and set up. Basically, it changes
    (enabled). Once these things are completed, operators can log in (with /oper), and they'll automatically get\par
    their VHost if they have one. If an operator doesn't have a VHost, it will be the same as if X:AUTOVHOST is off (0).\par
 \par
-If you have any more questions, see our forum at http://forums.ignition-project.com/.\par
+\b Q: How come I'm getting this error: Error Opening File for Writing: "C:\\Program Files\\ignitionServer\\ignitionServer.exe"?\b0\par
+A: You are attempting to update or uninstall ignitionServer while ignitionServer is running. This cannot be done.\par
+   To exit ignitionServer, hit Ctrl-Alt-Del, and the ignitionServer.exe process (or the task, on Win9x).\par
+\par
+\b Q: How come I'm getting this error: Error Opening File for Writing: "C:\\Program Files\\ignitionServer\\monitor.exe"?\b0\par
+A: You are attempting to update or uninstall ignitionServer while the monitor is running. This cannot be done.\par
+   To exit the monitor, bring it up (from the system tray or taskbar), and press the close button in the corner.\par
+\par
+\b Q: Why don't my L: lines work anymore?\b0\par
+A: In 0.3.5, we reverted back to C: and N: lines for compatibility reasons. Please read ircx.conf for instructions on how to\par
+   use C: and N: lines (they're nearly exactly the same). Sorry for any inconvenience.\par
+\par
+\b Q: What is X:CREATEMODE and how do I use it?\b0\par
+A: X:CREATEMODE is a new X: line that we added to give server administrators greater control over their server. It allows\par
+   the administrator to choose what group of users is able to create channels. In most cases, you will just want the default\par
+   of 0, which allows all users to create channels. If you are setting up a premium chat service, or otherwise will only have\par
+   a fixed set of channels, you will probably want to use 1, which will only allow IRC operators to create channels. In addition\par
+   to this, you can force users to register and identify to NickServ before they can create channels. To do this, set X:CREATEMODE to\par
+   2. For more information, please read ircx.conf in your favorite text editor.\par
+\par
+If you have any more questions, see our forum at http://www.ignition-project.com/forums/.\par
 }
  

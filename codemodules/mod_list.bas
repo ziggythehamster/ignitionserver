@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_list"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_list.bas,v 1.57 2004/08/13 00:35:08 ziggythehamster Exp $
+' $Id: mod_list.bas,v 1.77 2004/10/09 03:45:58 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -37,7 +37,16 @@ Option Explicit
 Public Const MaxTrafficRate As Long = 100
 
 '-=BUILD DATE=-
-Public Const BuildDate As String = "20040813"
+Public Const BuildDate As String = "20041009"
+
+'Level Symbols
+'CHANGE AT YOUR OWN RISK.
+'Must only be one letter long, and all servers on the network must use the same level characters.
+'The letters must also be illegal in nicknames.
+'The letters must not be one of the following: :#&^$* (well, you could use them, but it's a bad idea, and will break things)
+Public Const Level_Owner As String = "."
+Public Const Level_Host As String = "@"
+Public Const Level_Voice As String = "+"
 
 #Const Debugging = 0
 
@@ -100,17 +109,19 @@ Public MaxWhoLen As Long
 Public MaxListLen As Long
 Public MaxMsgsInQueue As Long
 
-'ircx create join behavior
-Public IRCX_CreateJoin As Boolean
-Public IRCX_CreateJoinReqOp As Boolean
-
 'registered channel mode
 Public RegChanMode_Always As Boolean
 Public RegChanMode_Never As Boolean
 Public RegChanMode_ModeR As Boolean
 
+'channel creation setting
+Public CreateMode As Long 'screw bools
+
 'Auto VHost
 Public AVHost As Boolean
+
+'Monitor IP
+Public MonitorIP As String
 
 'SVSNicks
 Public SVSN_NickServ As String
@@ -212,17 +223,20 @@ Public Enum enmType
     enmTypeChannel = 3
 End Enum
 
-Public Type LLines
+Public Type NLines
+  Host As String
+  Pass As String
+  Server As String
+  ConnectionClass As Long
+End Type
+
+Public Type CLines
   Host As String
   Pass As String
   Server As String
   Port As Long
   ConnectionClass As Long
 End Type
-
-'Public Type CLines - Coming Soon to a Server Near You! - DG
-'
-'End Type
 
 Public Type KLines
   Host As String
@@ -287,6 +301,13 @@ End Type
 Public Type ZLines
   IP As String
   Reason As String
+End Type
+
+Public Type BLines
+  HostMask As String
+  Message As String
+  ServerName As String
+  Port As Long
 End Type
 
 Public Type Commands
@@ -929,5 +950,7 @@ Select Case Code
     TranslateCode = ":End of events"
   Case IRCERR_BADTAG
     TranslateCode = cmd & " :Bad message tag."
+  Case IRCERR_ALREADYONCHANNEL
+    TranslateCode = Chan & " :Already in the channel."
 End Select
 End Function

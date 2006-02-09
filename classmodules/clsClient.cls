@@ -28,7 +28,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsClient.cls,v 1.19 2004/08/08 03:11:01 ziggythehamster Exp $
+' $Id: clsClient.cls,v 1.22 2004/10/01 05:04:29 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -121,7 +121,7 @@ Public PassOK As Boolean
 Public FromLink As clsClient
 Public UpLink As String
 Public HasRegistered As Boolean
-Public LLined As Boolean
+Public NLined As Boolean
 
 Public OnChannels As clsOnChannels
 Public Events As clsEvents 'for event system
@@ -136,82 +136,82 @@ Public MsgsInQueue As Long
 
 Public Function IsOnChan(Channel As String) As Boolean
 On Error Resume Next
-Dim I&
-For I = 1 To OnChannels.Count
-  If StrComp(OnChannels.Item(I).Name, Channel, vbTextCompare) = 0 Then
+Dim i&
+For i = 1 To OnChannels.Count
+  If StrComp(OnChannels.Item(i).Name, Channel, vbTextCompare) = 0 Then
     IsOnChan = True
     Exit Function
   End If
-Next I
+Next i
 End Function
 Public Function GetOnChans1459(Optional UseCheckClient As Boolean = False, Optional UserNick As String) As String
 Dim Chan As clsChannel, x&
-Dim I&
-For I = 1 To OnChannels.Count
+Dim i&
+For i = 1 To OnChannels.Count
     If UseCheckClient Then
       If Len(UserNick) > 0 Then
         'if the channel is hidden/secret, don't show the channel
-        If (OnChannels.Item(I).IsSecret) Or (OnChannels.Item(I).IsPrivate) Then
-          If OnChannels.Item(I).GetUser(UserNick) Is Nothing Then
+        If (OnChannels.Item(i).IsSecret) Or (OnChannels.Item(i).IsPrivate) Then
+          If OnChannels.Item(i).GetUser(UserNick) Is Nothing Then
             GoTo NextChannel
           End If
         End If
         'if this user is invisible, don't show the channel
         If IsInvisible Then
-          If OnChannels.Item(I).GetUser(UserNick) Is Nothing Then
+          If OnChannels.Item(i).GetUser(UserNick) Is Nothing Then
             GoTo NextChannel
           End If
         End If
       End If
     End If
-    With OnChannels.Item(I).Member.Item(Nick)
+    With OnChannels.Item(i).Member.Item(Nick)
         If .IsOwner Then
-            GetOnChans1459 = GetOnChans1459 & "@" & OnChannels.Item(I).Name & " "
+            GetOnChans1459 = GetOnChans1459 & Level_Host & OnChannels.Item(i).Name & " "
         ElseIf .IsOp Then
-            GetOnChans1459 = GetOnChans1459 & "@" & OnChannels.Item(I).Name & " "
+            GetOnChans1459 = GetOnChans1459 & Level_Host & OnChannels.Item(i).Name & " "
         ElseIf .IsVoice Then
-            GetOnChans1459 = GetOnChans1459 & "+" & OnChannels.Item(I).Name & " "
+            GetOnChans1459 = GetOnChans1459 & Level_Voice & OnChannels.Item(i).Name & " "
         Else
-            GetOnChans1459 = GetOnChans1459 & OnChannels.Item(I).Name & " "
+            GetOnChans1459 = GetOnChans1459 & OnChannels.Item(i).Name & " "
         End If
     End With
 NextChannel:
-Next I
+Next i
 GetOnChans1459 = Trim$(GetOnChans1459)
 End Function
 Public Function GetOnChans(Optional UseCheckClient As Boolean = False, Optional UserNick As String) As String
 Dim Chan As clsChannel, x&
-Dim I&
-For I = 1 To OnChannels.Count
+Dim i&
+For i = 1 To OnChannels.Count
     If UseCheckClient Then
       If Len(UserNick) > 0 Then
         'if the channel is hidden/secret, don't show the channel
-        If (OnChannels.Item(I).IsSecret) Or (OnChannels.Item(I).IsPrivate) Then
-          If OnChannels.Item(I).GetUser(UserNick) Is Nothing Then
+        If (OnChannels.Item(i).IsSecret) Or (OnChannels.Item(i).IsPrivate) Then
+          If OnChannels.Item(i).GetUser(UserNick) Is Nothing Then
             GoTo NextChannel
           End If
         End If
         'if this user is invisible, don't show the channel
         If IsInvisible Then
-          If OnChannels.Item(I).GetUser(UserNick) Is Nothing Then
+          If OnChannels.Item(i).GetUser(UserNick) Is Nothing Then
             GoTo NextChannel
           End If
         End If
       End If
     End If
-    With OnChannels.Item(I).Member.Item(Nick)
+    With OnChannels.Item(i).Member.Item(Nick)
         If .IsOwner Then
-            GetOnChans = GetOnChans & "." & OnChannels.Item(I).Name & " "
+            GetOnChans = GetOnChans & Level_Owner & OnChannels.Item(i).Name & " "
         ElseIf .IsOp Then
-            GetOnChans = GetOnChans & "@" & OnChannels.Item(I).Name & " "
+            GetOnChans = GetOnChans & Level_Host & OnChannels.Item(i).Name & " "
         ElseIf .IsVoice Then
-            GetOnChans = GetOnChans & "+" & OnChannels.Item(I).Name & " "
+            GetOnChans = GetOnChans & Level_Voice & OnChannels.Item(i).Name & " "
         Else
-            GetOnChans = GetOnChans & OnChannels.Item(I).Name & " "
+            GetOnChans = GetOnChans & OnChannels.Item(i).Name & " "
         End If
     End With
 NextChannel:
-Next I
+Next i
 GetOnChans = Trim$(GetOnChans)
 End Function
 

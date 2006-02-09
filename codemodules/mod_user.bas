@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_user"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_user.bas,v 1.40 2004/08/08 21:14:32 ziggythehamster Exp $
+' $Id: mod_user.bas,v 1.49 2004/10/01 05:04:29 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -37,28 +37,28 @@ Public Function do_nick_name(Nick$) As Long
 #If Debugging = 1 Then
     SendSvrMsg "DoNickName called! (" & Nick & ")"
 #End If
-Dim I&
+Dim i&
 'A'..'}', '_', '-', '0'..'9'
 If IsNumeric(Left$(Nick, 1)) Then Exit Function
 If Left$(Nick, 1) = "-" Then Exit Function
 If StrComp(LCase$(Nick), "anonymous", vbTextCompare) = 0 Then Exit Function
-For I = 1 To Len(Nick)
-    If Not IsValidString(Mid$(Nick, I, 1)) Then Exit Function
-Next I
+For i = 1 To Len(Nick)
+    If Not IsValidString(Mid$(Nick, i, 1)) Then Exit Function
+Next i
 do_nick_name = 1
 End Function
 Public Function do_user_name(User$) As Long
 #If Debugging = 1 Then
     SendSvrMsg "DoUserName called! (" & User & ")"
 #End If
-Dim I&
+Dim i&
 'A'..'}', '_', '-', '0'..'9'
 If IsNumeric(Left$(User, 1)) Then Exit Function
 If Left$(User, 1) = "-" Then Exit Function
 If StrComp(User, "anonymous", vbTextCompare) = 0 Then Exit Function
-For I = 1 To Len(User)
-    If Not IsValidUserString(Mid$(User, I, 1)) Then Exit Function
-Next I
+For i = 1 To Len(User)
+    If Not IsValidUserString(Mid$(User, i, 1)) Then Exit Function
+Next i
 do_user_name = 1
 End Function
 
@@ -120,7 +120,7 @@ WhereAmI = "entry"
 #If Debugging = 1 Then
     SendSvrMsg "NICK called! (" & cptr.Nick & ")"
 #End If
-Dim pdat$, I&, tempVar$
+Dim pdat$, i&, tempVar$
 If cptr.AccessLevel = 4 Then
     WhereAmI = "server nick"
     ':Nick NICK Nick2
@@ -133,11 +133,29 @@ If cptr.AccessLevel = 4 Then
         #End If
         Dim NewCptr As clsClient, MSwitch As Boolean
         MSwitch = True
-        WhereAmI = "getting global user..."
-        Set NewCptr = GlobUsers(parv(1))
+        WhereAmI = "getting global user... (" & parv(0) & ")"
+        Set NewCptr = GlobUsers(parv(0))
         If Not NewCptr Is Nothing Then
             WhereAmI = "nick collision"
-            m_error NewCptr, "Nick Collision"
+            #If Debugging = 1 Then
+              SendSvrMsg "*** Nickname Collision (" & parv(0) & ") (from: " & cptr.Host & ") (exists from: " & NewCptr.Host & ")"
+            #End If
+            'm_error NewCptr, "Nick Collision"
+            '// kill the user already on the server, but do it cleanly
+            Dim NewParv(1) As String
+            NewParv(0) = NewCptr.Nick
+            NewParv(1) = "Nickname collision from " & cptr.ServerName
+            
+            m_kill Servers(ServerName), NewCptr.FromLink, NewParv, True
+            '// we allow the new user to exist because it would cause
+            '// "attacks" of automated clients such as services, if services has a
+            '// reconnect-on-kill feature (ignitionServices does)
+            '// Additionally, ignitionServer will properly close it at both ends
+            '// (well, it should), because this part is only executed if the new
+            '// client exists locally -- it exists locally on both servers, and
+            '// when one introduces it, the other removes it (and then when the
+            '// opposite end introduces it, this end removes it). Or something like
+            '// that.
         End If
         WhereAmI = "newcptr = newclient"
         Set NewCptr = New clsClient
@@ -187,7 +205,8 @@ If cptr.AccessLevel = 4 Then
             WhereAmI = "increase global users"
             IrcStat.GlobUsers = IrcStat.GlobUsers + 1
             WhereAmI = "increase max users, if needed"
-            If IrcStat.MaxGlobUsers < IrcStat.GlobUsers Then IrcStat.MaxGlobUsers = IrcStat.MaxGlobUsers + 1
+            'If IrcStat.MaxGlobUsers < IrcStat.GlobUsers Then IrcStat.MaxGlobUsers = IrcStat.MaxGlobUsers + 1
+            If IrcStat.MaxGlobUsers < GlobUsers.Count Then IrcStat.MaxGlobUsers = GlobUsers.Count
             WhereAmI = "propragate signon"
             SendToServer_ButOne "NICK " & .Nick & " " & .Hops + 1 & " " & .SignOn & " " & .User & " " & .RealHost & _
             " " & .ServerName & " :" & .Name, cptr.ServerName, sptr.ServerName
@@ -199,30 +218,31 @@ If cptr.AccessLevel = 4 Then
     Else
         WhereAmI = "server nick, no params"
         #If Debugging = 1 Then
-          SendSvrMsg "server nick - ubound(parv) else [<=0]"
+          SendSvrMsg "server nick - ubound(parv) else [<=0] (nick change?)"
         #End If
         SendToServer_ButOne "NICK " & parv(0), cptr.ServerName, sptr.Nick
         'this is a raw send
         'perhaps we should clean this up a bit?
+        'FIXME: don't use a raw send here
         Dim ByteArr() As Byte, Members() As clsChanMember
         ByteArr = StrConv(sptr.Prefix & " NICK " & parv(0) & vbCrLf, vbFromUnicode)
         Dim RecvArr() As Long: ReDim RecvArr(0)
         For m_nick = 1 To cptr.OnChannels.Count
           Members = sptr.OnChannels.Item(m_nick).Member.Values
-          For I = LBound(Members) To UBound(Members)
-            If Members(I).Member.Hops = 0 Then
-              If Not Members(I).Member Is sptr Then
+          For i = LBound(Members) To UBound(Members)
+            If Members(i).Member.Hops = 0 Then
+              If Not Members(i).Member Is sptr Then
                 ReDim Preserve RecvArr(UBound(RecvArr) + 1)
-                RecvArr(UBound(RecvArr)) = Members(I).Member.index
+                RecvArr(UBound(RecvArr)) = Members(i).Member.index
               End If
             End If
-          Next I
+          Next i
         Next m_nick
         KillDupes RecvArr
         ServerTraffic = ServerTraffic + (UBound(RecvArr) * UBound(ByteArr))
-        For I = 1 To UBound(RecvArr)
-            Call Send(Sockets.SocketHandle(CLng(RecvArr(I))), ByteArr(0), UBound(ByteArr) + 1, 0&)
-        Next I
+        For i = 1 To UBound(RecvArr)
+            Call Send(Sockets.SocketHandle(CLng(RecvArr(i))), ByteArr(0), UBound(ByteArr) + 1, 0&)
+        Next i
         GlobUsers.Remove sptr.Nick
         sptr.Nick = parv(0)
         GlobUsers.Add parv(0), sptr
@@ -253,11 +273,11 @@ Else
     SendWsock cptr.index, ERR_ERRONEUSNICKNAME & " " & ShowNick, TranslateCode(ERR_ERRONEUSNICKNAME, parv(0))
     Exit Function
   End If
-  I = GetQLine(parv(0), cptr.AccessLevel)
+  i = GetQLine(parv(0), cptr.AccessLevel)
   WhereAmI = "normal nick crap"
-  If I > 0 Then
+  If i > 0 Then
     'the original people added another parameter that didn't need to be there
-    SendWsock cptr.index, ERR_ERRONEUSNICKNAME & " " & parv(0), QLine(I).Reason & " [" & QLine(I).Nick & "]"
+    SendWsock cptr.index, ERR_ERRONEUSNICKNAME & " " & parv(0), QLine(i).Reason & " [" & QLine(i).Nick & "]"
     Exit Function
   End If
   If Not GlobUsers(parv(0)) Is Nothing Then  'in case the nickname specified is already in use -Dill
@@ -294,14 +314,14 @@ Else
     ReDim RecvArr(1)
     For m_nick = 1 To cptr.OnChannels.Count
       Members = cptr.OnChannels.Item(m_nick).Member.Values
-      For I = LBound(Members) To UBound(Members)
-        If Members(I).Member.Hops = 0 Then
-          If Not Members(I).Member Is cptr Then
+      For i = LBound(Members) To UBound(Members)
+        If Members(i).Member.Hops = 0 Then
+          If Not Members(i).Member Is cptr Then
             On Local Error Resume Next
-            AllVisible.Add Members(I).Member.index, CStr(Members(I).Member.index)
+            AllVisible.Add Members(i).Member.index, CStr(Members(i).Member.index)
           End If
         End If
-      Next I
+      Next i
     Next m_nick
     
     WhereAmI = "sending nickname stuff"
@@ -309,9 +329,9 @@ Else
       SendSvrMsg "NICK: main code -> sending nickname stuff"
     #End If
     
-    For I = 1 To AllVisible.Count
-      Call SendWsock(AllVisible(I), "NICK", parv(0), ":" & cptr.Nick)
-    Next I
+    For i = 1 To AllVisible.Count
+      Call SendWsock(AllVisible(i), "NICK", ":" & parv(0), cptr.Prefix)
+    Next i
     SendToServer "NICK :" & parv(0), cptr.Nick
   Else
     If Len(cptr.Nick) > 0 Then
@@ -326,6 +346,15 @@ Else
   'if the user is not currently registering, tell it the new nickname -Dill
   WhereAmI = "bad password"
   If Len(cptr.Nick) = 0 Then
+    If cptr.IIndex <= 0 Then
+      ErrorMsg "CRITICAL ERROR: There is a serious configuration error. The client connecting from " & cptr.IP & " has an invalid IIndex of " & cptr.IIndex & ". You have improperly set up I: lines, or improperly set up Y: lines. Please check them to ensure they are properly configured."
+      Exit Function
+    End If
+    If cptr.IIndex > UBound(ILine) Then
+      'the IIndex is > the highest ILine
+      ErrorMsg "CRITICAL ERROR: There is a serious configuration error. The client connecting from " & cptr.IP & " has an invalid IIndex of " & cptr.IIndex & ". You have improperly set up I: lines, or improperly set up Y: lines. Please check them to ensure they are properly configured."
+      Exit Function
+    End If
     If Len(ILine(cptr.IIndex).Pass) > 0 Then
       If cptr.PassOK = False Then
           m_error cptr, "Closing Link: (Bad Password)"
@@ -351,33 +380,45 @@ Else
   Else
     WhereAmI = "set nickname"
     pdat = parv(0)
-    SendWsock cptr.index, "NICK", pdat, ":" & cptr.Nick
+    SendWsock cptr.index, "NICK", ":" & pdat, cptr.Prefix
   End If
-  WhereAmI = "assign new nick to database"
+  
+  WhereAmI = "assign new nick to user"
   'assign the new nick to the database -Dill
   tempVar = cptr.Nick
-  If Len(cptr.Nick) > 0 Then GenerateEvent "USER", "NICK", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " " & tempVar
+  If Len(cptr.Nick) > 0 Then GenerateEvent "USER", "NICK", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " " & parv(0)
   If Len(cptr.Nick) > 0 Then GlobUsers.Remove cptr.Nick
   GlobUsers.Add parv(0), cptr
   cptr.Nick = parv(0)
   cptr.Prefix = ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host
   
+  WhereAmI = "assign new nick to database"
   Dim WasOwner As Boolean, WasOp As Boolean, WasVoice As Boolean
+  Dim tmpRetVal As Long
   Dim tmpData As Long
-  For m_nick = 1 To cptr.OnChannels.Count
-       With cptr.OnChannels.Item(m_nick).Member
-         WasOwner = .Item(tempVar).IsOwner
-         WasOp = .Item(tempVar).IsOp
-         WasVoice = .Item(tempVar).IsVoice
-         tmpData = 0
-         If WasOwner Then tmpData = 6
-         If WasOp Then tmpData = 4 'WTF is this bit for? Any Ideas Ziggy? - DG
-                                'looks like a temp variable for the user level - Ziggy
-         If WasVoice Then tmpData = tmpData + 1
-         .Remove tempVar
-         .Add CLng(tmpData), cptr
-       End With
-  Next m_nick
+  
+  If cptr.OnChannels.Count > 0 Then
+    WhereAmI = "onchannels > 0"
+    For tmpRetVal = 1 To cptr.OnChannels.Count
+         With cptr.OnChannels.Item(tmpRetVal).Member
+           WhereAmI = "checking wasowner"
+           WasOwner = .Item(tempVar).IsOwner
+           WhereAmI = "checking wasop"
+           WasOp = .Item(tempVar).IsOp
+           WhereAmI = "checking wasvoice"
+           WasVoice = .Item(tempVar).IsVoice
+           WhereAmI = "doing bitmasks"
+           tmpData = 0
+           If WasOwner Then tmpData = 6
+           If WasOp Then tmpData = 4 'WTF is this bit for? Any Ideas Ziggy? - DG
+                                  'looks like a temp variable for the user level - Ziggy
+           If WasVoice Then tmpData = tmpData + 1
+           .Remove tempVar
+           .Add CLng(tmpData), cptr
+         End With
+    Next tmpRetVal
+    m_nick = tmpRetVal
+  End If
 End If
 Exit Function
 
@@ -401,7 +442,7 @@ Public Function m_message(cptr As clsClient, sptr As clsClient, parv$(), Notice 
 #If Debugging = 1 Then
     SendSvrMsg "PRIVMSG/NOTICE called! (" & cptr.Nick & ")"
 #End If
-Dim cmd$, RecList$(), I, x&, Chan As clsChannel, Recp As clsClient, RecvServer() As clsClient, ChM As clsChanMember
+Dim cmd$, RecList$(), i, x&, Chan As clsChannel, Recp As clsClient, RecvServer() As clsClient, ChM As clsChanMember
 If cptr.AccessLevel = 4 Then
     If Notice Then
         cmd = "NOTICE"
@@ -409,9 +450,9 @@ If cptr.AccessLevel = 4 Then
         cmd = "PRIVMSG"
     End If
     RecList = Split(parv(0), ",")
-    For Each I In RecList
-        If AscW(CStr(I)) = 35 Then
-            Set Chan = Channels(CStr(I))
+    For Each i In RecList
+        If AscW(CStr(i)) = 35 Then
+            Set Chan = Channels(CStr(i))
             If Chan Is Nothing Then GoTo NextCmd
             If Chan.IsAuditorium Then
               If ((Chan.Member.Item(sptr.Nick).IsOwner) Or (Chan.Member.Item(sptr.Nick).IsOp)) Then
@@ -430,7 +471,7 @@ If cptr.AccessLevel = 4 Then
               End If
             End If
         Else
-            Set Recp = GlobUsers(CStr(I))
+            Set Recp = GlobUsers(CStr(i))
             If Recp Is Nothing Then
                 'SendWsock cptr.Index, "KILL " & CStr(i), ":" & i & " <-- Unknown client"
                 GoTo NextCmd
@@ -468,13 +509,13 @@ Else
         cmd = " PRIVMSG "
     End If
     RecList = Split(parv(0), ",")
-    For Each I In RecList
-      If Len(I) = 0 Then GoTo nextmsg
-      If AscW(CStr(I)) = 35 Then
+    For Each i In RecList
+      If Len(i) = 0 Then GoTo nextmsg
+      If AscW(CStr(i)) = 35 Then
         'Channel message -Dill
-        Set Chan = Channels(CStr(I))
+        Set Chan = Channels(CStr(i))
         If Chan Is Nothing Then 'In case Channel does not exist -Dill
-          SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, CStr(I))
+          SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, CStr(i))
           GoTo nextmsg
         End If
         With Chan
@@ -521,14 +562,14 @@ Else
         cptr.Idle = UnixTime
       Else
         'user message -Dill
-        If InStr(1, I, "*") <> 0 Then
+        If InStr(1, i, "*") <> 0 Then
           If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then 'Can't send to wildcarded recipient list if not an oper -Dill
             SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
             Exit Function
           Else
             'WILDCARD recievelist -Dill
             Dim Umask$, Target() As clsClient
-            Umask = ":" & CreateMask(CStr(I))
+            Umask = ":" & CreateMask(CStr(i))
             Target = GlobUsers.Values
             For x = LBound(Target) To UBound(Target)
                 If Target(x).Prefix Like Umask Then
@@ -543,9 +584,9 @@ Else
           End If
         End If
         On Local Error Resume Next
-        Set sptr = GlobUsers(CStr(I))
+        Set sptr = GlobUsers(CStr(i))
         If sptr Is Nothing Then 'in case user does not exist -Dill
-          SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, CStr(I))
+          SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, CStr(i))
           GoTo nextmsg
         End If
         'deliver the message -Dill
@@ -576,7 +617,7 @@ Public Function m_who(cptr As clsClient, sptr As clsClient, parv$()) As Long
     SendSvrMsg "WHO called! (" & cptr.Nick & ")"
 #End If
 On Error Resume Next
-Dim I&, x&, lastchan$, Chan As clsChannel, ChanMember As clsClient, ret As Long, Clients() As clsClient, ChM() As clsChanMember, ExtraInfo$
+Dim i&, x&, lastchan$, Chan As clsChannel, ChanMember As clsClient, ret As Long, Clients() As clsClient, ChM() As clsChanMember, ExtraInfo$
 If cptr.AccessLevel = 4 Then
 'TODO: /who from server (is this even possible)
 Else
@@ -607,29 +648,29 @@ Else
           End If
         End If
         ChM = Chan.Member.Values
-        For I = LBound(ChM) To UBound(ChM)
+        For i = LBound(ChM) To UBound(ChM)
             If MaxWhoLen > 0 Then
                 If ret = MaxWhoLen Then
                     SendWsock cptr.index, 315 & " " & cptr.Nick & " " & parv(0), ":Too many matches"
                     Exit Function
                 End If
             End If
-            With ChM(I).Member
+            With ChM(i).Member
                 If Len(.AwayMsg) > 0 Then
                     ExtraInfo = "G"
                 Else
                     ExtraInfo = "H"
                 End If
-                If ChM(I).IsOwner Then
+                If ChM(i).IsOwner Then
                     If cptr.IsIRCX Or cptr.AccessLevel = 4 Then
-                      ExtraInfo = ExtraInfo & "."
+                      ExtraInfo = ExtraInfo & Level_Owner
                     Else
-                      ExtraInfo = ExtraInfo & "@"
+                      ExtraInfo = ExtraInfo & Level_Host
                     End If
-                ElseIf ChM(I).IsOp And Not ChM(I).IsOwner Then  '// don't send erroneous chars
-                    ExtraInfo = ExtraInfo & "@"
-                ElseIf ChM(I).IsVoice And Not ChM(I).IsOwner And Not ChM(I).IsOp Then
-                    ExtraInfo = ExtraInfo & "+"
+                ElseIf ChM(i).IsOp And Not ChM(i).IsOwner Then  '// don't send erroneous chars
+                    ExtraInfo = ExtraInfo & Level_Host
+                ElseIf ChM(i).IsVoice And Not ChM(i).IsOwner And Not ChM(i).IsOp Then
+                    ExtraInfo = ExtraInfo & Level_Voice
                 End If
                 If .IsGlobOperator Or .IsLocOperator Then ExtraInfo = ExtraInfo & "*"
                 If .IsNetAdmin Then ExtraInfo = ExtraInfo & "A"
@@ -644,11 +685,11 @@ Else
             End With
             ret = ret + 1
 SkipUserInChannel:
-        Next I
+        Next i
     Else
         Clients = GlobUsers.Values
         If Not Clients(0) Is Nothing Then
-            For I = 0 To UBound(Clients)
+            For i = 0 To UBound(Clients)
                 If MaxWhoLen > 0 Then
                     If ret = MaxWhoLen Then
                         SendWsock cptr.index, 315 & " " & cptr.Nick & " " & parv(0), ":Too many matches"
@@ -656,65 +697,65 @@ SkipUserInChannel:
                     End If
                 End If
                 'TODO: clean up this code a little (lot?)
-                If UCase$(Replace(Clients(I).Prefix, ":", "")) Like UCase$(CreateMask(Replace(parv(0), ":", ""))) Then
-                    If Clients(I).OnChannels.Count > 0 And Not Clients(I).IsInvisible Then
-                        If Not ((Channels(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name).IsSecret) Or (Channels(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name).IsPrivate)) Then
+                If UCase$(Replace(Clients(i).Prefix, ":", "")) Like UCase$(CreateMask(Replace(parv(0), ":", ""))) Then
+                    If Clients(i).OnChannels.Count > 0 And Not Clients(i).IsInvisible Then
+                        If Not ((Channels(Clients(i).OnChannels.Item(Clients(i).OnChannels.Count).Name).IsSecret) Or (Channels(Clients(i).OnChannels.Item(Clients(i).OnChannels.Count).Name).IsPrivate)) Then
                           'not private/secret
-                          lastchan = Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name & " "
+                          lastchan = Clients(i).OnChannels.Item(Clients(i).OnChannels.Count).Name & " "
                         Else
                           'private/secret
                           lastchan = "* "
                         End If
-                    ElseIf Clients(I).OnChannels.Count > 0 And cptr.OnChannels.Count > 0 And Clients(I).IsInvisible Then
-                        If Not ((Channels(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name).IsSecret) Or (Channels(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name).IsPrivate)) Then
+                    ElseIf Clients(i).OnChannels.Count > 0 And cptr.OnChannels.Count > 0 And Clients(i).IsInvisible Then
+                        If Not ((Channels(Clients(i).OnChannels.Item(Clients(i).OnChannels.Count).Name).IsSecret) Or (Channels(Clients(i).OnChannels.Item(Clients(i).OnChannels.Count).Name).IsPrivate)) Then
                           'the channel is not private/secret
-                          If cptr.IsOnChan(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name) Then
-                            lastchan = Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name & " "
+                          If cptr.IsOnChan(Clients(i).OnChannels.Item(Clients(i).OnChannels.Count).Name) Then
+                            lastchan = Clients(i).OnChannels.Item(Clients(i).OnChannels.Count).Name & " "
                           Else
                             lastchan = "* "
                           End If
                         Else
                           'the channel is private/secret
-                          If cptr.IsOnChan(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name) Then
-                            lastchan = Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name & " "
+                          If cptr.IsOnChan(Clients(i).OnChannels.Item(Clients(i).OnChannels.Count).Name) Then
+                            lastchan = Clients(i).OnChannels.Item(Clients(i).OnChannels.Count).Name & " "
                           Else
                             lastchan = "* "
                           End If
                         End If
-                    ElseIf Channels(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name).IsSecret Then
+                    ElseIf Channels(Clients(i).OnChannels.Item(Clients(i).OnChannels.Count).Name).IsSecret Then
                         'if the channel is secret, only show it in a /who if the user is on the channel
-                        If cptr.IsOnChan(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name) Then
-                          lastchan = Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name & " "
+                        If cptr.IsOnChan(Clients(i).OnChannels.Item(Clients(i).OnChannels.Count).Name) Then
+                          lastchan = Clients(i).OnChannels.Item(Clients(i).OnChannels.Count).Name & " "
                         Else
                           lastchan = "* "
                         End If
-                    ElseIf Channels(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name).IsPrivate Then
+                    ElseIf Channels(Clients(i).OnChannels.Item(Clients(i).OnChannels.Count).Name).IsPrivate Then
                         'same thing with private
-                        If cptr.IsOnChan(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name) Then
-                          lastchan = Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name & " "
+                        If cptr.IsOnChan(Clients(i).OnChannels.Item(Clients(i).OnChannels.Count).Name) Then
+                          lastchan = Clients(i).OnChannels.Item(Clients(i).OnChannels.Count).Name & " "
                         Else
                           lastchan = "* "
                         End If
                     Else
                         lastchan = "* "
                     End If
-                    If Len(Clients(I).AwayMsg) > 0 Then
+                    If Len(Clients(i).AwayMsg) > 0 Then
                       ExtraInfo = "G"
                     Else
                       ExtraInfo = "H"
                     End If
-                    If Clients(I).IsGlobOperator Or Clients(I).IsLocOperator Then ExtraInfo = ExtraInfo & "*"
-                    If Clients(I).IsNetAdmin Then ExtraInfo = ExtraInfo & "A"
+                    If Clients(i).IsGlobOperator Or Clients(i).IsLocOperator Then ExtraInfo = ExtraInfo & "*"
+                    If Clients(i).IsNetAdmin Then ExtraInfo = ExtraInfo & "A"
                     If OperOnly = True Then
-                      If Not (Clients(I).IsGlobOperator Or Clients(I).IsLocOperator) Then
+                      If Not (Clients(i).IsGlobOperator Or Clients(i).IsLocOperator) Then
                         GoTo SkipUser
                       End If
                     End If
-                    SendWsock cptr.index, "352 " & cptr.Nick & " " & lastchan & Clients(I).User & " " & Clients(I).Host & " " & ServerName & " " & Clients(I).Nick & " " & ExtraInfo, ":" & Clients(I).Hops & " " & Clients(I).Name
+                    SendWsock cptr.index, "352 " & cptr.Nick & " " & lastchan & Clients(i).User & " " & Clients(i).Host & " " & ServerName & " " & Clients(i).Nick & " " & ExtraInfo, ":" & Clients(i).Hops & " " & Clients(i).Name
                     ret = ret + 1
 SkipUser:
                 End If
-            Next I
+            Next i
         End If
     End If
     SendWsock cptr.index, SPrefix & " " & 315 & " " & cptr.Nick & " " & parv(0) & " :End of /WHO list.", vbNullString, , True
@@ -730,7 +771,7 @@ Public Function m_whois(cptr As clsClient, sptr As clsClient, parv$()) As Long
 #If Debugging = 1 Then
     SendSvrMsg "WHOIS called! (" & cptr.Nick & ")"
 #End If
-Dim A$(), I&, c As clsClient
+Dim A$(), i&, c As clsClient
 If cptr.AccessLevel = 4 Then
     Set c = GetServer(parv(1))
     If c Is Nothing Then Exit Function
@@ -766,11 +807,11 @@ Else
     Else
       A = Split(parv(0), ",") 'in case we have multiple queries -Dill
       'return results for all queries -Dill
-      For I = LBound(A) To UBound(A)
-        If Not Len(A(I)) = 0 Then
-          Set c = GlobUsers(A(I))
+      For i = LBound(A) To UBound(A)
+        If Not Len(A(i)) = 0 Then
+          Set c = GlobUsers(A(i))
           If c Is Nothing Then
-            SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, A(I))
+            SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, A(i))
           Else
             c.WhoisAccessLevel = cptr.AccessLevel
             c.WhoisIRCX = cptr.IsIRCX
@@ -780,7 +821,7 @@ Else
             SendWsock cptr.index, c.GetWhois(cptr.Nick), vbNullString, , True
           End If
         End If
-      Next I
+      Next i
       'after all query results have been sent, send 'end of whois' message -Dill
       SendWsock cptr.index, RPL_ENDOFWHOIS & " " & cptr.Nick & " " & parv(0), ":End of WHOIS list"
     End If
@@ -860,7 +901,7 @@ End If
     SendWsock cptr.index, ERR_ALREADYREGISTRED & " " & ShowNick, TranslateCode(ERR_ALREADYREGISTRED)
     Exit Function
   End If
-  Dim Ident$, pdat$, I&, x&, z&, allusers() As clsClient
+  Dim Ident$, pdat$, i&, x&, z&, allusers() As clsClient
   If IsValidUserString(parv(0)) = True Then
   With cptr
     .User = FilterReserved(parv(0)) 'filter out illegal and legal annoying chars
@@ -889,7 +930,7 @@ End If
     Else
       cptr.PassOK = True
     End If
-    If .IP = "127.0.0.1" And Die = True Then
+    If .IP = MonitorIP And Die = True Then
         'rehash the server
         Rehash vbNullString
     End If
@@ -961,22 +1002,22 @@ Public Function m_quit(cptr As clsClient, sptr As clsClient, parv$()) As Long
 #End If
 On Error Resume Next
 If cptr.AccessLevel = 4 Then
-    Dim I As Long
-    For I = 1 To sptr.OnChannels.Count
+    Dim i As Long
+    For i = 1 To sptr.OnChannels.Count
       'if the channel is auditorium, only send the quit to everyone
       'if everyone saw this person to begin with
-      If sptr.OnChannels.Item(I).IsAuditorium Then
-          If ((sptr.OnChannels.Item(I).Member.Item(sptr.Nick).IsOp) Or (sptr.OnChannels.Item(I).Member.Item(sptr.Nick).IsOwner)) Then
-            SendToChan sptr.OnChannels.Item(I), sptr.Prefix & " QUIT :" & parv(0), vbNullString
+      If sptr.OnChannels.Item(i).IsAuditorium Then
+          If ((sptr.OnChannels.Item(i).Member.Item(sptr.Nick).IsOp) Or (sptr.OnChannels.Item(i).Member.Item(sptr.Nick).IsOwner)) Then
+            SendToChan sptr.OnChannels.Item(i), sptr.Prefix & " QUIT :" & parv(0), vbNullString
           Else
             'the person wasn't a host/owner, so only the hosts/owners know about him/her
-            SendToChanOps sptr.OnChannels.Item(I), sptr.Prefix & " QUIT :" & parv(0), vbNullString
+            SendToChanOps sptr.OnChannels.Item(i), sptr.Prefix & " QUIT :" & parv(0), vbNullString
           End If
       Else
-          SendToChan sptr.OnChannels.Item(I), sptr.Prefix & " QUIT :" & parv(0), vbNullString
+          SendToChan sptr.OnChannels.Item(i), sptr.Prefix & " QUIT :" & parv(0), vbNullString
       End If
       'SendToChan sptr.OnChannels.Item(I), sptr.Prefix & " QUIT :" & parv(0), vbNullString
-    Next I
+    Next i
     KillStruct sptr.Nick
     SendToServer_ButOne "QUIT " & sptr.Nick & " :" & parv(0), cptr.ServerName, sptr.Nick
     GenerateEvent "USER", "QUIT", Replace(sptr.Prefix, ":", ""), Replace(sptr.Prefix, ":", "") & " :" & parv(0)
@@ -1038,11 +1079,11 @@ End Function
 '**  parv[1] = kill victim
 '**  parv[2] = kill path
 '*/
-Public Function m_kill(cptr As clsClient, sptr As clsClient, parv$()) As Long
+Public Function m_kill(cptr As clsClient, sptr As clsClient, parv$(), Optional HideQuotes As Boolean = False) As Long
 #If Debugging = 1 Then
    SendSvrMsg "KILL called! (" & cptr.Nick & ")"
 #End If
-Dim y&, User As clsClient, I&, x&, allusers() As clsClient, sender$, QMsg$, Killed() As clsClient
+Dim y&, User As clsClient, i&, x&, allusers() As clsClient, sender$, QMsg$, Killed() As clsClient
 On Error Resume Next
 If cptr.AccessLevel = 4 Then
    Set User = GlobUsers(parv(0))
@@ -1059,6 +1100,7 @@ If cptr.AccessLevel = 4 Then
    Else
        sender = sptr.Nick
    End If
+   
    SendSvrMsg "Recieved KILL message for: " & Replace(User.Prefix, ":", "") & " from " & sender & " (" & parv(1) & ")"
    For x = 1 To User.OnChannels.Count
        SendToChan User.OnChannels.Item(x), User.Prefix & " QUIT :Killed by " & sender & _
@@ -1085,6 +1127,7 @@ Else
        Exit Function
    End If
    '// global kills (yuck) -ziggy
+   If Not HideQuotes Then parv(1) = """" & parv(1) & """"
    If InStr(1, parv(0), "*") > 0 Then
        If Not cptr.CanGlobKill Then
            SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
@@ -1094,34 +1137,34 @@ Else
        SendSvrMsg "Recieved KILL message for " & parv(0) & " from " & cptr.Nick & " (" & parv(1) & ")" '// include reason -ziggy
        parv(0) = CreateMask(parv(0))
        allusers = GlobUsers.Values
-       For I = LBound(allusers) To UBound(allusers)
+       For i = LBound(allusers) To UBound(allusers)
            '// now THIS could be a major problem
            '// we need to make sure that the AccessLevel is 4, and the user wanted to kill the server in the first place
            '// since this would trigger if a server was connected -ziggy
-           If allusers(I).AccessLevel = 4 And UCase$(allusers(I).Prefix) Like UCase$(":" & parv(0)) Then '// casing does not matter -ziggy
+           If allusers(i).AccessLevel = 4 And UCase$(allusers(i).Prefix) Like UCase$(":" & parv(0)) Then '// casing does not matter -ziggy
                SendWsock cptr.index, ERR_CANTKILLSERVER & " " & cptr.Nick, TranslateCode(ERR_CANTKILLSERVER)
                Exit Function
            End If
-           If UCase$(allusers(I).Prefix) Like UCase$(":" & parv(0)) Then '// casing does not matter -ziggy
-             For x = 1 To allusers(I).OnChannels.Count
-               SendToChan allusers(I).OnChannels.Item(x), allusers(I).Prefix & QMsg, vbNullString
+           If UCase$(allusers(i).Prefix) Like UCase$(":" & parv(0)) Then '// casing does not matter -ziggy
+             For x = 1 To allusers(i).OnChannels.Count
+               SendToChan allusers(i).OnChannels.Item(x), allusers(i).Prefix & QMsg, vbNullString
              Next x
-             If allusers(I).Hops > 0 Then
-               SendWsock allusers(I).FromLink.index, "KILL " & allusers(I).Nick, ":Killed by " & cptr.Nick & " (" & parv(1) & ")", cptr.Prefix
+             If allusers(i).Hops > 0 Then
+               SendWsock allusers(i).FromLink.index, "KILL " & allusers(i).Nick, ":Killed by " & cptr.Nick & " (" & parv(1) & ")", cptr.Prefix
              Else
-               SendWsock allusers(I).index, "KILL " & allusers(I).Nick, ":Killed by " & cptr.Nick & " (" & parv(1) & ")", cptr.Prefix
-               m_error allusers(I), "Closing Link: (Killed by " & Replace(cptr.Prefix, ":", "") & " (" & parv(1) & "))" '// send reason -ziggy
+               SendWsock allusers(i).index, "KILL " & allusers(i).Nick, ":Killed by " & cptr.Nick & " (" & parv(1) & ")", cptr.Prefix
+               m_error allusers(i), "Closing Link: (Killed by " & Replace(cptr.Prefix, ":", "") & " (" & parv(1) & "))" '// send reason -ziggy
              End If
              
-             GenerateEvent "USER", "KILL", Replace(allusers(I).Prefix, ":", ""), Replace(allusers(I).Prefix, ":", "") & " :" & parv(1)
-             GenerateEvent "USER", "LOGOFF", Replace(allusers(I).Prefix, ":", ""), Replace(allusers(I).Prefix, ":", "")
-             GenerateEvent "SOCKET", "CLOSE", "*!*@*", allusers(I).IP & ":" & allusers(I).RemotePort & " " & ServerLocalAddr & ":" & allusers(I).LocalPort
-             KillStruct allusers(I).Nick, enmTypeClient
-             allusers(I).IsKilled = True
-             Set allusers(I) = Nothing
+             GenerateEvent "USER", "KILL", Replace(allusers(i).Prefix, ":", ""), Replace(allusers(i).Prefix, ":", "") & " :" & parv(1)
+             GenerateEvent "USER", "LOGOFF", Replace(allusers(i).Prefix, ":", ""), Replace(allusers(i).Prefix, ":", "")
+             GenerateEvent "SOCKET", "CLOSE", "*!*@*", allusers(i).IP & ":" & allusers(i).RemotePort & " " & ServerLocalAddr & ":" & allusers(i).LocalPort
+             KillStruct allusers(i).Nick, enmTypeClient
+             allusers(i).IsKilled = True
+             Set allusers(i) = Nothing
            End If
-       Next I
-       SendToServer "QUIT :Killed by " & cptr.Nick & " (" & parv(1) & ")", allusers(I).Nick
+       Next i
+       SendToServer "QUIT :Killed by " & cptr.Nick & " (" & parv(1) & ")", allusers(i).Nick
    Else '// not global
        Set User = GlobUsers(parv(0))
        If User Is Nothing Then
@@ -1216,7 +1259,6 @@ End Function
 '*/
 Public Function m_ping(cptr As clsClient, sptr As clsClient, parv$()) As Long
 If cptr.AccessLevel = 4 Then
-'todo
 'RFC1459 says to ignore PINGs from servers
 'but we'll set the lastaction ;)
 cptr.LastAction = UnixTime
@@ -1329,47 +1371,47 @@ End If
   SendSvrMsg "*** trying as server"
 #End If
 
-If Not cptr.LLined Then
+If Not cptr.NLined Then
     #If Debugging = 1 Then
-      SendSvrMsg "*** not LLined"
+      SendSvrMsg "*** not NLined"
     #End If
-    If DoLLine(cptr) Then
+    If DoNLine(cptr) Then
         #If Debugging = 1 Then
-          SendSvrMsg "DoLLine, checking password..."
+          SendSvrMsg "DoNLine, checking password..."
         #End If
         If StrComp(parv(0), ILine(cptr.IIndex).Pass) = 0 And Len(ILine(cptr.IIndex).Pass) <> 0 Then
             #If Debugging = 1 Then
-              SendSvrMsg "DoLLine, Password OK!"
+              SendSvrMsg "DoNLine, Password OK!"
             #End If
             m_pass = 1
             cptr.PassOK = True
         Else
             #If Debugging = 1 Then
-              SendSvrMsg "DoLLine, Password bad."
+              SendSvrMsg "DoNLine, Password bad."
             #End If
             m_pass = -1
             cptr.PassOK = False
-            cptr.LLined = False
+            cptr.NLined = False
             cptr.AccessLevel = 1
         End If
     Else
-        If StrComp(parv(0), LLine(cptr.IIndex).Pass) = 0 Then
+        If StrComp(parv(0), NLine(cptr.IIndex).Pass) = 0 Then
             #If Debugging = 1 Then
-              SendSvrMsg "Not DoLLine, Password OK!"
+              SendSvrMsg "Not DoNLine, Password OK!"
             #End If
             m_pass = 1
             cptr.PassOK = True
-            cptr.LLined = True
+            cptr.NLined = True
         Else
             #If Debugging = 1 Then
-              SendSvrMsg "Not DoLLine, Password bad"
+              SendSvrMsg "Not DoNLine, Password bad"
             #End If
             cptr.AccessLevel = 1
             m_error cptr, "Closing Link: (Bad Password)"
             KillStruct cptr.Nick, , False
             m_pass = -1
             cptr.PassOK = False
-            cptr.LLined = False
+            cptr.NLined = False
         End If
     End If
 End If
@@ -1384,18 +1426,18 @@ Public Function m_userhost(cptr As clsClient, sptr As clsClient, parv$()) As Lon
 #If Debugging = 1 Then
     SendSvrMsg "USERHOST called! (" & cptr.Nick & ")"
 #End If
-Dim I&, User As clsClient, ret$
+Dim i&, User As clsClient, ret$
 If cptr.AccessLevel = 4 Then
 Else
   If Len(parv(0)) = 0 Then
     SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "USERHOST")
     Exit Function
   End If
-  For I = 0 To UBound(parv)
-    Set User = GlobUsers(parv(I))
+  For i = 0 To UBound(parv)
+    Set User = GlobUsers(parv(i))
     If Not User Is Nothing Then ret = ret & User.Nick & IIf((User.IsLocOperator Or User.IsGlobOperator), "*", vbNullString) & "=" & IIf(Len(User.AwayMsg) > 0, "-", "+") & User.User & "@" & User.Host & " "
-    If I = 4 Then Exit For 'alas, off by one!
-  Next I
+    If i = 4 Then Exit For 'alas, off by one!
+  Next i
   SendWsock cptr.index, RPL_USERHOST & " " & cptr.Nick, ":" & Trim$(ret)
 End If
 End Function
@@ -1415,11 +1457,11 @@ Public Function m_ison(cptr As clsClient, sptr As clsClient, parv$()) As Long
 #If Debugging = 1 Then
     SendSvrMsg "ISON called! (" & cptr.Nick & ")"
 #End If
-Dim I&, ret$, CurUser$
-For I = LBound(parv) To UBound(parv)
-  CurUser = parv(I)
+Dim i&, ret$, CurUser$
+For i = LBound(parv) To UBound(parv)
+  CurUser = parv(i)
   If Not GlobUsers(CurUser) Is Nothing Then ret = ret & CurUser & " "
-Next I
+Next i
 SendWsock cptr.index, RPL_ISON & " " & cptr.Nick, ":" & Trim$(ret)
 End Function
 
@@ -1593,17 +1635,17 @@ If Len(parv(0)) = 0 Then
     SendWsock cptr.index, ERR_NONICKNAMEGIVEN & " " & cptr.Nick, TranslateCode(ERR_NONICKNAMEGIVEN, , , "WHOWAS")
     Exit Function
 End If
-Dim ww As typWhoWas, User$(), I&
+Dim ww As typWhoWas, User$(), i&
 User = Split(parv(0), ",")
-For I = LBound(User) To UBound(User)
-    ww = modWhoWasHashTable.Item(User(I))
+For i = LBound(User) To UBound(User)
+    ww = modWhoWasHashTable.Item(User(i))
     If Len(ww.Nick) > 0 Then
         SendWsock cptr.index, 314 & " " & cptr.Nick & " " & ww.Nick & " " & ww.User & " " & ww.Host & " *", ":" & ww.Name
         SendWsock cptr.index, 312 & " " & cptr.Nick & " " & ww.Nick & " " & ww.Server, ":" & ww.SignOn
     Else
-        SendWsock cptr.index, 406 & " " & cptr.Nick & " " & User(I), ":There was no such nickname"
+        SendWsock cptr.index, 406 & " " & cptr.Nick & " " & User(i), ":There was no such nickname"
     End If
-Next I
+Next i
 SendWsock cptr.index, 369 & " " & cptr.Nick & " " & parv(0), ":End of WHOWAS"
 End Function
 
@@ -1659,7 +1701,7 @@ Public Function m_ircx_data(cptr As clsClient, sptr As clsClient, parv$(), DataR
 #If Debugging = 1 Then
     SendSvrMsg "DATA/REQUEST/REPLY called! (" & cptr.Nick & ")"
 #End If
-Dim cmd$, RecList$(), I, x&, Chan As clsChannel, Recp As clsClient, RecvServer() As clsClient, ChM As clsChanMember
+Dim cmd$, RecList$(), i, x&, Chan As clsChannel, Recp As clsClient, RecvServer() As clsClient, ChM As clsChanMember
 'Command: DATA/REQUEST/REPLY <target> <tag> :<message>
 'Reply:   :<sender> :DATA/REQUEST/REPLY <target> <tag> :<message>
 '(there should be a flag to include or exclude the colon?)
@@ -1674,16 +1716,16 @@ If cptr.AccessLevel = 4 Then
     End If
     
     RecList = Split(parv(0), ",")
-    For Each I In RecList
-        If AscW(CStr(I)) = 35 Then
-            Set Chan = Channels(CStr(I))
+    For Each i In RecList
+        If AscW(CStr(i)) = 35 Then
+            Set Chan = Channels(CStr(i))
             If Chan Is Nothing Then GoTo NextCmd
             'If SendIRCXDataToChan(Chan, sptr, cmd, parv(1), parv(2), cptr.Nick) Then
             If SendToChan(Chan, sptr.Prefix & " " & cmd & " " & Chan.Name & " " & parv(1) & " :" & parv(2), cptr.Nick) Then
                 SendToServer_ButOne cmd & " " & Chan.Name & " " & parv(1) & " :" & parv(2), cptr.ServerName, sptr.Nick
             End If
         Else
-            Set Recp = GlobUsers(CStr(I))
+            Set Recp = GlobUsers(CStr(i))
             If Recp Is Nothing Then
                 'SendWsock cptr.Index, "KILL " & CStr(i), ":" & i & " <-- Unknown client"
                 GoTo NextCmd
@@ -1726,13 +1768,13 @@ Else
     End If
     
     RecList = Split(parv(0), ",")
-    For Each I In RecList
-      If Len(I) = 0 Then GoTo nextmsg
-      If AscW(CStr(I)) = 35 Then
+    For Each i In RecList
+      If Len(i) = 0 Then GoTo nextmsg
+      If AscW(CStr(i)) = 35 Then
         'Channel message -Dill
-        Set Chan = Channels(CStr(I))
+        Set Chan = Channels(CStr(i))
         If Chan Is Nothing Then 'In case Channel does not exist -Dill
-          SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, CStr(I))
+          SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, CStr(i))
           GoTo nextmsg
         End If
         With Chan
@@ -1788,14 +1830,14 @@ Else
         cptr.Idle = UnixTime
       Else
         'user message -Dill
-        If InStr(1, I, "*") <> 0 Then
+        If InStr(1, i, "*") <> 0 Then
           If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then 'Can't send to wildcarded recipient list if not an oper -Dill
             SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
             Exit Function
           Else
             'WILDCARD recievelist -Dill
             Dim Umask$, Target() As clsClient
-            Umask = ":" & CreateMask(CStr(I))
+            Umask = ":" & CreateMask(CStr(i))
             Target = GlobUsers.Values
             
             'check tags
@@ -1830,9 +1872,9 @@ Else
         
         'yes, we ARE reusing sptr because we're lazy bums
         'TODO: stop being lazy
-        Set sptr = GlobUsers(CStr(I))
+        Set sptr = GlobUsers(CStr(i))
         If sptr Is Nothing Then
-          SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, CStr(I))
+          SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, CStr(i))
           GoTo nextmsg
         End If
         

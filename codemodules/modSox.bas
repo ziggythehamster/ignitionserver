@@ -14,7 +14,7 @@ Attribute VB_Name = "modSox"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: modSox.bas,v 1.16 2004/08/08 21:14:32 ziggythehamster Exp $
+' $Id: modSox.bas,v 1.19 2004/09/23 03:37:23 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -92,43 +92,43 @@ If cptr.AccessLevel < 4 Then
 Else
     GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & cptr.LocalPort
     'Server connection closed -Dill
-    Dim I&, User() As clsClient, s&, c&
+    Dim i&, User() As clsClient, s&, c&
     User = GlobUsers.Values
     'remove all users (behind and/or directly from) this link -Dill
-    For I = LBound(User) To UBound(User)
-        If User(I).FromLink Is cptr Then
-            For z = 1 To User(I).OnChannels.Count
+    For i = LBound(User) To UBound(User)
+        If User(i).FromLink Is cptr Then
+            For z = 1 To User(i).OnChannels.Count
             
               'account for auditorium
-              If User(I).OnChannels.Item(z).IsAuditorium Then
-                  If ((User(I).OnChannels.Item(z).Member.Item(User(I).Nick).IsOp) Or (User(I).OnChannels.Item(z).Member.Item(User(I).Nick).IsOwner)) Then
-                    SendToChan User(I).OnChannels.Item(z), User(I).Prefix & " QUIT :" & ServerName & " " & cptr.ServerName, vbNullString
+              If User(i).OnChannels.Item(z).IsAuditorium Then
+                  If ((User(i).OnChannels.Item(z).Member.Item(User(i).Nick).IsOp) Or (User(i).OnChannels.Item(z).Member.Item(User(i).Nick).IsOwner)) Then
+                    SendToChan User(i).OnChannels.Item(z), User(i).Prefix & " QUIT :" & ServerName & " " & cptr.ServerName, vbNullString
                   Else
                     'the person wasn't a host/owner, so only the hosts/owners know about him/her
-                    SendToChanOps User(I).OnChannels.Item(z), User(I).Prefix & " QUIT :" & ServerName & " " & cptr.ServerName, vbNullString
+                    SendToChanOps User(i).OnChannels.Item(z), User(i).Prefix & " QUIT :" & ServerName & " " & cptr.ServerName, vbNullString
                   End If
               Else
-                  SendToChan User(I).OnChannels.Item(z), User(I).Prefix & " QUIT :" & ServerName & " " & cptr.ServerName, vbNullString
+                  SendToChan User(i).OnChannels.Item(z), User(i).Prefix & " QUIT :" & ServerName & " " & cptr.ServerName, vbNullString
               End If
               'SendToChan User(I).OnChannels.Item(z), User(I).Prefix & " QUIT :" & ServerName & " " & cptr.ServerName, vbNullString
             Next z
-            KillStruct User(I).Nick
-            SendToServer "QUIT :" & ServerName & " " & cptr.ServerName, User(I).Nick
-            Set User(I) = Nothing
+            KillStruct User(i).Nick
+            SendToServer "QUIT :" & ServerName & " " & cptr.ServerName, User(i).Nick
+            Set User(i) = Nothing
             c = c + 1
         End If
-    Next I
+    Next i
     'remove all servers behind this link -Dill
     User = Servers.Values
-    For I = LBound(User) To UBound(User)
-        If User(I).FromLink Is cptr Then
-            Servers.Remove User(I).ServerName
-            SendToServer "SQUIT :" & User(I).ServerName, ServerName
-            Set User(I).FromLink = Nothing
-            Set User(I) = Nothing
+    For i = LBound(User) To UBound(User)
+        If User(i).FromLink Is cptr Then
+            Servers.Remove User(i).ServerName
+            SendToServer "SQUIT :" & User(i).ServerName, ServerName
+            Set User(i).FromLink = Nothing
+            Set User(i) = Nothing
             s = s + 1
         End If
-    Next I
+    Next i
     SendToServer "SQUIT :" & cptr.ServerName, cptr.ServerName
     Servers.Remove cptr.ServerName
     Set Users(insox) = Nothing
@@ -155,7 +155,17 @@ If IsClient Then
     Set NC = GetFreeSlot(insox)
     If MaxConnections > 0 Then
         If LocalConn > MaxConnections Then
-            bArr = StrConv("ERROR :Closing Link: (Server is full)" & vbCrLf, vbFromUnicode)
+            Dim tmpSendOut As String
+            If Len(DoBLine("")) > 0 Then
+              Dim tmpRedirect As String
+              tmpRedirect = DoBLine("")
+              tmpRedirect = Trim$(tmpRedirect)
+              If InStr(1, tmpRedirect, ",") = 0 Then tmpRedirect = tmpRedirect & ","
+              tmpSendOut = tmpSendOut & SPrefix & " 010 Anonymous " & Trim$(Split(Split(tmpRedirect, ",")(0), ":")(0)) & " " & Trim$(Split(Split(tmpRedirect, ",")(0), ":")(1)) & " :" & DoBLineMsg("") & vbCrLf
+              tmpSendOut = tmpSendOut & "ERROR :Closing Link: (""" & DoBLineMsg("") & """)" & vbCrLf
+            End If
+            If Len(tmpSendOut) = 0 Then tmpSendOut = "ERROR :Closing Link: (Server is full)" & vbCrLf
+            bArr = StrConv(tmpSendOut, vbFromUnicode)
             Call Send(Sockets.SocketHandle(insox), bArr(0), UBound(bArr) + 1, 0)
             Sockets.TerminateSocket Sockets.SocketHandle(insox)
             Set Users(insox) = Nothing
@@ -201,7 +211,7 @@ Else
     Sockets.SetOption insox, soxSO_KEEPALIVE, 1
     Sockets.SetOption insox, soxSO_TCP_NODELAY, 1
     Sockets.SetOption insox, soxSO_LINGER, 0
-    Dim SendAuth As LLines
+    Dim SendAuth As NLines
     Set NC = GetFreeSlot(insox)
     NC.SockHandle = Sockets.SocketHandle(insox)
     NC.IP = Sockets.Address(insox)
@@ -221,9 +231,12 @@ Else
     NC.SignOn = UnixTime
     NC.Timeout = 2
     IrcStat.UnknownConnections = IrcStat.UnknownConnections + 1
-    SendAuth = GetLLineN(NC.IP, NC.RealHost)
+    SendAuth = GetNLine(NC.IP)
     If Len(SendAuth.Server) = 0 Then
         m_error NC, "Closing Link: (No Access)"
+        #If Debugging = 1 Then
+          SendSvrMsg "*** Closed link, N: line's server field is empty"
+        #End If
         Set NC = Nothing
         Set Users(insox) = Nothing
         Exit Sub
@@ -237,7 +250,7 @@ Public Sub Sox_DataArrival(insox As Long, StrMsg As String)
 #If Debugging = 1 Then
     SendSvrMsg "Sox_DataArrival called!"
 #End If
-Dim cptr As clsClient, StrArray$(), I&, x&
+Dim cptr As clsClient, StrArray$(), i&, x&
 Set cptr = Users(insox)
 If cptr Is Nothing Then
     Sockets.CloseIt insox
@@ -248,6 +261,25 @@ If cptr.IsKilled Then
     Exit Sub
 End If
 If Len(StrMsg) = 0 Then Exit Sub
+If Len(StrMsg) > 2048 Then
+  'the buffer limit is 512 according to the protocol
+  'the sockets have a hard limit of 4096
+  'we're being nice.
+  cptr.IsKilled = True
+  If cptr.OnChannels.Count > 0 Then
+    For x = 1 To cptr.OnChannels.Count
+        SendToChan cptr.OnChannels.Item(x), cptr.Prefix & " QUIT :Maximum Buffer Length Reached", vbNullString
+    Next x
+  End If
+  SendToServer "QUIT :Maximum Buffer Length Reached", cptr.Nick
+  GenerateEvent "USER", "QUIT", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " :Maximum Buffer Length Reached"
+  GenerateEvent "USER", "LOGOFF", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "")
+  GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & cptr.LocalPort
+  KillStruct cptr.Nick, enmTypeClient
+  m_error cptr, "Closing Link: (Maximum Buffer Length Reached)"
+  Sockets.TerminateSocket cptr.SockHandle
+  Exit Sub
+End If
 StrMsg = Replace(StrMsg, vbCrLf, vbLf)
 
 If InStr(1, StrMsg, vbLf) = 0 Then
@@ -299,8 +331,8 @@ ServerTraffic = ServerTraffic + Len(StrMsg)
 StrArray = Split(StrMsg, vbLf)
 'Due to the nature of a Stack (Last one to push on is the first one that will get pulled off)
 'we will have to push incoming messages in reversed order. -Dill
-For I = 0 To UBound(StrArray)
-    If Len(StrArray(I)) > 3 Then
+For i = 0 To UBound(StrArray)
+    If Len(StrArray(i)) > 3 Then
     
         If MaxMsgsInQueue > 0 Then
             If cptr.AccessLevel < 4 Then
@@ -325,10 +357,10 @@ For I = 0 To UBound(StrArray)
         End If
 
         RecvMsg = RecvMsg + 1
-        RecvQ.Add cptr, StrArray(I)
-        If Left$(StrArray(I), 5) = "QUIT " Then cptr.SentQuit = True
+        RecvQ.Add cptr, StrArray(i)
+        If Left$(StrArray(i), 5) = "QUIT " Then cptr.SentQuit = True
     End If
-Next I
+Next i
 End Sub
 
 Public Sub Sox_Error(insox As Long, inerror As Long, inDescription As String, inSource As String, inSnipet As String)

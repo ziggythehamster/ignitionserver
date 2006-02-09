@@ -1,42 +1,43 @@
-		RELEASE NOTES FOR IGNITIONSERVER RELEASE: 0.3.4
-# $Id: releasenotes.txt,v 1.21 2004/08/13 00:35:09 ziggythehamster Exp $
+		RELEASE NOTES FOR IGNITIONSERVER RELEASE: 0.3.5
+# $Id: releasenotes.txt,v 1.29 2004/10/09 03:29:09 ziggythehamster Exp $
 
+#/--------------------------------------------------------------
+# For best results, view this document with word wrap enabled.
+#--------------------------------------------------------------/
 
 Changes:
-Removed half-op entirely -- freed up memory (it wasn't supported to begin with)
-004 reply includes ignitionServer version number
-VERSION reply ends in .0 now (as denoted by RFC 1459)
+*** WE HAVE REVERTED TO C: AND N: LINES! L: LINES WILL NO LONGER WORK!
+All KILL messages coming from clients are now in quotes, so server kills can't be faked
+RFC1459 is added to the 005 token list
+All GUIDs are now Windows style GUIDs
+If you make a stupid mistake with Y: and I: lines, it will notify you sometimes.
 
 New Features include:
-IRCX Auditorium (+x). Possibly still buggy -- please file a bug report if it is!
-IRCX Clone/Cloneable (+d/+e). Should be working 100%.
+Channels now have GUIDs
+B: (bounce) lines - read ircx.conf for a full description
+LISTX flags! Now, you can search for channels with all kinds of options (limit, creation, topic, subject, language, etc.)
+Servers now propragrate properties using our unofficial NPROP command
+X:CREATEMODE - select who has permissions to create channels
+X:STATICCHAN - create static channels (channels that always exist, are opless [unless an oper with sufficient privileges joins], and are limitless [unless an oper with sufficient privileges sets a limit])
 
 Bug Fixes:
 
 Bug #   | Bug Name
 ---------------------
-1001721 | property propragration happens twice
-1001722 | IRC Operators can change properties as if they were owners
-1001723 | cannot check properties from outside of channel
-988743  | +psh don't function properly
-1005367 | Auditorium users see erroneous quits
+1007675 | CREATE is entirely wrong
+1006680 | Complete linking failure
+1001732 | No nick collision detection while linking
+1015181 | Max Global/Local users is wrong
+1016496 | USER.NICK event shows wrong nickname
+1016500 | NICK changes don't have a hostname
+997723  | ServerTraffic is slightly off
+1026533 | control.exe needs rewrite
+1026739 | monitor.exe needs to stop using MSWINSCK.OCX
+1026974 | make B: lines use 010 reply
+        | possible buffer overrun bug
+        | B: line reply problems
+        | possible bug that could allow users to make channels cease to exist without sufficient privileges
+1043391 | Cannot kick hosts
 
 Comments:
-This version of ignitionServer is mainly a bugfix release,
-but we have also added IRCX auditorium and clone/cloneable.
-In a nutshell, these modes are used as follows:
-1) To make an auditorium, you must create the room with the
-   CREATE command and specify the proper modes. Basically,
-   /create #Channel xnt
-2) To make a cloneable channel, you must be an IRC Operator,
-   and you do it by going /mode #Channel +d.
-
-Yes, all users can create auditoriums. The IRCX draft doesn't
-specify whether or not it's operator-only. In an upcoming version,
-we will have a new security infrastructure that says what levels
-of users are required for what command/mode, and we will address
-this issue there.
-
-The /CREATE command does not properly function. This will be resolved
-in the next version. Also, linking does not work at all. This will also
-be resolved in the next version.
+ignitionServer is a lot like a fine wine. With age, it keeps getting better and better. 0.3.5 is no different. In this version, we have 99% operational linking, several bug fixes, performance improvements, and a bunch of features of IRCX that we lacked, such as bounce lines, which allow you to forward certain users to a different server. The IRCX server message used is REDIRECT, and we use the 010 IRC reply for non-IRCX clients. We also now have LISTX flags, which allow you to search for a channel based on specific criteria. Basically, this version is 900% better than all previous versions. We've even plugged a few possible holes. At the rate we're going, 0.3.6 will be 900% better than this one. Bet you can't wait, eh?

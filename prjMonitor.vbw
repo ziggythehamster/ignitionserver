@@ -1,4 +1,6 @@
-frmMain = 66, 66, 785, 677, C, 161, 105, 880, 716, C
+frmMain = 66, 66, 785, 677, Z, 160, 162, 879, 773, C
 ctlHoverMenu = 286, 286, 1005, 897, C, 44, 44, 763, 655, C
 cRegistry = 110, 110, 896, 721, C
 frmMoreInfo = 88, 116, 881, 741, C, 86, 205, 879, 830, C
+modSocketMaster = 88, 116, 879, 741, C
+CSocketMaster = 66, 87, 857, 712, C

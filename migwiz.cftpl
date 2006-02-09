@@ -8,21 +8,33 @@
 # ignitionServer!                    #
 ######################################
 
-# ignitionServer 0.3.4 Configuration File
+# ignitionServer 0.3.5 Configuration File
 # Lines that begin with # are comments and IGNORED by ignitionServer!
 
 ################################################### 
-# $Id: migwiz.cftpl,v 1.9 2004/08/13 00:35:08 ziggythehamster Exp $ 
+# $Id: migwiz.cftpl,v 1.12 2004/09/25 01:27:10 ziggythehamster Exp $ 
 ###################################################
 
 !insertmacro generator
 
-#############################################################################################################
-# Basic Configuration Section                                                                               #
-#############################################################################################################
+############[ NOTICE ]############
+# WE HAVE REVERTED BACK TO C:    #
+# AND N: LINES! THIS MEANS THAT  #
+# L: LINES WILL NO LONGER WORK!  #
+# PLEASE READ THAT PARTICULAR    #
+# SECTION OF THIS FILE FOR INFO  #
+# ON HOW TO USE C: AND N: LINES. #
+##################################
+
+
+
+
+#==========================================================================#
+# Basic Configuration Section                                              #
+#==========================================================================#
 
 #[ M: Lines - Server Information ]##########################################
-# M:<server address>:<server name>:<server description>:<bind address>:    #
+# M:<server address>:<network name>:<server description>:<bind address>:   #
 #   <main port>                                                            #
 ############################################################################
 # Here is where you put some witty description for your server. We use our #
@@ -103,9 +115,20 @@
 
 !insertmacro i-line
 
-#############################################################################################################
-# Logins, UserIDs, Connections, and other related tidbits                                                   #
-#############################################################################################################
+
+
+
+
+
+
+
+
+
+
+
+#==========================================================================#
+# Logins, UserIDs, Connections, and other related tidbits                  #
+#==========================================================================#
 
 #[ O: Lines - Operator Lines ]##############################################
 # O:<hostmask>:<password>:<username>:<operator flags>:<connection class>   #
@@ -186,8 +209,6 @@
 # in a default configuration is discriminative ;).                         #
 ############################################################################
 
-!insertmacro k-line
-
 #[ Q: Lines - Nickname Quarantines ]########################################
 # Q::<Message>:<Nickname Mask>                                             #
 ############################################################################
@@ -233,43 +254,79 @@
 
 !insertmacro p-line
 
-#[ L: Lines - Server Links ]################################################
-# L:<IP Address>:<Password>:<Display Name>:<Port>:<Connection Class>       #
+#[ Server Links (C: and N: lines) ]#########################################
+# C:<Server Address>:<Password>:<Server Name>:<Port>:<Connection Class>    #
+# N:<Server Address>:<Password>:<Server Name>::<Connection Class>          #
 ############################################################################
-# This line enables the use of server-to-server linking. On nearly every   #
-# IRCD that uses this old configuration, there were two seperate lines.    #
-# One of them was the C: line and the other was the N: line. We have made  #
-# linking easier by just using one L: line. The only functionality you     #
-# lose is having a different password for connecting to a server and       #
-# getting connections from a server. The IP address is the address of the  #
-# server, if you were to /connect to it. When you're being connected to,   #
-# you don't need to worry about it being valid. Passwords are NOT affected #
-# by X:CRYPT, and they should NOT be encrypted! The display name needs to  #
-# be the name of the other server (see that server's M: line). It MUST be  #
-# different from the display name of the current server! The port needs to #
-# be a port the server is listening on (add a P: line, or use the port in  #
-# the M: line). If you are /connect'ing to it, the port needs to be a port #
-# that the other server is listening on. That means you need to add a P:   #
-# line to the other server if you're not using the default port. The       #
-# connection class needs to be defined in a Y: line, and it needs plenty   #
-# of bandwidth and SendQ.                                                  #
+# These lines enable servers to link to eachother. A C: line allows your   #
+# IRC Operators to /connect to the server listed in the C: line. In most   #
+# cases, it is required for linking. A N: line allows your server to       #
+# accept connections from the server specified in the line. In all cases,  #
+# it is required. If you are not sure how you'll be setting up your        #
+# network, use both C: and N: lines. Both lines must have the same         #
+# address, server name, and connection class. The password may be          #
+# different if you wish, but make sure you set up the other end of the     #
+# connection opposite. The password that the server expects when linking   #
+# is the password in the N: line. The password that the server sends when  #
+# linking is the password in the C: line. When you link multiple servers,  #
+# the C: and N: lines must point to the opposite server. For example, if   #
+# this server is server1.mychat.com and you want to link to                #
+# server2.mychat.com, this server's C: and N: lines should refer to        #
+# server2.mychat.com (C:blah:1234:server2.mychat.com......).               #
+# server2.mychat.com's C: and N: lines should refer to this server. IRC    #
+# Operators (with global/local routing privileges) can make one server     #
+# connect to the other by typing /connect other_server_name_here.          #
 #~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*#
-# Ex: L:127.0.0.1:1234:services.localhost:6667:100                         #
+# Ex: C:127.0.0.1:1234:services.localhost:6667:100                         #
+#     N:127.0.0.1:1234:services.localhost::100                             #
 ############################################################################
 
 !insertmacro l-line
 
-#############################################################################################################
-# eXtended Configuration Section                                                                            #
-#############################################################################################################
+#[ B: Lines - Bounce To Server ]############################################
+# B:<Host Mask>:<Message>:<Server Name>:<Port>:                            #
+############################################################################
+# B: lines list alternate servers that users matching the hostmask should  #
+# use instead of this server. This is useful if you want to temporarily    #
+# disable the server or redirect certain clients to servers that are       #
+# geographically closer to them. If "Host Mask" is left blank, the server  #
+# will redirect clients to the server specified when the server gets full. #
+# If you want to return a list of servers to the client, specify multiple  #
+# servers with the same hostname mask. If a client matches more than one   #
+# hostname mask, a list will be built. For example, if a client is         #
+# "me.mychat.co.uk", a hostname mask of *.co.uk and a hostname mask of     #
+# me.* will match the user. If this is the case, the user will be told of  #
+# every server associated with all hostnames that the user matches (but    # 
+# not if there's a duplicate). The message from the first B: line the user #
+# matches will be the message sent to the user.                            #
+#~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*#
+# Ex: B:*.co.uk:Please use our UK server:uk.mychat.com:6667                #
+# Ex: B::The server is full, please use server 2:server2.mychat.com:6667   #
+############################################################################
 
-#-#-------------------------------------------------------------------------------------------------------#-#
-#-# Note about eXtended Configuration Lines (X: lines): X: lines were created so we could have a simpler  #-#
-#-# way to define extra features without cramming them on one line or using all of the letters (or worse, #-#
-#-# using a C-style configuration). The basic format of the X: line is:                                   #-#
-#-# X:SECTION:PARAMETERS:PARAMETERS:... and so on. Most commands only have X:SECTION:PARAMETER and it's   #-#
-#-# only 0 or 1.                                                                                          #-#
-#-#-------------------------------------------------------------------------------------------------------#-#
+!insertmacro b-line
+
+
+
+
+
+
+
+
+
+#==========================================================================#
+# eXtended Configuration Section                                           #
+#==========================================================================#
+
+#-#----------------------------------------------------------------------#-#
+#-# Note about eXtended Configuration Lines (X: lines): X: lines were    #-#
+#-# created so we could have a simpler way to define extra features      #-#
+#-# without cramming them on one line or using all of the letters        #-#
+#-# (or worse, using a C-style configuration). The basic format of the   #-#
+#-# X: line is:                                                          #-#
+#-# X:SECTION:PARAMETERS:PARAMETERS:... and so on. Most commands only    #-#
+#-# have X:SECTION:PARAMETER and it's usually only 0 or 1.               #-#
+#-#----------------------------------------------------------------------#-#
 
 #-{MACROS}-----------------------------------------------------------------+
 # You can use some "macros" in some free text areas, like the custom auth  |
@@ -284,7 +341,7 @@
 X:DIEPASS:die
 X:RESTARTPASS:restart
 
-#********************************** ATTENTION! IF YOU ARE GETTING "SERVER MISCONFIGURED", CHANGE THE 1 TO A 0!
+# *** ATTENTION! IF YOU ARE GETTING "SERVER MISCONFIGURED", CHANGE THE 1 TO A 0!
 
 #DIE - Set to anything besides "1"
 #(this is to force you to configure your server!)
@@ -332,7 +389,7 @@ X:REMOTEPASS:098f6bcd4621d373cade4e832627b4f6
 #       will not function as expected when this is on. Again, it is an ADVANCED FEATURE and is only designed for system administrators who know what they're doing.
 #       (you could use this to bind different servers to different interfaces and essentially serve infinite servers on infinite IPs.. if you were a web host
 #       for example)
-X:ALLOWMULTIPLE:0
+X:ALLOWMULTIPLE:1
 
 #GAGMODE - Set how gag (usermode +z) functions
 # 0 - Do not show the user getting gagged that they are getting gagged (IRCX defined method)
@@ -356,10 +413,41 @@ X:REGCHANMODE:0
 
 #ERRORLOG - Set options that enable or disable the error log (outputs to errorlog.txt)
 # 0 - Disable the error log (not reccommended)
-# 1 - Enable the error log (only logs fatal exceptions and regular errors; reccommended)
+# 1 - Enable the error log (only logs fatal exceptions and regular errors; recommended)
 X:ERRORLOG:1
 
 #AUTOVHOST - Automatically give operators VHosts if a VHost exists with the same username and password as the oper
 # 0 - Disable AutoVHost
 # 1 - Enable AutoVHost (if a VHost doesn't exist for a particular operator, they won't get a VHost)
 X:AUTOVHOST:1
+
+#CREATEMODE - Control who can create channels
+# 0 - (default) All users can create channels
+# 1 - Only IRC operators can create channels
+# 2 - Only IRC operators and +r (registered/identified) users can create channels
+X:CREATEMODE:0
+
+#MONITORIP - (advanced) Change the IP address that the server expects the monitor from. Mostly useful for Windows Server 2003 users.
+# Default: 127.0.0.1
+# Change ONLY if you know what you're doing!
+X:MONITORIP:127.0.0.1
+
+#STATICCHAN - Create static channels that can be automatically joined when users connect
+# Parameters:
+#  X:STATICCHAN:#ChannelName:AutoJoin
+# If AutoJoin is 0, the channel is not automatically joined
+# If AutoJoin is 1, the channel is joined automatically when users connect
+# You can have more than one static channel, just add more than one X:STATICCHAN line. Here is an example:
+#  X:STATICCHAN:#Lobby:1
+#  X:STATICCHAN:#Test:0
+# Static channels should be used sparingly, because they aren't as dynamic as regular channels. Static channels do not have
+# owners/hosts/voices, but owners who have lowprot/highprot get whatever mode is associated with lowprot/highprot. For example,
+# if X:HIGHPROT: is set to Q, opers with +P will be an owner in a static channel. Basically, static channels are for channels
+# that you want to be mainly oper-controlled, and that you optionally want to be joined when people connect. A good use for static
+# channels are lobby channels.
+X:STATICCHAN:#Lobby:1
+X:STATICCHAN:#Test:0
+
+
+
+# Congratulations! You're done!
