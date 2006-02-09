@@ -1,5 +1,5 @@
 Attribute VB_Name = "mod_list"
-'ignitionServer is (C)  Keith Gable and Nigel Jones.
+'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -9,10 +9,11 @@ Attribute VB_Name = "mod_list"
 'Released under the GNU General Public License
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
 '                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
+'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_list.bas,v 1.4 2004/05/28 20:35:05 ziggythehamster Exp $
+' $Id: mod_list.bas,v 1.5 2004/05/28 21:27:37 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -28,10 +29,14 @@ Attribute VB_Name = "mod_list"
 'if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 Option Explicit
+'this is kind of an internal flood limiter
+'100 is the highest this number should be
+'10 is the lowest this number should be
+'this number can not be 1 or less
 Public Const MaxTrafficRate As Long = 100
 
 '-=BUILD DATE=-
-Public Const BuildDate As String = "20040313"
+Public Const BuildDate As String = "20040331"
 
 #Const Debugging = 0
 
@@ -93,6 +98,10 @@ Public MaxMsgsInQueue As Long
 Public SVSN_NickServ As String
 Public SVSN_ChanServ As String
 
+'GagModes
+Public ShowGag As Boolean
+Public BounceGagMsg As Boolean
+
 '/die and /restart passwords
 Public RestartPass As String
 Public DiePass As String
@@ -105,6 +114,16 @@ Public MaskDNS As Boolean
 Public MaskDNSMD5 As Boolean
 Public MaskDNSHOST As Boolean
 Public HostMask As String
+
+'Protect Stuff
+Public HighProtAsq As Boolean
+Public LowProtAsq As Boolean
+Public HighProtAso As Boolean
+Public LowProtAso As Boolean
+Public HighProtAsv As Boolean
+Public LowProtAsv As Boolean
+Public HighProtAsn As Boolean
+Public LowProtAsn As Boolean
 
 'Server location
 Public ServerLocation As String
@@ -193,9 +212,10 @@ Public Type ILines
 End Type
 
 Public Type YLines
-  id As Long
+  ID As Long
   index As Long
   PingFreq As Long
+  PingCounter As Long
   ConnectFreq As Long
   MaxClients As Long
   CurClients As Long
@@ -675,10 +695,10 @@ Public Const modeRemove As Long = 45
 'All possible modes for chan/user
 'Now in alphabetical order - Ziggy
 'Added missing modes
-Public Const UserModes As String = "bcdeikorsxBCDEKOPRSZ"
+Public Const UserModes As String = "bcdeikoprsxzBCDEKNOPRSZ"
 Public Const ChanModes As String = "abdehiklmnopqrstuvwxzOR"
 'for the 005 reply
-Public Const ChanModesX As String = "b,k,l,adehimnopqrstuvwxyzOR"
+Public Const ChanModesX As String = "b,k,l,abdehiklmnopqrstuvwxzOR"
 
 'Authentication Packages/IRCX stuff
 Public Const AuthPackages As String = "ANON"
@@ -702,10 +722,12 @@ Public Const umCanKline As Long = 98    '+b / Can /kline user
 Public Const umCanUnKline As Long = 66  '+B / Can /unkline user
 Public Const umRegistered As Long = 114 '+r / has a registered nick
 Public Const umService As Long = 83     '+S / is a service
+Public Const umLProtected As Long = 112 '+p / Lower level protected oper - same as P except it has a different 'strength'
 Public Const umProtected As Long = 80   '+P / protected operator, can't be deopped or kicked from a channel
 Public Const umNetAdmin As Long = 78    '+N / is Net Admin
 Public Const umCanAdd As Long = 69      '+E / can use /add
 Public Const umRemoteAdmin As Long = 90 '+Z / is a Remote Administrator (Is logged in via /remoteadm login)
+Public Const umGagged As Long = 122     '+z / is gagged (cannot PRIVMSG or NOTICE)
 
 Public Function TranslateCode$(Code&, Optional Nick$, Optional Chan$, Optional cmd$)
 #If Debugging = 1 Then
@@ -848,5 +870,7 @@ Select Case Code
     TranslateCode = ":Start of events"
   Case IRCRPL_EVENTEND
     TranslateCode = ":End of events"
+  Case RPL_WHOISREGNICK
+    TranslateCode = ":is a registered nick"
 End Select
 End Function

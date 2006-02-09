@@ -1,5 +1,5 @@
 Attribute VB_Name = "mod_main"
-'ignitionServer is (C)  Keith Gable and Nigel Jones.
+'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -9,10 +9,11 @@ Attribute VB_Name = "mod_main"
 'Released under the GNU General Public License
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
 '                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
+'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_main.bas,v 1.4 2004/05/28 20:35:05 ziggythehamster Exp $
+' $Id: mod_main.bas,v 1.5 2004/05/28 21:27:37 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -34,7 +35,7 @@ Public Declare Function KillTimer Lib "user32" (ByVal hWnd As Long, ByVal nIDEve
 Public Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Public Declare Function Send Lib "wsock32.dll" Alias "send" (ByVal s As Long, buf As Any, ByVal buflen As Long, ByVal flags As Long) As Long
 Public Declare Function GetTickCount& Lib "kernel32" ()
-Private Declare Function CoCreateGuid Lib "ole32" (id As Any) As Long
+Private Declare Function CoCreateGuid Lib "ole32" (ID As Any) As Long
 Private Bye As Boolean
 #Const Debugging = 0
 #Const CanDie = 1
@@ -44,10 +45,10 @@ Public Function CreateGUID() As String
 #If Debugging = 1 Then
     SendSvrMsg "CREATEGUID called!"
 #End If
-    Dim id(0 To 15) As Byte, Cnt As Long
-    Call CoCreateGuid(id(0))
+    Dim ID(0 To 15) As Byte, Cnt As Long
+    Call CoCreateGuid(ID(0))
     For Cnt = 0 To 15
-        CreateGUID = CreateGUID & Hex$(id(Cnt))
+        CreateGUID = CreateGUID & Hex$(ID(Cnt))
     Next Cnt
 End Function
 
@@ -156,7 +157,82 @@ Else
     htm = False
 End If
 End Function
-
+Public Sub KillNoPongs(ClassID As Long)
+'this sub kills people who have not pong'ed yet (and are required to)
+On Error GoTo KNPErr
+Dim tmpU() As clsClient
+Dim tmpN As Long
+Dim x As Long
+tmpU() = GlobUsers.Values
+For tmpN = LBound(tmpU) To UBound(tmpU)
+  'only get mad about the pong if idle for 30+ seconds and not ponged
+  'obviously, if you're not idle, and didn't respond to a pong, you
+  'aren't dead... oh, and don't care about servers
+  If (tmpU(tmpN).WaitingForPong = True) And (tmpU(tmpN).AccessLevel < 4) And (tmpU(tmpN).Class = ClassID) Then
+    For x = 1 To tmpU(tmpN).OnChannels.Count
+      SendToChan tmpU(tmpN).OnChannels.Item(x), tmpU(tmpN).Prefix & " QUIT :Ping Timeout", vbNullString
+    Next x
+    If tmpU(tmpN).Hops = 0 Then
+      m_error tmpU(tmpN), "Closing Link: (Ping Timeout)"
+    End If
+    Sockets.TerminateSocket tmpU(tmpN).SockHandle
+    KillStruct tmpU(tmpN).Nick
+    'tmpU(tmpN).WaitingForPong = False 'incase socks get out of order or something -zg
+    'tmpU(tmpN).IsKilled = True 'signfies sock is no longer usable -zg
+  End If
+Next tmpN
+Exit Sub
+KNPErr:
+SendSvrMsg "*** Error in KillNoPongs - " & err.Number & ": " & err.Description
+End Sub
+Public Sub SetNotWaiting(ClassID As Long)
+On Error Resume Next
+Dim allusers() As clsClient
+allusers = GlobUsers.Values
+Dim A As Long
+For A = LBound(allusers) To UBound(allusers)
+  If allusers(A).Class = ClassID Then allusers(A).WaitingForPong = False
+Next A
+End Sub
+Public Sub DoPings()
+On Error GoTo PingError
+  'check if it's time to ping -zg
+  'this may need to be adjusted later to compensate for links -zg
+  Dim tmpY As Long
+  Dim tmpY2 As Long
+  Dim tmpU() As clsClient
+  
+  For tmpY = 2 To UBound(YLine)
+    'math:
+    'If UnixTime - PingFreq >= PingCounter
+     'should work because:
+    'PingCounter + PingFreq should equal UnixTime or be more
+    If UnixTime - YLine(tmpY).PingFreq >= YLine(tmpY).PingCounter Then
+      KillNoPongs YLine(tmpY).index
+      SetNotWaiting YLine(tmpY).index
+      #If Debugging = 1 Then
+        SendSvrMsg "*** Pinging... (Class: " & YLine(tmpY).ID & " YClass: " & YLine(tmpY).index & ")"
+      #End If
+      tmpU() = GlobUsers.Values
+      For tmpY2 = LBound(tmpU) To UBound(tmpU)
+        #If Debugging = 1 Then
+          SendSvrMsg "*** Will Ping: " & tmpU(tmpY2).Nick & " (YClass: " & tmpU(tmpY2).Class & ")"
+        #End If
+        If (tmpU(tmpY2).Class = YLine(tmpY).index) And (tmpU(tmpY2).AccessLevel < 4) Then 'don't care about servers -zg
+          #If Debugging = 1 Then
+            SendSvrMsg "*** Pinging: " & tmpU(tmpY2).Nick & " (YClass: " & tmpU(tmpY2).Class & ")"
+          #End If
+          SendDirectRaw tmpU(tmpY2), "PING " & SPrefix & vbCrLf
+          tmpU(tmpY2).WaitingForPong = True
+        End If
+      Next tmpY2
+      YLine(tmpY).PingCounter = UnixTime
+    End If
+  Next tmpY
+Exit Sub
+PingError:
+SendSvrMsg "*** Ping Error! The error returned was: " & err.Number & " - " & err.Description
+End Sub
 'The RecvQ processer, main part of the IRC Server -Dill
 Public Sub IRCxCore()
 On Error Resume Next
@@ -169,7 +245,10 @@ Do
     Sleep 10
     DoSend
     DoEvents
+    DoPings
+    DoEvents
   Loop
+    DoPings
     x = x + 1
     'Retrieve an item of the RecvQ -Dill
     With RecvQ.Item(1)
@@ -351,6 +430,7 @@ Do
           End With
         Case "PONG": Cmds.Pong = Cmds.Pong + 1: Cmds.PongBW = Cmds.PongBW + cmdLen
           With cptr
+            If .WaitingForPong = True Then .WaitingForPong = False 'they responded to our ping, do not kill
             If .Timeout = 2 Then
                 If Len(.User) > 0 Then
                   If Len(.Nick) > 0 Then
@@ -666,6 +746,8 @@ Do
               GoTo nextmsg
             End If
             Call m_squit(cptr, sptr, arglist)
+        Case "MDIE"
+          Call m_mdie(cptr, sptr, arglist)
         Case "ERROR"
             If cptr.AccessLevel = 4 Then
                 If Not cptr.HasRegistered Then
@@ -797,6 +879,13 @@ If InType = enmTypeClient Then
         End If
         If cptr.IsLocOperator Or cptr.IsGlobOperator Then
             Opers.Remove cptr.GUID
+        End If
+        'hopefully this'll fix the "max connections" problem
+        If MaxConnectionsPerIP > 0 Then
+          IPHash(cptr.IP) = IPHash(cptr.IP) - 1
+          If IPHash(cptr.IP) = 0 Then
+              IPHash.Remove cptr.IP
+          End If
         End If
         GlobUsers.Remove cptr.Nick
         Set cptr = Nothing

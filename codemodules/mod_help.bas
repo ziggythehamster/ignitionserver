@@ -1,5 +1,5 @@
 Attribute VB_Name = "mod_help"
-'ignitionServer is (C)  Keith Gable and Nigel Jones.
+'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -9,10 +9,11 @@ Attribute VB_Name = "mod_help"
 'Released under the GNU General Public License
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
 '                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
+'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_help.bas,v 1.4 2004/05/28 20:35:05 ziggythehamster Exp $
+' $Id: mod_help.bas,v 1.5 2004/05/28 21:27:37 ziggythehamster Exp $
 '
 '
 'This program is free software.

@@ -1,5 +1,5 @@
 Attribute VB_Name = "modConf"
-'ignitionServer is (C)  Keith Gable and Nigel Jones.
+'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -9,10 +9,11 @@ Attribute VB_Name = "modConf"
 'Released under the GNU General Public License
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
 '                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
+'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: modConf.bas,v 1.4 2004/05/28 20:35:05 ziggythehamster Exp $
+' $Id: modConf.bas,v 1.5 2004/05/28 21:27:37 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -43,13 +44,17 @@ Public VLine() As VLines
 
 Public Sub Rehash(Flag As String)
 Dim Line() As String, Char As String, Temp As String, FF As Integer: FF = FreeFile
-Select Case Flag
+Select Case UCase(Flag)
     Case vbNullString
-        ReDim ILine(1): ReDim YLine(1)
-        ReDim ZLine(1): ReDim KLine(1)
-        ReDim QLine(1): ReDim OLine(1)
+        ReDim ILine(1)
+        ReDim YLine(1)
+        ReDim ZLine(1)
+        ReDim KLine(1)
+        ReDim QLine(1)
+        ReDim OLine(1)
         ReDim LLine(1) ': ReDim CLine(1) - This is coming soon! -DG
-        ReDim VLine(1): ReDim PLine(1)
+        ReDim VLine(1)
+        ReDim PLine(1)
         If Dir(App.Path & "\ircx.conf") <> vbNullString Then
           Open App.Path & "\ircx.conf" For Input As FF
           Do While Not EOF(FF)
@@ -74,12 +79,13 @@ Select Case Flag
                 Line = Split(Temp, ":")
                 ReDim Preserve YLine(UBound(YLine) + 1)
                 With YLine(UBound(YLine))
-                    .id = CLng(Line(0))
+                    .ID = CLng(Line(0))
                     .index = UBound(YLine)
                     .PingFreq = CLng(Line(1))
                     .ConnectFreq = CLng(Line(2))
                     .MaxClients = CLng(Line(3))
                     .MaxSendQ = CLng(Line(4))
+                    .PingCounter = UnixTime 'set initial timebomb -zg
                 End With
               Case "I"    'Client Authorization classes -Dill
                 Line = Split(Temp, ":")
@@ -229,6 +235,50 @@ Select Case Flag
                         Crypt = True
                         MD5Crypt = True
                     End If
+                ElseIf UCase(Section) = "HIGHPROT" Then
+                    If Line(1) = "0" Or UCase(Line(1)) = "NORM" Then
+                        HighProtAsq = False
+                        HighProtAso = False
+                        HighProtAsv = False
+                        HighProtAsn = True
+                    ElseIf UCase(Line(1)) = "V" Then
+                        HighProtAsq = False
+                        HighProtAso = False
+                        HighProtAsv = True
+                        HighProtAsn = False
+                    ElseIf UCase(Line(1)) = "O" Then
+                        HighProtAsq = False
+                        HighProtAso = True
+                        HighProtAsv = False
+                        HighProtAsn = False
+                    ElseIf UCase(Line(1)) = "Q" Then
+                        HighProtAsq = True
+                        HighProtAso = False
+                        HighProtAsv = False
+                        HighProtAsn = False
+                    End If
+                ElseIf UCase(Section) = "LOWPROT" Then
+                    If Line(1) = "0" Or UCase(Line(1)) = "NORM" Then
+                        LowProtAsq = False
+                        LowProtAso = False
+                        LowProtAsv = False
+                        LowProtAsn = True
+                    ElseIf UCase(Line(1)) = "V" Then
+                        LowProtAsq = False
+                        LowProtAso = False
+                        LowProtAsv = True
+                        LowProtAsn = False
+                    ElseIf UCase(Line(1)) = "O" Then
+                        LowProtAsq = False
+                        LowProtAso = True
+                        LowProtAsv = False
+                        LowProtAsn = False
+                    ElseIf UCase(Line(1)) = "Q" Then
+                        LowProtAsq = True
+                        LowProtAso = False
+                        LowProtAsv = False
+                        LowProtAsn = False
+                    End If
                 ElseIf UCase(Section) = "ALLOWMULTIPLE" Then
                   If Line(1) = "0" Or UCase(Line(1)) = "OFF" Then
                     AllowMultiple = False
@@ -236,6 +286,21 @@ Select Case Flag
                     AllowMultiple = True
                   Else
                     AllowMultiple = False
+                  End If
+                ElseIf UCase(Section) = "GAGMODE" Then
+                  If Line(1) = "0" Then
+                    ShowGag = False
+                    BounceGagMsg = True
+                  ElseIf Line(1) = "1" Then
+                    ShowGag = True
+                    BounceGagMsg = True
+                  ElseIf Line(1) = "2" Then
+                    ShowGag = False
+                    BounceGagMsg = False
+                  Else
+                    'if not valid, pick default
+                    ShowGag = False
+                    BounceGagMsg = True
                   End If
                 ElseIf UCase(Section) = "REMOTEPASS" Then
                   RemotePass = Line(1)
@@ -285,6 +350,21 @@ For I = 1 To UBound(KLine)
         End If
     End If
 Next I
+End Function
+Public Function AddKLine(KHost As String, KReason As String, KUser As String) As Boolean
+'this has to be here because of the Option Base 1
+On Error GoTo AKLError
+ReDim Preserve KLine(UBound(KLine) + 1)
+With KLine(UBound(KLine))
+  .Host = KHost
+  .Reason = KReason
+  .User = KUser
+End With
+AddKLine = True
+Exit Function
+AKLError:
+AddKLine = False
+SendSvrMsg "*** AddKLine Error: " & err.Number & " - " & err.Description
 End Function
 
 Public Function DoILine(cptr As clsClient) As Boolean
@@ -347,7 +427,7 @@ End Function
 Public Function GetYLine(Class As Long) As YLines
 Dim I As Long
 For I = 2 To UBound(YLine)
-    If YLine(I).id = Class Then
+    If YLine(I).ID = Class Then
         GetYLine = YLine(I)
         Exit Function
     End If

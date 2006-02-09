@@ -11,7 +11,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
-'ignitionServer is (C)  Keith Gable and Nigel Jones.
+'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -21,10 +21,11 @@ Attribute VB_Exposed = False
 'Released under the GNU General Public License
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
 '                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
+'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: CMD5.cls,v 1.2 2004/05/28 20:35:04 ziggythehamster Exp $
+' $Id: CMD5.cls,v 1.3 2004/05/28 21:27:35 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -38,7 +39,7 @@ Attribute VB_Exposed = False
 '
 'You should have received a copy of the GNU General Public License along with this program.
 'if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-'
+
 'This File is with Credits to Phil Fresle
 '
 '*******************************************************************************

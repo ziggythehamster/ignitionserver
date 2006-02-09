@@ -6,7 +6,7 @@
 # DG = DigiGuy(digiguy@ignition-project.com)
 # AW = Airwalk(airwalk@ignition-project.com)
 #
-# $Id: changelog.txt,v 1.4 2004/05/28 20:35:04 ziggythehamster Exp $
+# $Id: changelog.txt,v 1.5 2004/05/28 21:27:34 ziggythehamster Exp $
 #
 ### Project Start ###
 #
@@ -190,4 +190,62 @@ DG - [13-Mar] - Everything seems stable so we'll give another RC a shot and see 
 DG - [13-Mar] - Tagged and Such
 #
 ### RELEASE - 0.2.2 - BETA RC2 ###
+#
+DG - [13-Mar] - Copyright Update.
+DG - [13-Mar] - Changed ReadMes a tiny bit.
+DG - [13-Mar] - Version Update.
+Zg - [13-Mar] - Began work on pings
+Zg - [13-Mar] - Ping? Pong! Hell yes!
+Zg - [13-Mar] - PING is sent DIRECTLY out the socket -- SendQ's and RecvQ's have absolutely no effect on the sending of pings (i.e. pings are of the highest priority)
+Zg - [14-Mar] - PING/PONG works right now.. sort of... users who ponged are getting disconnected for some reason. Committing first, just in case I need to go back for some reason.
+Zg - [14-Mar] - m_error is not properly clearing the socket crap -- the /raw close bug still exists :'(
+Zg - [14-Mar] - PING/PONG appears to be completely operational! Woo hoo :D
+Zg - [14-Mar] - Added N to list of modes in the signon
+AW - [14-Mar] - Fixed custom auth notice not showing up when you get "Nickname in use"
+Zg - [14-Mar] - Fixed possible bug with pings/pongs
+Zg - [14-Mar] - Added filter for bad idents
+Zg - [14-Mar] - Clarified the X:DIE: message -- it now says to see ircx.conf
+Zg - [15-Mar] - Fixed /kline bug
+Zg - [15-Mar] - If a remote server sets a mode on a user that is local to the current server, the local user sees the mode get set
+Zg - [15-Mar] - For some reason, I can't add +S to clsClient (Public IsService As Boolean)
+Zg - [16-Mar] - Raw 307 added - "is a registered nick"
+Zg - [16-Mar] - Fixed bug that added an extra : before the nick during a nick change that got sent to another server (::Ziggy NICK ZiggyTest was the behavior experienced)
+Zg - [17-Mar] - Made +N do something -- if you are a netadmin, your /whois will say so. However, you still are equal to every other oper.
+Zg - [17-Mar] - Filtered +S from m_umode to prevent IRC operators maliciously making themselves a service when I add that mode
+Zg - [17-Mar] - I think I'm going to add +z/gag later today... stay tuned :P
+Zg - [19-Mar] - Added gag/+z
+Zg - [19-Mar] - Added GagModes, since not everyone wants to follow the IRCX draft when talking about gags.. 0=IRCX 1=Nice 2=IRCX-Notice
+Zg - [19-Mar] - Opers can now view modes of other users -- slightly pointless, but possibly useful if you're looking for an oper that can restart because you've messed something up...
+Zg - [19-Mar] - Added a few modes that were missing from GetModes
+Zg - [19-Mar] - Corrected small misunderstanding in GetWhois -- if you are +N, you get your own reply for it (according to Jeepster's numeric.hlp).. 308
+Zg - [20-Mar] - Fixed issue with making yourself +P as an oper
+Zg - [20-Mar] - Fixed typo in ircx.conf
+Zg - [21-Mar] - Attempted fixing the "Max connections reached for this IP" error (seems to be fixed)
+Zg - [21-Mar] - Added /mdie -- a command for the monitor. Includes several security functions so it can't be used maliciously. First, it makes sure that the number specified matches the number in monitor.id and that the user is connecting from localhost.
+Zg - [21-Mar] - If you are connecting from localhost/127.0.0.1 and X:DIE:1 is set, the server will rehash when you connect. This functionality exists so you don't have to control-alt-delete to restart the server.
+Zg - [23-Mar] - Added code to process access entries for a channel (needed on /access, /mode, and /join)
+Zg - [23-Mar] - Processing of Access Entries code has been set aside for the time being. I'll work on it some more tomorrow when I've had some sleep.
+Zg - [24-Mar] - Began debugging the CycleAccess code; it works somewhat
+Zg - [24-Mar] - Added code to help prevent /access problems
+Zg - [24-Mar] - Access durations are now working! However, I failed to plan for this properly when I thought up the idea, and now the duration doesn't decrease every 60 seconds :$ This is a "feature", if you will, and can wait
+Zg - [24-Mar] - Repaired slight problem with debugging strings in mod_channel
+Zg - [24-Mar] - Fixed bug with attempting to add access outside a channel
+Zg - [24-Mar] - Fixed bug with access list editing and the thing that removes entries after a specified period of time (the access duration code)
+DG - [27-Mar] - Someone at LH deleted our account... dam them so we lost SVN
+DG - [28-Mar] - SVN Back up, SVN Rev count reset to 0 and also bug tracker back to Bug 0 (Not reinstalled yet)
+DG - [30-Mar] - Messed with the GPL stuff a tiny bit (Just out of fun...)
+Zg - [30-Mar] - Added line to prevent possible exploitation of /mdie if they had read access to monitor.id and could somehow connect via localhost.
+Zg - [30-Mar] - Worked on preliminary release notes
+DG - [30-Mar] - Some tidyups of Ziggy's Coding, More to come.
+DG - [30-Mar] - Added +p (Lower Protect)
+DG - [30-Mar] - Added X:HIGHPROT & X:LOWPROT to define the mode given on join.
+DG - [30-Mar] - Added some stuff in README
+DG - [30-Mar] - Ziggy messed up ReleaseNotes for 0.2.3 (IDIOT) - Ziggy: next time leave them for me to do...
+DG - [30-Mar] - Opps STUPID MISTAKE... forgot to put 'p' in 005 reply
+DG - [30-Mar] - Readme Updates
+DG - [31-Mar] - Release Notes in
+DG - [31-Mar] - Updated Version
+DG - [31-Mar] - Tagging...
+#
+### RELEASE - 0.2.3 - BETA RC3 ###
 #

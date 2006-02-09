@@ -1,5 +1,5 @@
 Attribute VB_Name = "mod_user"
-'ignitionServer is (C)  Keith Gable and Nigel Jones.
+'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -9,10 +9,11 @@ Attribute VB_Name = "mod_user"
 'Released under the GNU General Public License
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
 '                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
+'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_user.bas,v 1.4 2004/05/28 20:35:05 ziggythehamster Exp $
+' $Id: mod_user.bas,v 1.5 2004/05/28 21:27:37 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -275,7 +276,7 @@ Else
     For I = 1 To AllVisible.Count
       Call SendWsock(AllVisible(I), "NICK", parv(0), ":" & cptr.Nick)
     Next I
-    SendToServer "NICK " & parv(0), ":" & cptr.Nick
+    SendToServer "NICK " & parv(0), cptr.Nick
   End If
   'if the user is not currently registering, tell it the new nickname -Dill
   If Len(cptr.Nick) = 0 Then
@@ -289,6 +290,9 @@ Else
       SendWsock cptr.index, "NOTICE AUTH", ":*** If you experience problems due to PING timeouts, type '/raw PONG :" & pdat & "' now."
       SendWsock cptr.index, "PING " & pdat, vbNullString, , True
       IrcStat.UnknownConnections = IrcStat.UnknownConnections - 1
+    End If
+    If Not CustomNotice = "" Then 'moved so user will always see notice -AW
+        SendWsock cptr.index, "NOTICE AUTH", ":*** " & CustomNotice
     End If
   Else
     pdat = parv(0)
@@ -379,6 +383,10 @@ Else
     End If
     If UBound(parv) = 0 Then 'if cptr didnt tell us what to send, complain -Dill
       SendWsock cptr.index, ERR_NOTEXTTOSEND & " " & cptr.Nick, TranslateCode(ERR_NOTEXTTOSEND)
+      Exit Function
+    End If
+    If cptr.IsGagged Then 'if they're gagged, they can't speak
+      If BounceGagMsg Then SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
       Exit Function
     End If
     If Notice Then
@@ -635,7 +643,30 @@ Else
   End If
 End If
 End Function
+Public Function FilterReserved(strText As String) As String
+'this function filters out reserved characters
+'because things like the USER command relies on
+'this function, we can't return errors (I don't think
+'that USER even has an error for a bad username).
+'we replace here because it's the easiest way
 
+Dim t As String
+t = strText
+t = Replace(t, "!", "")
+t = Replace(t, "@", "")
+t = Replace(t, "~", "")
+t = Replace(t, ".", "")
+t = Replace(t, "+", "")
+t = Replace(t, "\", "")
+t = Replace(t, "/", "")
+t = Replace(t, Chr(34), "") 'quote
+t = Replace(t, Chr(3), "") 'color (don't want colors in /who)
+t = Replace(t, Chr(2), "") 'bold
+t = Replace(t, Chr(1), "") 'ctcp
+t = Replace(t, Chr(15), "") 'stop formatting symbol (ctrl-O in mIRC)
+t = Replace(t, Chr(22), "") 'inverse
+FilterReserved = t
+End Function
 '/*
 '** m_user
 '**  parv[0] = sender prefix
@@ -665,7 +696,10 @@ Public Function m_user(cptr As clsClient, sptr As clsClient, parv$()) As Long
   Dim Ident$, pdat$, I&, x&, z&, allusers() As clsClient
   If IsValidUserString(parv(0)) = True Then
   With cptr
-    .User = parv(0)
+    .User = FilterReserved(parv(0)) 'filter out illegal and legal annoying chars
+    If NickLen > 0 Then
+      .User = Left(.User, NickLen)
+    End If
     .Name = parv(3)
     If DoKLine(cptr) Then
         cptr.IsKilled = True
@@ -678,13 +712,17 @@ Public Function m_user(cptr As clsClient, sptr As clsClient, parv$()) As Long
         m_error cptr, "Closing Link: (Bad Password)"
         Exit Function
     End If
+    If .IP = "127.0.0.1" And Die = True Then
+        'rehash the server
+        Rehash vbNullString
+    End If
     If Die = True Then
         For x = 1 To .OnChannels.Count
             SendToChan .OnChannels.Item(x), .Prefix & " AutoKilled: Server Misconfigured", vbNullString
         Next x
-        SendToServer "QUIT :AutoKilled: Server Misconfigured", .Nick
-        SendWsock .index, "KILL " & .Nick, ":AutoKilled: Server Misconfigured", .Prefix
-        m_error cptr, "Closing Link: (AutoKilled: Server Misconfigured)"
+        SendToServer "QUIT :AutoKilled: Server Misconfigured [see ircx.conf]", .Nick
+        SendWsock .index, "KILL " & .Nick, ":AutoKilled: Server Misconfigured [see ircx.conf]", .Prefix
+        m_error cptr, "Closing Link: (AutoKilled: Server Misconfigured [see ircx.conf])"
         .IsKilled = True
         KillStruct .Nick
         Exit Function
@@ -716,9 +754,6 @@ Public Function m_user(cptr As clsClient, sptr As clsClient, parv$()) As Long
     If Len(.Nick) = 0 Then Exit Function
     pdat = GetRand
     SendWsock cptr.index, "NOTICE AUTH", ":*** If you experience problems due to PING timeouts, type '/raw PONG :" & pdat & "' now"
-    If Not CustomNotice = "" Then
-        SendWsock cptr.index, "NOTICE AUTH", ":*** " & CustomNotice
-    End If
     SendWsock cptr.index, "PING " & pdat, vbNullString, , True
     IrcStat.UnknownConnections = IrcStat.UnknownConnections - 1
   End With
@@ -1145,7 +1180,15 @@ For x = 1 To Len(Modes)
         Case umRegistered
             cptr.IsRegistered = True
             add_umodes = add_umodes & CurMode
+        Case umLProtected
+            If Not cptr.IsProtected = True Then
+                cptr.IsLProtected = True
+                add_umodes = add_umodes & CurMode
+            End If
         Case umProtected
+            If cptr.IsLProtected = True Then
+                cptr.IsLProtected = False
+            End If
             cptr.IsProtected = True
             add_umodes = add_umodes & CurMode
         Case umNetAdmin
@@ -1653,22 +1696,27 @@ End If
 Dim FiltModes As String
 'oOsixkreRDCcKBbAEZ
 
+'this bit is to prevent malicious use
+'of this command -- nobody should
+'be able to set these modes on themselves!
 FiltModes = parv(1)
-FiltModes = Replace(FiltModes, "R", "")
-FiltModes = Replace(FiltModes, "D", "")
-FiltModes = Replace(FiltModes, "O", "")
-FiltModes = Replace(FiltModes, "o", "")
-FiltModes = Replace(FiltModes, "k", "")
-FiltModes = Replace(FiltModes, "K", "")
-FiltModes = Replace(FiltModes, "e", "")
-FiltModes = Replace(FiltModes, "C", "")
-FiltModes = Replace(FiltModes, "c", "")
-FiltModes = Replace(FiltModes, "B", "")
-FiltModes = Replace(FiltModes, "b", "")
-FiltModes = Replace(FiltModes, "N", "")
-FiltModes = Replace(FiltModes, "E", "")
-FiltModes = Replace(FiltModes, "Z", "")
-
+FiltModes = Replace(FiltModes, "R", "") 'disallow restart
+FiltModes = Replace(FiltModes, "D", "") 'disallow die
+FiltModes = Replace(FiltModes, "O", "") 'disallow globop
+FiltModes = Replace(FiltModes, "o", "") 'disallow locop
+FiltModes = Replace(FiltModes, "k", "") 'disallow lockills
+FiltModes = Replace(FiltModes, "K", "") 'disallow globkills
+FiltModes = Replace(FiltModes, "e", "") 'disallow rehash
+FiltModes = Replace(FiltModes, "C", "") 'disallow globconnects
+FiltModes = Replace(FiltModes, "c", "") 'disallow locconnects
+FiltModes = Replace(FiltModes, "B", "") 'disallow /unkline
+FiltModes = Replace(FiltModes, "b", "") 'disallow /kline
+FiltModes = Replace(FiltModes, "N", "") 'disallow netadmin
+FiltModes = Replace(FiltModes, "E", "") 'disallow /add
+FiltModes = Replace(FiltModes, "Z", "") 'disallow remadm
+FiltModes = Replace(FiltModes, "S", "") 'disallow service
+FiltModes = Replace(FiltModes, "P", "") 'disallow protect
+FiltModes = Replace(FiltModes, "p", "") 'disallow lower protect
 
 NewModes = add_umodes(User, FiltModes)
 'nobody, anyone, ever should be allowed

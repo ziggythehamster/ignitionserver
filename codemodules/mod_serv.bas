@@ -1,5 +1,5 @@
 Attribute VB_Name = "mod_serv"
-'ignitionServer is (C)  Keith Gable and Nigel Jones.
+'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -9,10 +9,11 @@ Attribute VB_Name = "mod_serv"
 'Released under the GNU General Public License
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
 '                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
+'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_serv.bas,v 1.4 2004/05/28 20:35:05 ziggythehamster Exp $
+' $Id: mod_serv.bas,v 1.5 2004/05/28 21:27:37 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -524,7 +525,12 @@ Else
     Exit Function
   End If
   If UBound(parv) = 0 Then
-    SendWsock cptr.index, GetStats(cptr.Nick, cptr.AccessLevel, parv(0)), vbNullString, , True
+    Dim tmpAL As Integer
+    tmpAL = cptr.AccessLevel
+    'for remote opers to access stats -zg
+    If cptr.IsGlobOperator = True Then tmpAL = 3
+    If cptr.IsLocOperator = True Then tmpAL = 3
+    SendWsock cptr.index, GetStats(cptr.Nick, tmpAL, parv(0)), vbNullString, , True
   Else
     Set sptr = GetServer(parv(1))
     If sptr Is Nothing Then
@@ -844,7 +850,46 @@ Else
     End If
 End If
 End Function
+Public Function m_mdie(cptr As clsClient, sptr As clsClient, parv$()) As Long
+#If Debugging = 1 Then
+SendSvrMsg "*** Notice -- MDIE called! (" & cptr.Nick & ")"
+#End If
+On Error Resume Next
+If Len(parv(0)) = 0 Then
+    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "MDIE")
+    Exit Function
+End If
+If cptr.IP <> "127.0.0.1" Then
+  SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+  Exit Function
+End If
+Dim ID As Long
+Dim F As Long
+F = FreeFile
+If Dir(App.Path & "\monitor.id") = vbNullString Then
+  SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+  Exit Function
+End If
+Open App.Path & "\monitor.id" For Input As #F
+Input #F, ID
+Close #F
 
+If parv(0) = ID Then
+    Dim I As Long   'close all connection properly -Dill
+    For I = 1 To UBound(Users)
+        If Not Users(I) Is Nothing Then
+            SendWsock I, "NOTICE " & Users(I).Nick, SPrefix & " is quitting."
+            Sockets.CloseIt I
+            m_error Users(I), "Closing Link: (" & ServerName & " is quitting)"
+        End If
+    Next I
+    Kill App.Path & "\monitor.id" '// prevent exploitation if it ever occurs -zg
+    Terminate
+Else
+    SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+    Exit Function
+End If
+End Function
 #If CanDie = 1 Then
     Public Function m_die(cptr As clsClient, sptr As clsClient, parv$()) As Long
 #If Debugging = 1 Then
@@ -957,27 +1002,34 @@ End If
 End Function
 
 Public Function m_kline(cptr As clsClient, sptr As clsClient, parv$()) As Long
-On Error Resume Next
+On Error GoTo KLineError
+Dim e As String
+e = "Start"
 #If Debugging = 1 Then
     SendSvrMsg "*** Notice -- KLINE called! (" & cptr.Nick & ")"
 #End If
-Dim I&, z&, Mask$, NewKline As KLines, KUser$, KHost$
+Dim I&, z&, Mask$, KUser$, KHost$, KMask$, tmp$
+e = "check privledges"
 If Not (cptr.CanKline Or cptr.CanUnkline) Then
     SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
     Exit Function
 End If
+e = "check parameters"
 If Len(parv(0)) = 0 Then
     SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "KLINE")
     Exit Function
 End If
+e = "check parameters - 2"
 If UBound(parv) = 0 Then
     SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "KLINE")
     Exit Function
 End If
+e = "get mask"
 Mask = ":" & CreateMask(parv(0))
+e = "begin killing active"
 For I = LBound(Users) To UBound(Users)
     If Not Users(I) Is Nothing Then
-        If Users(I).Prefix Like Mask Then
+        If UCase(Users(I).Prefix) Like UCase(Mask) Then
             m_error Users(I), "Closing Link: K-Line active from: " & cptr.Nick & " (" & parv(1) & ")"
             For z = 1 To Users(I).OnChannels.Count
                 SendToChan Users(I).OnChannels.Item(z), Users(I).Prefix & " QUIT :Kline active (" & parv(1) & ")", vbNullString
@@ -987,16 +1039,41 @@ For I = LBound(Users) To UBound(Users)
         End If
     End If
 Next I
-Mask = Mid$(Mask, 2)
-KHost = Mid$(Mask, InStr(1, Mask, "@") + 1)
-Mask = Replace(Mask, "@" & KHost, vbNullString, , 1)
-KUser = Mid$(Mask, InStr(1, Mask, "!") + 1)
-ReDim Preserve KLine(UBound(KLine) + 1)
-With KLine(UBound(KLine))
-    .Host = KHost
-    .Reason = parv(1)
-    .User = KUser
-End With
+e = "get killmask"
+KMask = CreateMask(parv(0))
+#If Debugging = 1 Then
+  SendSvrMsg "*** KLine Debug: KMask='" & KMask & "'"
+#End If
+'KHost = Mid$(Mask, InStr(1, Mask, "@") + 1)
+'Mask = Replace(Mask, "@" & KHost, vbNullString, , 1)
+'KUser = Mid$(Mask, InStr(1, Mask, "!") + 1)
+e = "get tmp"
+tmp = Split(KMask, "!")(1)
+e = "get user"
+KUser = Split(tmp, "@")(0)
+e = "get host"
+KHost = Split(tmp, "@")(1)
+e = "check method"
+'we now see if nick is set, but everything else is *
+'this implies they went /kline something reason -- we
+'don't want to ban *@* because they went /kline something
+If KHost = "*" And KUser = "*" Then
+  'don't k-line if they /kline *'ed
+  If Split(KMask, "!")(0) <> "*" Then
+    KHost = Split(KMask, "!")(0)
+  End If
+End If
+e = "print debug"
+#If Debugging = 1 Then
+  SendSvrMsg "*** KLine Debug: KUser='" & KUser & "' KHost='" & KHost & "'"
+#End If
+e = "add kline"
+AddKLine KHost, parv(1), KUser
+e = "done"
+Exit Function
+
+KLineError:
+SendSvrMsg "*** KLine Error (at " & e & ") " & err.Number & " - " & err.Description
 End Function
 
 Public Function m_unkline(cptr As clsClient, sptr As clsClient, parv$()) As Long

@@ -1,21 +1,22 @@
 			#######################
 			#ignitionServer README#
 			#######################
-# $Id: readme.txt,v 1.4 2004/05/28 20:35:06 ziggythehamster Exp $
+# $Id: readme.txt,v 1.5 2004/05/28 21:27:38 ziggythehamster Exp $
 
 
 	===========++++++++===========++++++++===========
 
-ignitionServer is (C)  Keith Gable and Nigel Jones.
+ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
 ----------------------------------------------------
 You must include this notice in any modifications you make. You must additionally
 follow the GPL's provisions for sourcecode distribution and binary distribution.
-If you are not familiar with the GPL, please read LICENSE.TXT. 
-(you are welcome to add a "Based On" line above this notice, but this notice must remain intact!)
+If you are not familiar with the GPL, please read LICENSE.TXT.
+(you are welcome to add a "Based On" line above this notice, but this notice must
+remain intact!)
 Released under the GNU General Public License
-
 Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
                      Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
+                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
 
 ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 
@@ -50,7 +51,7 @@ http://sourceforge.net/tracker/?group_id=96071&atid=613527
 
 *** PLEASE DO NOT POST BUGS VIA THE SUPPORT TRACKER ***
 For more information on reporting bugs, see:
-http://sourceforge.net/docman/display_doc.php?docid=20437&group_id=96071
+http://bugs.ignition-project.com
 
 	===========++++++++===========++++++++===========
 
@@ -111,6 +112,13 @@ A: Probably. We can't answer this for you though. You need to read the End User 
    as it needs to. At any one time, ignitionServer can have anywhere from 0 to 65535 connections
    open. You take full legal responsibility if you decide to violate your EULA.
 
+Q: I cannot connect to my ignitionServer installation.
+A: Have you got a firewall running?
+   Are you behind a proxy that stops incoming port 6667 traffic?
+   Is ignitionServer Started?
+   Do you have the latest version?
+   -More to Come-
+
 Q: Why doesn't MSN connect?
 A: New versions of ignitionServer do not support the MSN Chat Control. We do not know if or when
    this capability will be added.
@@ -135,4 +143,11 @@ A: Adding operators is a bit harder than before, but the concept is the same as 
    operator flags, however there are a few you should be aware of. R and D allow the oper to
    restart and die (stop) the server. They still require the die/restart password.
 
-If you have any more questions, see our forum at ignition-project.com.
+Q: What is the difference between OperFlag P and p?
+A: To be honest NONE except that they both can be given different on-join-modes.
+   To give a on-join-mode for P use
+     X:HIGHPROT:[Q|O|V|NORM]
+   To give a on-join-mode for p use
+     X:LOWPROT:[Q|O|V|NORM]
+
+If you have any more questions, see our forum at http://forums.ignition-project.com.

@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Attribute VB_Ext_KEY = "SavedWithClassBuilder6" ,"Yes"
 Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
-'ignitionServer is (C)  Keith Gable and Nigel Jones.
+'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -23,10 +23,11 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 'Released under the GNU General Public License
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
 '                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
+'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsClient.cls,v 1.4 2004/05/28 20:35:04 ziggythehamster Exp $
+' $Id: clsClient.cls,v 1.5 2004/05/28 21:27:35 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -69,6 +70,8 @@ Public IsKilled As Boolean
 Public IsAuthenticated As Boolean 'IRCX
 Public IsIRCX As Boolean 'IRCX (+x)
 
+Public WaitingForPong As Boolean 'set by ping sub
+
 Public RealHost As String 'Thanks to DG for pointing this out
 Public WhoisAccessLevel As Integer 'AccessLevel of user asking for /whois
 
@@ -84,8 +87,11 @@ Public IsNetAdmin As Boolean
 Public IsServerMsg As Boolean
 Public IsCloaked As Boolean
 Public IsRegistered As Boolean
+Public IsLProtected As Boolean
 Public IsProtected As Boolean
+Public IsGagged As Boolean 'IRCX +z  -zg
 Public IsRemoteAdmClient As Boolean
+
 Public CanGlobKill As Boolean
 Public CanLocKill As Boolean
 Public CanDie As Boolean
@@ -161,6 +167,10 @@ If WhoisAccessLevel >= 3 Or Nickname = Nick Then
   End If
   GetWhois = GetWhois & SPrefix & " 378 " & Nickname & " " & Nick & " :is connecting from " & RealHost & "; IP address is " & tmpIP & vbCrLf
 End If
+If IsRegistered Then GetWhois = GetWhois & SPrefix & " 307 " & Nickname & " " & Nick & " " & TranslateCode(RPL_WHOISREGNICK) & vbCrLf
+If IsNetAdmin Then '-zg [this was rearranged because of the presence of the 308 raw]
+  GetWhois = GetWhois & SPrefix & " 308 " & Nickname & " " & Nick & " :is a network administrator" & vbCrLf '-zg
+End If
 If OnChannels.Count > 0 Then GetWhois = GetWhois & SPrefix & " 319 " & Nickname & " " & Nick & " :" & GetOnChans & vbCrLf
 If Len(AwayMsg) > 0 Then GetWhois = GetWhois & SPrefix & " 301 " & Nickname & " " & Nick & " :" & AwayMsg & vbCrLf
 GetWhois = GetWhois & SPrefix & " 312 " & Nickname & " " & Nick & " " & ServerName & " :" & ServerDescription & vbCrLf
@@ -174,7 +184,6 @@ End If
 If Idle > 0 Then GetWhois = GetWhois & SPrefix & " 317 " & Nickname & " " & Nick & " " & (UnixTime - Idle) & " " & SignOn & " :seconds idle, signon time" & vbCrLf
 WhoisAccessLevel = 0
 End Function
-
 Private Sub Class_Initialize()
 Set OnChannels = New clsOnChannels
 Set Events = New clsEvents
@@ -183,7 +192,6 @@ GUID = CreateGUID
     SendSvrMsg "Client class created"
 #End If
 End Sub
-
 Public Sub Class_Terminate()
 On Local Error Resume Next
 If Class > 0 Then YLine(Class).CurClients = YLine(Class).CurClients - 1
@@ -223,7 +231,6 @@ Set Events = Nothing
     SendSvrMsg "Client class terminated"
 #End If
 End Sub
-
 Public Function GetModes() As String
 If IsInvisible Then GetModes = "i"
 If IsLocOperator Then GetModes = GetModes & "o"
@@ -234,9 +241,16 @@ If CanGlobKill Then GetModes = GetModes & "K"
 If CanLocKill Then GetModes = GetModes & "k"
 If CanDie Then GetModes = GetModes & "D"
 If CanRestart Then GetModes = GetModes & "R"
-If CanRehash Then GetModes = GetModes & "r"
+If CanRehash Then GetModes = GetModes & "e"
+If IsRegistered Then GetModes = GetModes & "r"
 If CanKline Then GetModes = GetModes & "b"
 If CanUnkline Then GetModes = GetModes & "B"
 If CanLocRoute Then GetModes = GetModes & "c"
 If CanGlobRoute Then GetModes = GetModes & "C"
-End Function
+If IsIRCX Then GetModes = GetModes & "x"
+If IsGagged And ShowGag Then GetModes = GetModes & "z"
+If IsRemoteAdmClient Then GetModes = GetModes & "Z"
+If IsNetAdmin Then GetModes = GetModes & "N"
+If IsProtected Then GetModes = GetModes & "P"
+If IsLProtected Then GetModes = GetModes & "p"
+  End Function
