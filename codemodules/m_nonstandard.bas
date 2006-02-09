@@ -1,5 +1,5 @@
 Attribute VB_Name = "m_nonstandard"
-'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
+'ignitionServer is (C) Keith Gable and Contributors
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -7,13 +7,14 @@ Attribute VB_Name = "m_nonstandard"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
+'
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
-'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
+'Contributors:        Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: m_nonstandard.bas,v 1.2 2004/06/04 02:09:26 ziggythehamster Exp $
+' $Id: m_nonstandard.bas,v 1.3 2004/06/26 07:01:13 ziggythehamster Exp $
 '
 '
 'This program is free software.

@@ -1,5 +1,5 @@
 Attribute VB_Name = "modConf"
-'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
+'ignitionServer is (C) Keith Gable and Contributors
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -7,13 +7,14 @@ Attribute VB_Name = "modConf"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
+'
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
-'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
+'Contributors:        Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: modConf.bas,v 1.9 2004/06/05 04:27:30 ziggythehamster Exp $
+' $Id: modConf.bas,v 1.17 2004/06/26 07:01:13 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -41,15 +42,15 @@ Public OLine() As OLines
 Public LLine() As LLines
 'Public CLine() as CLines - Coming Soon! - DG
 Public VLine() As VLines
-Public Function Macros(x As String) As String
+Public Function Macros(x As String, Optional MLine As Boolean = False) As String
 Dim m As String
 m = Replace(x, "<$COLON$>", ":")
-m = Replace(m, "<$NET$>", IRCNet)
+If MLine = False Then m = Replace(m, "<$NET$>", IRCNet) 'this would be "invalid" in the M: line
 Macros = m
 End Function
 Public Sub Rehash(Flag As String)
 Dim Line() As String, Char As String, Temp As String, FF As Integer: FF = FreeFile
-Select Case UCase(Flag)
+Select Case UCase$(Flag)
     Case vbNullString
         'Restore to Default
         'there's a bunch of stuff here, in case someone removes a line or two
@@ -123,11 +124,20 @@ Select Case UCase(Flag)
               Case "#"    'a comment, must be ignored -Dill
               Case "M"    'Servername, server description, main server port, main server ip -Dill
                 Line = Split(Replace(Temp, "*", vbNullString), ":")
-                ServerName = Macros(Line(0))
-                IRCNet = Macros(Line(1))
-                Sockets.Listen "", CInt(Line(3))
-                ServerDescription = Macros(Line(2))
+                ServerName = Macros(Line(0), True)
+                IRCNet = Macros(Line(1), True)
+                Dim tmpListen As String
+                tmpListen = Line(3)
+                If tmpListen = "*" Then tmpListen = ""
+                Sockets.Listen tmpListen, CInt(Line(4))
+                ServerDescription = Macros(Line(2), True)
                 Ports = Ports + 1
+                If Len(tmpListen) > 0 Then
+                  ServerLocalAddr = tmpListen
+                Else
+                  ServerLocalAddr = "127.0.0.1"
+                End If
+                ServerLocalPort = Line(4)
               Case "A"    'Admin info -Dill
                 Line = Split(Temp, ":")
                 AdminLocation = Macros(Line(0))
@@ -238,11 +248,11 @@ Select Case UCase(Flag)
                 Dim Section As String
                 Line = Split(Temp, ":")
                 Section = Line(0)
-                If UCase(Section) = "DIEPASS" Then
+                If UCase$(Section) = "DIEPASS" Then
                   DiePass = Line(1)
-                ElseIf UCase(Section) = "RESTARTPASS" Then
+                ElseIf UCase$(Section) = "RESTARTPASS" Then
                   RestartPass = Line(1)
-                ElseIf UCase(Section) = "DIE" Then
+                ElseIf UCase$(Section) = "DIE" Then
                   If Line(1) = "0" Then
                     Die = False
                   ElseIf Line(1) = "1" Then
@@ -253,19 +263,19 @@ Select Case UCase(Flag)
                   Else
                     Die = False
                   End If
-                ElseIf UCase(Section) = "OFFLINEMODE" Then
-                    If Line(1) = "0" Or UCase(Line(1)) = "OFF" Then
+                ElseIf UCase$(Section) = "OFFLINEMODE" Then
+                    If Line(1) = "0" Or UCase$(Line(1)) = "OFF" Then
                         OfflineMode = False
-                    ElseIf Line(1) = "1" Or UCase(Line(1)) = "OFF" Then
+                    ElseIf Line(1) = "1" Or UCase$(Line(1)) = "OFF" Then
                         OfflineMode = True
                     Else
                         OfflineMode = False
                     End If
-                ElseIf UCase(Section) = "OFFLINEMESSAGE" Then
+                ElseIf UCase$(Section) = "OFFLINEMESSAGE" Then
                     OfflineMessage = Macros(Line(1))
-                ElseIf UCase(Section) = "CNOTICE" Then
+                ElseIf UCase$(Section) = "CNOTICE" Then
                     CustomNotice = Macros(Line(1))
-                ElseIf UCase(Section) = "MASKDNS" Then
+                ElseIf UCase$(Section) = "MASKDNS" Then
                     If Line(1) = "0" Then
                       MaskDNS = False
                       MaskDNSMD5 = False
@@ -283,71 +293,71 @@ Select Case UCase(Flag)
                       MaskDNSMD5 = False
                       MaskDNSHOST = False
                     End If
-                ElseIf UCase(Section) = "HOSTMASK" Then
+                ElseIf UCase$(Section) = "HOSTMASK" Then
                     HostMask = Line(1)
-                ElseIf UCase(Section) = "SERVERLOCATION" Then
+                ElseIf UCase$(Section) = "SERVERLOCATION" Then
                     ServerLocation = Macros(Line(1))
-                ElseIf UCase(Section) = "CRYPT" Then
-                    If Line(1) = "0" Or UCase(Line(1)) = "OFF" Then
+                ElseIf UCase$(Section) = "CRYPT" Then
+                    If Line(1) = "0" Or UCase$(Line(1)) = "OFF" Then
                         Crypt = False
                         MD5Crypt = False
-                    ElseIf UCase(Line(1)) = "MD5" Then
+                    ElseIf UCase$(Line(1)) = "MD5" Then
                         Crypt = True
                         MD5Crypt = True
                     End If
-                ElseIf UCase(Section) = "HIGHPROT" Then
-                    If Line(1) = "0" Or UCase(Line(1)) = "NORM" Then
+                ElseIf UCase$(Section) = "HIGHPROT" Then
+                    If Line(1) = "0" Or UCase$(Line(1)) = "NORM" Then
                         HighProtAsq = False
                         HighProtAso = False
                         HighProtAsv = False
                         HighProtAsn = True
-                    ElseIf UCase(Line(1)) = "V" Then
+                    ElseIf UCase$(Line(1)) = "V" Then
                         HighProtAsq = False
                         HighProtAso = False
                         HighProtAsv = True
                         HighProtAsn = False
-                    ElseIf UCase(Line(1)) = "O" Then
+                    ElseIf UCase$(Line(1)) = "O" Then
                         HighProtAsq = False
                         HighProtAso = True
                         HighProtAsv = False
                         HighProtAsn = False
-                    ElseIf UCase(Line(1)) = "Q" Then
+                    ElseIf UCase$(Line(1)) = "Q" Then
                         HighProtAsq = True
                         HighProtAso = False
                         HighProtAsv = False
                         HighProtAsn = False
                     End If
-                ElseIf UCase(Section) = "LOWPROT" Then
-                    If Line(1) = "0" Or UCase(Line(1)) = "NORM" Then
+                ElseIf UCase$(Section) = "LOWPROT" Then
+                    If Line(1) = "0" Or UCase$(Line(1)) = "NORM" Then
                         LowProtAsq = False
                         LowProtAso = False
                         LowProtAsv = False
                         LowProtAsn = True
-                    ElseIf UCase(Line(1)) = "V" Then
+                    ElseIf UCase$(Line(1)) = "V" Then
                         LowProtAsq = False
                         LowProtAso = False
                         LowProtAsv = True
                         LowProtAsn = False
-                    ElseIf UCase(Line(1)) = "O" Then
+                    ElseIf UCase$(Line(1)) = "O" Then
                         LowProtAsq = False
                         LowProtAso = True
                         LowProtAsv = False
                         LowProtAsn = False
-                    ElseIf UCase(Line(1)) = "Q" Then
+                    ElseIf UCase$(Line(1)) = "Q" Then
                         LowProtAsq = True
                         LowProtAso = False
                         LowProtAsv = False
                         LowProtAsn = False
                     End If
-                ElseIf UCase(Section) = "ALLOWMULTIPLE" Then
-                  If Line(1) = "0" Or UCase(Line(1)) = "OFF" Then
+                ElseIf UCase$(Section) = "ALLOWMULTIPLE" Then
+                  If Line(1) = "0" Or UCase$(Line(1)) = "OFF" Then
                     AllowMultiple = False
-                  ElseIf Line(1) = "1" Or UCase(Line(1)) = "ON" Then
+                  ElseIf Line(1) = "1" Or UCase$(Line(1)) = "ON" Then
                     AllowMultiple = True
                   Else
                     AllowMultiple = False
                   End If
-                ElseIf UCase(Section) = "GAGMODE" Then
+                ElseIf UCase$(Section) = "GAGMODE" Then
                   If Line(1) = "0" Then
                     ShowGag = False
                     BounceGagMsg = True
@@ -362,7 +372,7 @@ Select Case UCase(Flag)
                     ShowGag = False
                     BounceGagMsg = True
                   End If
-                ElseIf UCase(Section) = "IRCXMETHOD" Then
+                ElseIf UCase$(Section) = "IRCXMETHOD" Then
                   If Line(1) = "0" Then
                     IRCXM_Trans = True
                     IRCXM_Strict = False
@@ -380,7 +390,7 @@ Select Case UCase(Flag)
                     IRCXM_Both = False
                     IRCXM_Strict = False
                   End If
-                ElseIf UCase(Section) = "REGCHANMODE" Then
+                ElseIf UCase$(Section) = "REGCHANMODE" Then
                   If Line(1) = "0" Then
                     'always open
                     RegChanMode_Always = True
@@ -402,24 +412,36 @@ Select Case UCase(Flag)
                     RegChanMode_Never = False
                     RegChanMode_ModeR = False
                   End If
-                ElseIf UCase(Section) = "REMOTEPASS" Then
+                ElseIf UCase$(Section) = "REMOTEPASS" Then
                   RemotePass = Line(1)
-                ElseIf UCase(Section) = "ERRORLOG" Then
+                ElseIf UCase$(Section) = "ERRORLOG" Then
                   If Line(1) = "0" Then
                     ErrorLog = False
                   ElseIf Line(1) = "1" Then
                     ErrorLog = True
-                  ElseIf UCase(Line(1)) = "OFF" Then
+                  ElseIf UCase$(Line(1)) = "OFF" Then
                     ErrorLog = False
-                  ElseIf UCase(Line(1)) = "ON" Then
+                  ElseIf UCase$(Line(1)) = "ON" Then
                     ErrorLog = True
                   Else
                     ErrorLog = True
                   End If
-                ElseIf UCase(Section) = "SVSNICK" Then
-                    If UCase(Line(1)) = "NICKSERV" Then
+                ElseIf UCase$(Section) = "AUTOVHOST" Then
+                  If Line(1) = "0" Then
+                    AVHost = False
+                  ElseIf Line(1) = "1" Then
+                    AVHost = True
+                  ElseIf UCase$(Line(1)) = "OFF" Then
+                    AVHost = False
+                  ElseIf UCase$(Line(1)) = "ON" Then
+                    AVHost = True
+                  Else
+                    AVHost = False
+                  End If
+                ElseIf UCase$(Section) = "SVSNICK" Then
+                    If UCase$(Line(1)) = "NICKSERV" Then
                         SVSN_NickServ = Line(2)
-                    ElseIf UCase(Line(1)) = "CHANSERV" Then
+                    ElseIf UCase$(Line(1)) = "CHANSERV" Then
                         SVSN_ChanServ = Line(2)
                     End If
                 End If
@@ -458,8 +480,8 @@ Dim I As Long
 For I = 1 To UBound(KLine)
     If (cptr.IP Like KLine(I).Host) Or (cptr.Host Like KLine(I).Host) Then
         If (cptr.User Like KLine(I).User) Then
-            m_error cptr, "Closing Link: K: line active (" & KLine(I).Reason & ")"
-            KillStruct (cptr.Nick)
+            m_error cptr, "Closing Link: (AutoKilled: " & KLine(I).Reason & ")"
+            KillStruct cptr.Nick
             DoKLine = True
             Exit Function
         End If
@@ -499,8 +521,8 @@ For I = 2 To UBound(ILine)
             End If
             If Len(ILine(I).Pass) <> 0 Then
                 cptr.PassOK = False
-            Else
-                cptr.PassOK = True
+            'Else
+            '    cptr.PassOK = True
             End If
             Exit Function
         End If
@@ -518,8 +540,8 @@ For I = 2 To UBound(ILine)
             End If
             If Len(ILine(I).Pass) <> 0 Then
                 cptr.PassOK = False
-            Else
-                cptr.PassOK = True
+            'Else
+            '    cptr.PassOK = True
             End If
             Exit Function
         End If
@@ -569,7 +591,7 @@ End Function
 Public Function GetQLine(Nick As String, AccessLevel As Long) As Long
 Dim I As Long
 For I = 2 To UBound(QLine)
-    If UCase(Nick) Like UCase(QLine(I).Nick) And AccessLevel <> 3 Then
+    If UCase$(Nick) Like UCase$(QLine(I).Nick) And AccessLevel <> 3 Then
         GetQLine = I
         Exit Function
     End If
@@ -579,6 +601,10 @@ End Function
 Public Function DoOLine(cptr As clsClient, Pass As String, OperName As String) As Boolean
 Dim I As Long, x As Long, tmpPass As String
 Dim tmpFlags As String
+Dim OldPass As String
+Dim tmpSendFlags As String
+OldPass = Pass 'so MD5 doesn't throw us off ;)
+
 If Crypt = True Then
     'We have Pass Encryption Now to see what one
     If MD5Crypt = True Then
@@ -588,9 +614,9 @@ If Crypt = True Then
     End If
 End If
 For I = 2 To UBound(OLine)
-    If StrComp(UCase(OperName), UCase(OLine(I).Name)) = 0 Then
+    If StrComp(UCase$(OperName), UCase$(OLine(I).Name)) = 0 Then
         If InStr(1, OLine(I).Host, "@") Then
-            If UCase(cptr.User) & "@" & UCase(cptr.RealHost) Like UCase(OLine(I).Host) Then
+            If UCase$(cptr.User) & "@" & UCase$(cptr.RealHost) Like UCase$(OLine(I).Host) Then
                 If StrComp(Pass, OLine(I).Pass) = 0 Then
                     'With the coming of modes like +Z we gotta make sure they aren't set via an oline...(Security)
                     tmpFlags = OLine(I).AccessFlag
@@ -600,15 +626,21 @@ For I = 2 To UBound(OLine)
                     tmpFlags = Replace(tmpFlags, "Z", "")
                     '+S = Services can give themselves +S
                     tmpFlags = Replace(tmpFlags, "S", "")
-
+                    
+                    'put the modes in a buffer
+                    'less clock cycles :)
+                    tmpSendFlags = add_umodes(cptr, tmpFlags)
+                    
                     'this event should be generated _before_ the user becomes an operator
                     '(no chance in getting his own mode flags thrown at him)
-                    GenerateEvent "USER", "MODECHANGE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & add_umodes(cptr, tmpFlags)
+                    GenerateEvent "USER", "MODECHANGE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & tmpSendFlags
                     cptr.AccessLevel = 3
                     Opers.Add cptr.GUID, cptr
-                    SendWsock cptr.index, "MODE " & cptr.Nick, "+" & add_umodes(cptr, tmpFlags), ":" & cptr.Nick
-                    SendWsock cptr.index, RPL_YOUREOPER, ":You are now an IRC operator"
+                    '// don't send the flags if there aren't any
+                    If Len(tmpSendFlags) > 0 Then SendWsock cptr.index, "MODE " & cptr.Nick, "+" & tmpSendFlags, ":" & cptr.Nick
+                    SendWsock cptr.index, RPL_YOUREOPER, cptr.Nick & " :You are now an IRC operator"
                     cptr.Class = GetYLine(OLine(I).ConnectionClass).index
+                    If AVHost Then DoVLine cptr, OperName, OldPass, True
                     DoOLine = True
                     Exit Function
                 Else
@@ -620,17 +652,32 @@ For I = 2 To UBound(OLine)
                 Exit Function
             End If
         Else
-            If UCase(cptr.RealHost) Like UCase(OLine(I).Host) Then
+            If UCase$(cptr.RealHost) Like UCase$(OLine(I).Host) Then
                 If StrComp(Pass, OLine(I).Pass) = 0 Then
+                    'With the coming of modes like +Z we gotta make sure they aren't set via an oline...(Security)
+                    tmpFlags = OLine(I).AccessFlag
+                    '+r = Registered with NickServ (Just cos your an oper doesn't mean your registered)
+                    tmpFlags = Replace(tmpFlags, "r", "")
+                    '+Z = No oper should ever be a Remote Admin Client Automaticly
+                    tmpFlags = Replace(tmpFlags, "Z", "")
+                    '+S = Services can give themselves +S
+                    tmpFlags = Replace(tmpFlags, "S", "")
+                    
+                    'put the modes in a buffer
+                    'less clock cycles :)
+                    tmpSendFlags = add_umodes(cptr, tmpFlags)
+                    
                     'this event should be generated _before_ the user becomes an operator
                     '(no chance in getting his own mode flags thrown at him)
-                    GenerateEvent "USER", "MODECHANGE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & add_umodes(cptr, OLine(I).AccessFlag)
+                    GenerateEvent "USER", "MODECHANGE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & tmpSendFlags
                     cptr.AccessLevel = 3
                     Opers.Add cptr.GUID, cptr
-                    SendWsock cptr.index, "MODE " & cptr.Nick, "+" & add_umodes(cptr, OLine(I).AccessFlag), ":" & cptr.Nick
-                    SendWsock cptr.index, RPL_YOUREOPER, ":You are now an IRC operator"
+                    '// don't send the flags if there aren't any
+                    If Len(tmpSendFlags) > 0 Then SendWsock cptr.index, "MODE " & cptr.Nick, "+" & tmpSendFlags, ":" & cptr.Nick
+                    SendWsock cptr.index, RPL_YOUREOPER, cptr.Nick & " :You are now an IRC operator"
                     cptr.Class = GetYLine(OLine(I).ConnectionClass).index
                     DoOLine = True
+                    If AVHost Then DoVLine cptr, OperName, OldPass, True
                     Exit Function
                 Else
                     SendWsock cptr.index, ERR_PASSWDMISMATCH, TranslateCode(ERR_PASSWDMISMATCH)
@@ -656,18 +703,20 @@ For I = 2 To UBound(LLine)
 Next I
 End Function
 
-Public Function GetLLineN(IP As String) As LLines
+Public Function GetLLineN(IP As String, Optional ServerHost As String) As LLines
 Dim I As Long
 For I = 2 To UBound(LLine)
-    If LLine(I).Host = IP Then
+    If (LLine(I).Host = IP) Or (UCase$(LLine(I).Host) = UCase$(ServerHost)) Then
         GetLLineN = LLine(I)
         Exit Function
     End If
 Next I
 End Function
 
-Public Sub DoVLine(cptr As clsClient, Login$, Pass$)
+Public Sub DoVLine(cptr As clsClient, Login$, Pass$, Optional AutoVHost As Boolean = False)
 Dim I&
+'The AutoVHost parameter is so the oper doesn't get weird error messages
+'duh :P
 If Crypt = True Then
     'We have Pass Encryption Now to see what one
     If MD5Crypt = True Then
@@ -677,31 +726,35 @@ If Crypt = True Then
 End If
 For I = 2 To UBound(VLine)
     With VLine(I)
-        If StrComp(UCase(.Name), UCase(Login)) = 0 Then
-            If UCase(cptr.User) & "@" & UCase(cptr.RealHost) Like UCase(.Host) Then
-                If Pass = .Pass Then
+        If StrComp(UCase$(.Name), UCase$(Login)) = 0 Then
+            If UCase$(cptr.User) & "@" & UCase$(cptr.RealHost) Like UCase$(.Host) Then
+                If StrComp(Pass, .Pass) = 0 Then
                     cptr.Host = .Vhost
                     cptr.Prefix = ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host
-                    SendWsock cptr.index, "NOTICE " & cptr.Nick, ":VHost applied for: " & .Vhost
+                    If AutoVHost = False Then
+                      SendWsock cptr.index, "NOTICE " & cptr.Nick, ":VHost applied for: " & .Vhost
+                    Else
+                      SendWsock cptr.index, "NOTICE " & cptr.Nick, ":Automatic VHost of " & .Vhost & " applied."
+                    End If
                     Exit Sub
                 Else
-                    SendWsock cptr.index, "NOTICE " & cptr.Nick, ":Invalid password"
+                    If AutoVHost = False Then SendWsock cptr.index, "NOTICE " & cptr.Nick, ":Invalid password"
                     Exit Sub
                 End If
             Else
-                SendWsock cptr.index, "NOTICE " & cptr.Nick, ":No virtual host for your hostname"
+                If AutoVHost = False Then SendWsock cptr.index, "NOTICE " & cptr.Nick, ":No virtual host for your hostname"
                 Exit Sub
             End If
         End If
     End With
 Next I
-SendWsock cptr.index, "NOTICE " & cptr.Nick, ":Invalid login name"
+If AutoVHost = False Then SendWsock cptr.index, "NOTICE " & cptr.Nick, ":Invalid login name"
 End Sub
 
 Public Function DoLLine(cptr As clsClient) As Boolean
 Dim I&
 For I = 2 To UBound(LLine)
-    If cptr.IP Like LLine(I).Host Then
+    If (cptr.IP Like LLine(I).Host) Or (UCase$(cptr.RealHost) Like UCase$(LLine(I).Host)) Or (UCase$(cptr.Host) Like UCase$(LLine(I).Host)) Then
         cptr.Class = GetYLine(LLine(I).ConnectionClass).index
         If cptr.Class < 2 Then
             m_error cptr, "Closing Link: No class specified for your host"

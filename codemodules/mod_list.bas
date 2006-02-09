@@ -1,5 +1,5 @@
 Attribute VB_Name = "mod_list"
-'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
+'ignitionServer is (C) Keith Gable and Contributors
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -7,13 +7,14 @@ Attribute VB_Name = "mod_list"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
+'
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
-'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
+'Contributors:        Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_list.bas,v 1.17 2004/06/06 21:48:11 ziggythehamster Exp $
+' $Id: mod_list.bas,v 1.41 2004/07/02 23:16:55 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -36,7 +37,7 @@ Option Explicit
 Public Const MaxTrafficRate As Long = 100
 
 '-=BUILD DATE=-
-Public Const BuildDate As String = "20040607"
+Public Const BuildDate As String = "20040702"
 
 #Const Debugging = 0
 
@@ -67,7 +68,12 @@ Public GlobUsers As clsUserHashTable 'For Global AND Local users
 'and/or allowed to do certain things
 Public Opers As clsUserHashTable
 Public ServerMsg As clsUserHashTable
+Public WallOps As clsUserHashTable
 Public IPHash As clsIPHashTable
+
+'server crap
+Public ServerLocalAddr As String
+Public ServerLocalPort As String
 
 'Statistics variables/Cache
 Public LocalConn&, RecvMsg&, SentMsg&
@@ -98,6 +104,9 @@ Public MaxMsgsInQueue As Long
 Public RegChanMode_Always As Boolean
 Public RegChanMode_Never As Boolean
 Public RegChanMode_ModeR As Boolean
+
+'Auto VHost
+Public AVHost As Boolean
 
 'SVSNicks
 Public SVSN_NickServ As String
@@ -339,6 +348,7 @@ Public Type Commands
   Create As Long: CreateBW As Currency
   ChgNick As Long: ChgNickBW As Currency
   Add As Long: AddBW As Currency
+  Whisper As Long: WhisperBW As Currency
 End Type
 
 '/*
@@ -509,11 +519,15 @@ Public Const RPL_ISON As Long = 303
 Public Const RPL_TEXT As Long = 304
 Public Const RPL_UNAWAY As Long = 305
 Public Const RPL_NOWAWAY As Long = 306
-Public Const RPL_WHOISREGNICK As Long = 307
-Public Const RPL_RULESSTART As Long = 308
-Public Const RPL_ENDOFRULES As Long = 309
-Public Const RPL_WHOISHELPOP As Long = 310     '/* -Donwulff */
 
+'Public Const RPL_RULESSTART As Long = 308 '// what the hell are these?
+'Public Const RPL_ENDOFRULES As Long = 309 '// ""
+
+'/whois stuff
+Public Const RPL_WHOISREGNICK As Long = 307
+Public Const RPL_WHOISADMIN As Long = 308 'NetAdmin
+Public Const RPL_WHOISSADMIN As Long = 309 'Service Admin (need mode for this)
+Public Const RPL_WHOISHELPOP As Long = 310     '/* -Donwulff */
 Public Const RPL_WHOISUSER As Long = 311
 Public Const RPL_WHOISSERVER As Long = 312
 Public Const RPL_WHOISOPERATOR As Long = 313
@@ -682,23 +696,30 @@ Public Const RPL_EODUMP As Long = 642
 Public Const RPL_HASH As Long = 700
 Public Const RPL_ENDOFHASH As Long = 701
 
-'Chan Modes (ASCII values of the mode char's for faster processing)
-Public Const cmBan As Long = 98
-Public Const cmOp As Long = 111
-Public Const cmOwner As Long = 113
-Public Const cmVoice As Long = 118
-Public Const cmModerated As Long = 109
-Public Const cmNoExternalMsg As Long = 110
-Public Const cmOpTopic As Long = 116
-Public Const cmHidden As Long = 104
-Public Const cmInviteOnly As Long = 105
-Public Const cmSecret As Long = 115
-Public Const cmPrivate As Long = 112
-Public Const cmLimit As Long = 108
-Public Const cmKey As Long = 107
-Public Const cmRegistered As Long = 114
-Public Const cmOperOnly As Long = 79
-Public Const cmPersistant As Long = 82
+'*** Chan Modes (ASCII values of the mode char's for faster processing) ***
+'Channel user levels
+Public Const cmBan As Long = 98               '+b / ban
+Public Const cmOp As Long = 111               '+o / host
+Public Const cmOwner As Long = 113            '+q / owner
+Public Const cmVoice As Long = 118            '+v / voice
+
+'Lowercase
+Public Const cmHidden As Long = 104           '+h / hidden
+Public Const cmInviteOnly As Long = 105       '+i / invite only
+Public Const cmKey As Long = 107              '+k / password
+Public Const cmLimit As Long = 108            '+l / limit
+Public Const cmModerated As Long = 109        '+m / moderated
+Public Const cmNoExternalMsg As Long = 110    '+n / noextern
+Public Const cmPrivate As Long = 112          '+p / private
+Public Const cmRegistered As Long = 114       '+r / registered
+Public Const cmSecret As Long = 115           '+s / secret
+Public Const cmOpTopic As Long = 116          '+t / only ops change topic
+Public Const cmKnock As Long = 117            '+u / knock
+Public Const cmAuditorium As Long = 120       '+x / auditorium
+
+'Uppercase
+Public Const cmOperOnly As Long = 79          '+O / oper only
+Public Const cmPersistant As Long = 82        '+R / persistant
 
 
 '+/- Mode Operators
@@ -708,10 +729,10 @@ Public Const modeRemove As Long = 45
 'All possible modes for chan/user
 'Now in alphabetical order - Ziggy
 'Added missing modes
-Public Const UserModes As String = "bcdeikoprsxzBCDEKNOPRSZ"
-Public Const ChanModes As String = "bhiklmnopqrstvOR"
+Public Const UserModes As String = "bcdeikoprswxzBCDEHKNOPRSWZ"
+Public Const ChanModes As String = "bhiklmnopqrstuvOR"
 'for the 005 reply
-Public Const ChanModesX As String = "b,k,l,himnopqrstvOR"
+Public Const ChanModesX As String = "b,k,l,himnopqrstuvOR"
 
 'Authentication Packages/IRCX stuff
 Public Const AuthPackages As String = "ANON"
@@ -725,12 +746,14 @@ Public Const umCanUnKline As Long = 66  '+B / Can /unkline user
 Public Const umGlobRouting As Long = 67 '+C / access to global /connect's and /squit's
 Public Const umCanDie As Long = 68      '+D / access to /die server
 Public Const umCanAdd As Long = 69      '+E / can use /add
+Public Const umCanChange As Long = 72   '+H / can use /chghost and /chgnick
 Public Const umGlobKills As Long = 75   '+K / access to global /kill's
 Public Const umNetAdmin As Long = 78    '+N / is Net Admin
 Public Const umGlobOper As Long = 79    '+O / Global IRC Operator, flags included: oRDCKN
 Public Const umProtected As Long = 80   '+P / protected operator, can't be deopped or kicked from a channel
 Public Const umCanRestart As Long = 82  '+R / access to /restart server
 Public Const umService As Long = 83     '+S / is a service
+Public Const umCanWallop As Long = 87   '+W / can use wallops system
 Public Const umRemoteAdmin As Long = 90 '+Z / is a Remote Administrator (Is logged in via /remoteadm login)
 
 'Lower Case
@@ -745,6 +768,7 @@ Public Const umLocOper As Long = 111    '+o / Local IRC Operator, flags included
 Public Const umLProtected As Long = 112 '+p / Lower level protected oper - same as P except it has a different 'strength'
 Public Const umRegistered As Long = 114 '+r / has a registered nick
 Public Const umServerMsg As Long = 115  '+s / recieves servermessages
+Public Const umWallOps As Long = 119    '+w / recieves wallops
 Public Const umIRCX As Long = 120       '+x / IRCX user
 Public Const umGagged As Long = 122     '+z / is gagged (cannot PRIVMSG or NOTICE)
 

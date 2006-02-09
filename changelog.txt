@@ -1,12 +1,12 @@
-###############################
-## Ignition Server ChangeLog ##
-###############################
+##############################
+## ignitionServer ChangeLog ##
+##############################
 #
-# Zg = Ziggy(ziggy@ignition-project.com)
-# DG = DigiGuy(nigel@ignition-project.com)
-# AW = Airwalk(airwalk@ignition-project.com)
+# Zg = Ziggy   (ziggy@ignition-project.com)
+# DG = DigiGuy (digi_guy@users.sourceforge.net)
+# AW = Airwalk (airwalk@ignition-project.com)
 #
-# $Id: changelog.txt,v 1.36 2004/06/06 23:54:03 ziggythehamster Exp $
+# $Id: changelog.txt,v 1.89 2004/07/02 23:23:00 ziggythehamster Exp $
 #
 ### Project Start ###
 #
@@ -351,3 +351,108 @@ Zg - [6-Jun] - Prepared ircx.conf for release
 Zg - [6-Jun] - Fixed bug #967784 (users setting modes on themselves need Nick!ID@Host)
 AW - [6-Jun] - Fixed bug #967793 (Whois, whowas returning wrong error for no params)
 Zg - [6-Jun] - Fixed the bug that would make exceptionally huge error logs
+#
+### RELEASE - 0.3.1 - BETA 1 ###
+#
+Zg - [7-Jun] - Fixed bug #968389 (readme needs to mention ircx.conf)
+Zg - [7-Jun] - Flushed release notes
+Zg - [7-Jun] - Fixed bug #968377 (/rehash -MOTD needs to say something)
+Zg - [7-Jun] - Fixed bug #967769 (MaxClones fails to function sometimes)
+Zg - [8-Jun] - Much tweaking with the sockets to see if I can somehow get the port being connected to -- I can't :(
+Zg - [8-Jun] - However, I *CAN* get the port being connected from! (I can probably get the connected-to port if I looked in the right spot, like the listen code)
+Zg - [8-Jun] - Added new_events.txt to the repository.
+Zg - [9-Jun] - Applied the patch that was in RELEASE_0_3_1P1
+Zg - [9-Jun] - Changed some things with quit/part messages; now it's like FreeNode: *** Nick has quit ("reason") vs. *** Nick has quit (Exit: reason)
+Zg - [9-Jun] - Fixed another bug that would make people who don't specify quit messages show *** Nick has quit (Exit: Exit: Nick)
+Zg - [9-Jun] - Fixed bug #969405 (pinging if active)
+Zg - [9-Jun] - When a client PINGs a server, the reply is now accurate.
+Zg - [9-Jun] - Fixed bug #969401 (onjoin is improperly formatted)
+Zg - [9-Jun] - Fixed bug #968699 (UNIX time is an hour off)
+Zg - [9-Jun] - Fixed possible bug that would probably cause UnixTime to be a few seconds off
+Zg - [10-Jun] - Fixed bug #967788 (some chars need to be allowed in nicks)
+Zg - [11-Jun] - Fixed bug #968650 (SOCKET.CLOSE not thrown when MaxClones is reached)
+Zg - [11-Jun] - You no longer have to be AccessLevel 3 to get on a +O channel (it now relies on usermode flags for local oper and global oper)
+Zg - [11-Jun] - Fixed bug #969409 (+P/+p opers can't join +i channels)
+Zg - [13-Jun] - Fixed bug with new part messages: if the message is null, it no longer sends ""
+Zg - [13-Jun] - Fixed bug with part messages: the correct casing of the room should now be returned in a /part
+Zg - [13-Jun] - Fixed bug #972282 (Error 91 in m_part)
+Zg - [14-Jun] - Fixed bug #969310 (M: line needs extension) -- should fix problems with WinServer2003
+Zg - [14-Jun] - Fixed bug #969095 (Oper Levels)
+Zg - [15-Jun] - Fixed bug #972872 (QUIT doesn't subtract from unknown connections)
+Zg - [15-Jun] - Fixed bug with the new oper level system (duplicate modes mess things up)
+Zg - [15-Jun] - Fixed bug that allowed opers with an O: line that left out the ident (i.e. just a hostname) to get modes that they shouldn't get
+Zg - [15-Jun] - Fixed bug that made access entries depend on fake hosts, if enabled (i.e. you can now use a real host name in access entries)
+Zg - [15-Jun] - Optimized a bunch of UCase()/LCase() related stuff.
+Zg - [15-Jun] - Fixed /version reply to be more consistant with standards
+Zg - [16-Jun] - Fixed bug #973593 (/who * o doesn't work)
+Zg - [16-Jun] - Fixed security bug where users could see what channel you were in if you were +i
+Zg - [16-Jun] - PROP changes are now propragrated across the network!
+Zg - [16-Jun] - Completed task #100127 (WALLOPS!)
+Zg - [16-Jun] - Stuff I don't remember...
+Zg - [16-Jun] - Corrected formatting mistake with /create (it would send the channel name as CREATE instead of parv(0))
+Zg - [16-Jun] - Fixed bug #974079 (/create lets you make illegal channels)
+Zg - [17-Jun] - Added command-line control.exe file. Works fine, except it will get stuck if you specify a bad port (default is 6667, can be specified with -p nnnn)
+Zg - [18-Jun] - Added IRCXpro Migration Wizard -- far from completion, but the basics are in there. Now, you can migrate from IRCXpro to ignitionServer without losing everything (some things are lost, because I don't have the patience to read the IRCXpro manual to figure out what some stuff is)
+Zg - [19-Jun] - More work on the migration wizard... now it reads the template and it does its business with the !insertmacros ^_^
+Zg - [20-Jun] - Fixed bug where +O wasn't getting set
+Zg - [20-Jun] - Fixed bug #975749 (disable switch for oper mode expansion)
+Zg - [21-Jun] - IRCXpro Migration Wizard is done for now. Now, if any of you all want to play with it, go ahead :)
+Zg - [22-Jun] - Fixed bug #977128 (OPER reply is wrong)
+Zg - [22-Jun] - Fixed bug #977052 (various mode problems) [Patch Submitter: sg_01]
+Zg - [22-Jun] - Fixed bug #975698 (admin location reported as server location)
+Zg - [22-Jun] - Completed feature request #977144 (report service [+S] in /whois)
+Zg - [22-Jun] - Changed the "...is connecting from <addr>; IP address is <ip>" message to use raw 320 (RPL_WHOISSPECIAL) -- now it looks right in XChat :)
+Zg - [22-Jun] - Fixed possible future bug (when I go to add_umodes and clean it up a bit)
+Zg - [22-Jun] - Fixed bug #975143 (L: lines need to allow destination hostnames)
+Zg - [22-Jun] - Fixed bug #977296 (really, really weird bugs with /server)
+Zg - [22-Jun] - NJOIN now returns "Permission Denied" for people who aren't servers
+Zg - [24-Jun] - Fixed bug #977825 (erroneous CRLF's)
+Zg - [24-Jun] - Fixed bug #978619 (wrong /part raw)
+Zg - [24-Jun] - Fixed bug #978588 (client exited/client quit need to be the same)
+Zg - [24-Jun] - Completed task #100790 (X:AUTOVHOST)
+Zg - [25-Jun] - ACCESS entries are now propragrated across the network (could use a little work)
+Zg - [25-Jun] - Deleting *!*@* from an access list is now the same as clearing the access list
+Zg - [25-Jun] - Fixed some erroneous CRLF's with access entry
+Zg - [25-Jun] - Completed task #100820 (Knock/+u) -- probably need better knock reasons
+Zg - [25-Jun] - HOPEFULLY fixed another bug with /raw close. In fact, if it's still moofing, it's with the GlobUsers() database (well, probably)
+Zg - [26-Jun] - Completed task #100821 (Whisper)
+Zg - [26-Jun] - Completed task #100869 (more oper modes)
+Zg - [26-Jun] - Fixed bug #980102 (normal opers with +P/+p can't kick netadmins with +P/+p, and +P > +p)
+Zg - [26-Jun] - Services can now set a channel's ACCOUNT property
+Zg - [26-Jun] - SOCKET events have been "normalized" (although the local server address is a bit wrong)
+Zg - [26-Jun] - Updated headers
+Zg - [26-Jun] - Removed an unused file or two
+Zg - [26-Jun] - Updated all other related files
+Zg - [26-Jun] - Fixed bug #980284 (access bugs)
+Zg - [27-Jun] - Fixed bug that allows +o to +/- ov a +q user
+Zg - [28-Jun] - Fixed bug that would send a PROP change to the server that originated the PROP change
+Zg - [28-Jun] - Most server information is now propragrated across the network (dare I say all?)
+Zg - [28-Jun] - Fixed bug #890133 (some channel info isn't sent to links) -- the above SHOULD be all of it.
+Zg - [28-Jun] - New monitor! Works in all versions of Windows :). Depends on control.exe though.
+Zg - [28-Jun] - New PassCrypt! Same purpose/concept as before, except now, it's better looking.
+Zg - [28-Jun] - Added Red Hat BlueCurve(TM) to credits; cleaned credits up somewhat
+Zg - [28-Jun] - Monitor can now start on Windows startup (and starts minimized)
+Zg - [28-Jun] - Monitor no longer hangs until you click it
+Zg - [28-Jun] - New registry class.
+Zg - [28-Jun] - More tweaks.
+Zg - [29-Jun] - Added some error prevention to the monitor.
+Zg - [29-Jun] - Added error trapping to control.exe.
+Zg - [29-Jun] - Monitor throws error if control.exe is missing.
+Zg - [29-Jun] - Worked on release notes
+Zg - [29-Jun] - Updated readme somewhat
+Zg - [29-Jun] - Installer and readme update!
+Zg - [29-Jun] - SetCompressor lzma for ultra-tiny executables!
+Zg - [29-Jun] - Added IRCXpro Migration Wizard to installer
+Zg - [29-Jun] - Added resource files for automagically putting icons in ignitionServer and control.exe (since I was using ResHack before)
+Zg - [29-Jun] - control.exe can now be started more than once (so the monitor doesn't entirely break when something's wrong)
+Zg - [29-Jun] - Another monitor bug has been fixed - hopefully now it doesn't moof when a connection fails.
+Zg - [30-Jun] - Fixed bug #982347 (ping timeouts aren't propragrated across the network)
+Zg - [30-Jun] - The monitor now logs in properly.
+Zg - [30-Jun] - Except, next time make it send the right message >_<
+Zg - [30-Jun] - Fixed bug #982986 (you can whisper outside of channels)
+Zg - [30-Jun] - /CHGHOST can now be used by servers!
+Zg - [1-Jul] - The monitor now has a "more info" button which shows some server statistics. Refreshed every 5 seconds.
+Zg - [2-Jul] - Fixed Nigel's e-mail address
+Zg - [2-Jul] - Removed -cvs identifier (for release)
+Zg - [2-Jul] - Modified ircx.conf for release
+Zg - [2-Jul] - And don't forget to make the same changes to migwiz.cftpl...

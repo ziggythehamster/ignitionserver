@@ -1,0 +1,364 @@
+######################################
+#    ignitionServer - ircx.conf      #
+#   Standard Server Configuration    #
+######################################
+# Do not play with stuff in here     #
+# unless you are sure you know what  #
+# you're doing or else you may break #
+# ignitionServer!                    #
+######################################
+
+# ignitionServer 0.3.1 Configuration File
+# Lines that begin with # are comments and IGNORED by ignitionServer!
+
+################################################### 
+# $Id: migwiz.cftpl,v 1.6 2004/07/02 23:23:00 ziggythehamster Exp $ 
+###################################################
+
+!insertmacro generator
+
+#############################################################################################################
+# Basic Configuration Section                                                                               #
+#############################################################################################################
+
+#[ M: Lines - Server Information ]##########################################
+# M:<server address>:<server name>:<server description>:<bind address>:    #
+#   <main port>                                                            #
+############################################################################
+# Here is where you put some witty description for your server. We use our #
+# MasterCard joke by default, but you could put a quote, the location/name #
+# of your server, etc. You also have to put the basic server info here too #
+############################################################################
+# Bind address is the address of the adapter to bind to. To bind to all    #
+# adapters (normal behavior), use *. This should only be changed if you    #
+# need to run ignitionServer on a specific adapter only (if, for example,  #
+# your server runs in a shared environment, or your version of Windows for #
+# some reason doesn't allow you to bind to all adapters). If you don't     #
+# even know what an adapter is, perhaps you should just leave it as *. :)  #
+############################################################################
+
+!insertmacro m-line
+
+#[ A: Lines - Administrative Information ]##################################
+# A:<location>:<name>:<e-mail>                                             #
+############################################################################
+# This line sets the information that appears in /admin. Users use this    #
+# command when they need to talk to the head cheese of the server. In some #
+# countries, this is required to be valid. Check your local laws.          #
+############################################################################
+
+!insertmacro a-line
+
+#[ S: Lines - Security Settings ]###########################################
+# S:<MaxConn>:<MaxClones>:<MaxChans>:<NickLen>:<TopicLen>:<KickLen>:       #
+#   <PartLen>:<KeyLen>:<QuitLen>:<MaxWhoLen>:<MaxListLen>:<MaxMsgsInQueue> #
+############################################################################
+# The security line sets limits to the length of certian strings and       #
+# replies. Some do not yet apply. In any field, 0 means "infinite".        #
+# NOTE: MaxListLen should always be "0" unless you are 100% sure you want  #
+# to hide rooms!                                                           #
+############################################################################
+
+!insertmacro s-line
+
+#[ Y: Lines - Client Class Settings ]#######################################
+# Y:<ID>:<PingTime>:<FloodControl>:<MaxClients>:<SendQ>                    #
+############################################################################
+# (floodcontrol: number of seconds required between connections from the   #
+# class in which it applies -- should be 0 unless you know its             #
+# implications!)                                                           #
+# You shouldn't have to change these lines. If you do, I assume you know   #
+# what they do... About the only thing you may want to tweak is ping time, #
+# which is usually 180. In PingTime/FloodControl/MaxClients, 0 means       #
+# infinite.                                                                #
+############################################################################
+
+!insertmacro y-line
+
+#[ I: Lines - Invite Lines ]################################################
+# I:<IP mask>:<opt. password>:<hostmask>::<opt. connection class>          #
+############################################################################
+# WARNING! DO NOT CHANGE THIS LINE UNLESS YOU ABSOLUTELY, POSITIVELY KNOW  #
+# WHAT YOU ARE DOING! CHANGING THIS GENERIC INVITE (I:) LINE MAY CAUSE     #
+# YOUR SERVER TO BE UNABLE TO ACCEPT INCOMING CONNECTIONS! AGAIN, DO NOT   #
+# CHANGE THIS UNLESS YOU KNOW WHAT YOU ARE DOING!                          #
+############################################################################
+# I: lines assign users to Y: lines. You can assign based on IP address or #
+# hostmask. You can also say that people that match certain I: lines also  #
+# need to specify a password (i.e. allow your local network in, but        #
+# require a password for everyone else). If you wish to match a hostmask   #
+# (not an IP), you need to specify "NOMATCH" as the IP to match. Host      #
+# masks are ignored if the IP address is not set to NOMATCH and you'll     #
+# probably go insane figuring this out. Wildcards are allowed in the IP    #
+# address. You can only match an IP mask or a host mask. You can't combine #
+# the two (i.e. 12.* and *dial-access*att.net should get class 12345). You #
+# must match an IP mask (12.*) or a host mask (*att.net). If X:CRYPT is    #
+# enabled, the password must be encrypted in the format specified in       #
+# X:CRYPT. You can use PassCrypt or the server command /passcrypt to do    #
+# this.                                                                    #
+#~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*#
+# Ex: I:NOMATCH:aol:*aol.com::100 - require a password for all AOL users   #
+############################################################################
+
+!insertmacro i-line
+
+#############################################################################################################
+# Logins, UserIDs, Connections, and other related tidbits                                                   #
+#############################################################################################################
+
+#[ O: Lines - Operator Lines ]##############################################
+# O:<hostmask>:<password>:<username>:<operator flags>:<connection class>   #
+############################################################################
+#################### NEW INSTALLATIONS: PASS IS "admin" ####################
+############################################################################
+# Use included PassCrypt to generate passwords or log on to your server    #
+# and type /passcrypt MD5 password (replace password with your password)   #
+############################################################################
+# NOTE: Encrypted passwords only encrypt the passwords on disk - /oper'ing #
+# is still the same (/oper user pass).. And when opering, you do NOT use   #
+# the encrypted password (in the default case, you'd still go              #
+# /oper admin admin).                                                      #
+############################################################################
+# DO NOT FORGET! CHANGE THE DEFAULT PASSWORD FROM "admin" TO SOMETHING     #
+# ELSE! YOUR SERVER **WILL** BE COMPROMISED IF YOU FAIL TO DO THIS!        #
+############################################################################
+# NEW! You don't have to include a lot of modes now! Here's the simplified #
+# list:                                                                    #
+#    N - Network Administrator (NOocekbBKCRDWH)                            #
+#    O - Global Operator (OocekbBKCW)                                      #
+#    o - Local Operator (ocekbB)                                           #
+#                                                                          #
+# In addition, you may want to add the following modes:                    #
+#    s - Gets Server Messages (good idea)                                  #
+#    w - Gets Wallops (good idea)                                          #
+#    P - Is High Protected (see X:HIGHPROT)                                #
+#    p - Is Low Protected (see X:LOWPROT)                                  #
+#                                                                          #
+# The following modes may or may not be automatically given to a specific  #
+# oper level (for security reasons), but are given automatically to some   #
+# oper levels:                                                             #
+#    W - Can send WallOps (automatic for global oper and netadmin, unless  #
+#        mode expansion is off [then it's netadmin only])                  #
+#    H - Can /chghost and /chgnick (automatic for netadmin)                #
+#                                                                          #
+# Of course, you can always stick with the old long list of modes, if you  #
+# like (or if you want to customize a particular user's privledges). To do #
+# this, prefix the list of modes with a dash (-). For example, to make a   #
+# user a local operator only, their O: line might look like this:          #
+# O:*:password:user:-o:10. The - simply tells ignitionServer to switch off #
+# mode expansion.                                                          #
+############################################################################
+# Please note: NetAdmin gets access to some really powerful commands, so   #
+# do NOT just copy and paste the default modes from the default O: line    #
+# for the rest of your opers!                                              #
+############################################################################
+
+!insertmacro o-line
+
+#[ V: Lines - Virtual Hostname Lines ]######################################
+# V:<Virtual Host>:<Username>:<Password>:<Host Mask>                       #
+############################################################################
+#################### NEW INSTALLATIONS: PASS IS "admin" ####################
+############################################################################
+# Virtual hosts give users a special hostname instead of the one they'd    #
+# normally get when they logon. To activate their V-Host, they should type #
+# /vhost <Username> <Password>, replacing <Username> with their username   #
+# (specified here) and <Password> with their password (specified here).    #
+# If X:CRYPT is enabled, the password must be encrypted using the right    #
+# encryption specified.                                                    #
+############################################################################
+
+!insertmacro v-line
+
+#[ K: Lines - Kill Lines ]##################################################
+# K:<Host Mask>:<Message>:<Ident Mask>                                     #
+############################################################################
+# Kill lines automatically kill people who match them. For example, a K:   #
+# line of K:*aol.com:Use your free minutes elsewhere:* kills all AOL users #
+# who connect to your server. You could also kill them based on what their #
+# ident is. This could be used to ban a floodbot that uses a known ident.  #
+# For example, K:*:Your ident matches a floodbot:*LEET*BOT* would kill any #
+# user who has an ident containing LEET and BOT (in that order). This line #
+# would match LEET_BOT, LEET1337BOT, LEETBOT66, and many many other things #
+# (the allowed wildcards are * [any number of characters] and ? [any       #
+# single character]). There are no default K: lines because banning people #
+# in a default configuration is discriminative ;).                         #
+############################################################################
+
+!insertmacro k-line
+
+#[ Q: Lines - Nickname Quarantines ]########################################
+# Q::<Message>:<Nickname Mask>                                             #
+############################################################################
+# These lines prevent certain nicknames (or wildcarded nicknames) from     #
+# being used by normal users. In the future, this line will also support   #
+# "jupiters", which basically prevent people from joining certain channels #
+# or masks of channels (prevents some bot hives). The format of this line  #
+# is simple and should be easy to figure out based on the examples.        #
+############################################################################
+
+!insertmacro q-line
+
+#[ Z: Lines - Connection Filters ]##########################################
+# Z:<IP Address Mask>:<Message>                                            #
+############################################################################
+# These lines filter certain IP addresses from your server. Let's say that #
+# you know that AT&T's IP addresses are 12.*.*.* (they are ;)), and you    #
+# wanted all AT&T users to be unable to connect and chat. You'd use a Z:   #
+# line. You could also use a Z: line to stop some lame server flooders for #
+# a while (you know, if only 12.34.56.* is flooding you). You can NOT use  #
+# hostnames, nicknames, or idents. Z: lines ONLY match IP addresses. As    #
+# with K: lines, there are no default ones.                                #
+############################################################################
+
+!insertmacro z-line
+
+#[ P: Lines - Additional Ports ]############################################
+# P::<Adapter Address>::<Port Options>:<Port>                              #
+############################################################################
+# With this line, you can make the server listen on different ports and on #
+# different adapters. The adapter address is simply the address of that    #
+# adapter, as you would see in ipconfig (winipcfg on 9x/Me). If you leave  #
+# the adapter address blank (P::::*:1234), it automatically binds to all   #
+# adapters. It is also believed that if the adapter address is 127.0.0.1,  #
+# it only binds to your local system (so you could connect on a different  #
+# port from your own system). However, I'm not 100% sure (and haven't      #
+# really tested it). At this time, Port Options must be * (that's a star). #
+# In the future, there'll be options like SSL, GZIP, and possibly P10. At  #
+# this time, however, you need to put *.                                   #
+#~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*#
+# Ex: P::192.168.0.1::*:99 -- binds to the adapter 192.168.0.1 on port 99  #
+############################################################################
+
+!insertmacro p-line
+
+#[ L: Lines - Server Links ]################################################
+# L:<IP Address>:<Password>:<Display Name>:<Port>:<Connection Class>       #
+############################################################################
+# This line enables the use of server-to-server linking. On nearly every   #
+# IRCD that uses this old configuration, there were two seperate lines.    #
+# One of them was the C: line and the other was the N: line. We have made  #
+# linking easier by just using one L: line. The only functionality you     #
+# lose is having a different password for connecting to a server and       #
+# getting connections from a server. The IP address is the address of the  #
+# server, if you were to /connect to it. When you're being connected to,   #
+# you don't need to worry about it being valid. Passwords are NOT affected #
+# by X:CRYPT, and they should NOT be encrypted! The display name needs to  #
+# be the name of the other server (see that server's M: line). It MUST be  #
+# different from the display name of the current server! The port needs to #
+# be a port the server is listening on (add a P: line, or use the port in  #
+# the M: line). If you are /connect'ing to it, the port needs to be a port #
+# that the other server is listening on. That means you need to add a P:   #
+# line to the other server if you're not using the default port. The       #
+# connection class needs to be defined in a Y: line, and it needs plenty   #
+# of bandwidth and SendQ.                                                  #
+#~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*#
+# Ex: L:127.0.0.1:1234:services.localhost:6667:100                         #
+############################################################################
+
+!insertmacro l-line
+
+#############################################################################################################
+# eXtended Configuration Section                                                                            #
+#############################################################################################################
+
+#-#-------------------------------------------------------------------------------------------------------#-#
+#-# Note about eXtended Configuration Lines (X: lines): X: lines were created so we could have a simpler  #-#
+#-# way to define extra features without cramming them on one line or using all of the letters (or worse, #-#
+#-# using a C-style configuration). The basic format of the X: line is:                                   #-#
+#-# X:SECTION:PARAMETERS:PARAMETERS:... and so on. Most commands only have X:SECTION:PARAMETER and it's   #-#
+#-# only 0 or 1.                                                                                          #-#
+#-#-------------------------------------------------------------------------------------------------------#-#
+
+#-{MACROS}-----------------------------------------------------------------+
+# You can use some "macros" in some free text areas, like the custom auth  |
+# notice. This is a list of them.                                          |
+#==========================================================================+
+# <$NET$> - Inserts the network name specified in the M: line              |
+# <$COLON$> - Inserts a : (colon), since you can't use this character      |
+#             normally.                                                    |
+#-{MACROS}-----------------------------------------------------------------+
+
+#/die and /restart passwords
+X:DIEPASS:die
+X:RESTARTPASS:restart
+
+#********************************** ATTENTION! IF YOU ARE GETTING "SERVER MISCONFIGURED", CHANGE THE 1 TO A 0!
+
+#DIE - Set to anything besides "1"
+#(this is to force you to configure your server!)
+X:DIE:1
+
+#OFFLINE MODE - Set to 1 to enable - 0 to disable.
+X:OFFLINEMODE:0
+
+#OFFLINE MESSAGE - Message to use when killing during Offline Mode
+X:OFFLINEMESSAGE:This server is offline. Sorry.
+
+#CNOTICE - Custom Auth Notice... Custom Message to send to connecting users.
+X:CNOTICE:Welcome to the <$NET$> IRC Network, powered by ignitionServer<$COLON$> http<$COLON$>//www.ignition-project.com/ignition/server/
+
+#MASKDNS - Provides security for your users by masking their DNS
+#Options
+#0 - No Mask (default)
+#1 - MD5 Sum Mask (of DNS)
+#2 - HostName Mask (X:HOSTMASK) Must be set otherwise it will use "no mask" option
+X:MASKDNS:0
+
+#HIGHPROT & LOWPROT - Selects mode to be set on join for opers with P(High Prot) or p(Low Prot)
+#Options
+#Q - Auto Set +q on-oper-join
+#O - Auto set +o on-oper-join
+#V - Auto set +v on-oper-join
+#NORM - No mode set on-oper-join
+X:HIGHPROT:Q
+X:LOWPROT:O
+
+#HOSTMASK - Used for MASKDNS(option 2). Users will get mask of <NickName>.<HOSTMASK> e.g. DigiGuy.Users.ignition-project.com
+X:HOSTMASK:users.localhost
+
+#SERVERLOCATION - Lets you specify where the server is located (many times this is the same as the admin location.. however, this could be more generalized [like Oklahoma, US])
+X:SERVERLOCATION:Unique Location, The World
+
+#CRYPT - PassWord encryption (Set to "0" for None or "MD5" for MD5 encryption, use /passcrypt or ignitionServer PassCrypt to generate password)
+X:CRYPT:MD5
+
+#REMOTEPASS - Remote administration password -- coming soon :) [just ignore this]
+X:REMOTEPASS:098f6bcd4621d373cade4e832627b4f6
+
+#ALLOWMULTIPLE - Allow multiple instances of ignitionServer; ADVANCED FEATURE! Only set to 1 if you know what you're doing.
+#notes: You should not set this to 1 unless you are wanting to run more than one copy of ignitionServer on the same machine. Additionally, the monitor
+#       will not function as expected when this is on. Again, it is an ADVANCED FEATURE and is only designed for system administrators who know what they're doing.
+#       (you could use this to bind different servers to different interfaces and essentially serve infinite servers on infinite IPs.. if you were a web host
+#       for example)
+X:ALLOWMULTIPLE:0
+
+#GAGMODE - Set how gag (usermode +z) functions
+# 0 - Do not show the user getting gagged that they are getting gagged (IRCX defined method)
+# 1 - Show the user getting gagged they are getting gagged
+# 2 - Do not show the user getting gagged and do not bounce messages (the user will not see any messages bounce and will likely blame it on the server)
+X:GAGMODE:0
+
+#IRCXMETHOD - Set how to send IRCX-specific raws
+# 0 - Use "Transitional" compatibility -- for replies that have an IRCX equavilent, send the RFC1459 reply
+# 1 - Use "IRCX" compatibility -- for replies that have an IRCX equavilent, send RFC1459 clients the RFC1459 reply and IRCX clients the IRCX reply
+# 2 - Both -- send both the IRCX reply and the RFC1459 reply to all clients. Ensures the most compatibility, but causes some IRCX-compatible clients to show messages twice (mIRC for example)
+#- NOTE -
+#When setting MODE +k, it will always get sent. In this case, only both and IRCX/Strict have an effect (when setting PROP MEMBERKEY, however, it is normal)
+X:IRCXMETHOD:0
+
+#REGCHANMODE - Set whether or not registered channels are handled as persistant
+# 0 - Registered channels always stay open
+# 1 - Registered channels never stay open
+# 2 - Registered channels with mode +R always stay open; all others do not
+X:REGCHANMODE:0
+
+#ERRORLOG - Set options that enable or disable the error log (outputs to errorlog.txt)
+# 0 - Disable the error log (not reccommended)
+# 1 - Enable the error log (only logs fatal exceptions and regular errors; reccommended)
+X:ERRORLOG:1
+
+#AUTOVHOST - Automatically give operators VHosts if a VHost exists with the same username and password as the oper
+# 0 - Disable AutoVHost
+# 1 - Enable AutoVHost (if a VHost doesn't exist for a particular operator, they won't get a VHost)
+X:AUTOVHOST:1

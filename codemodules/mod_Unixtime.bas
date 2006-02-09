@@ -1,5 +1,5 @@
 Attribute VB_Name = "mod_Unixtime"
-'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
+'ignitionServer is (C) Keith Gable and Contributors
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -7,13 +7,14 @@ Attribute VB_Name = "mod_Unixtime"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
+'
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
-'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
+'Contributors:        Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_Unixtime.bas,v 1.6 2004/05/30 18:01:16 ziggythehamster Exp $
+' $Id: mod_Unixtime.bas,v 1.8 2004/06/26 07:01:14 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -91,25 +92,33 @@ End Function
 
 Public Sub InitUnixTime()
   Dim tzi As TIME_ZONE_INFORMATION
-  UnixTime = DateDiff("s", DateValue("1/1/1970"), Now)
-  Call GetTimeZoneInformation(tzi)
-  UnixTime = UnixTime + (tzi.Bias * 60)
+  Dim retcode As Long
+  Dim tmpTime As Long
+  tmpTime = DateDiff("s", DateValue("1/1/1970"), Now)
+  retcode = GetTimeZoneInformation(tzi)
+  tmpTime = tmpTime + (tzi.Bias * 60)
+  If retcode = TIME_ZONE_ID_DAYLIGHT& Then
+    If tzi.DaylightDate.wMonth <> 0 Then
+      tmpTime = tmpTime - (Abs(tzi.DaylightBias) * 60)
+    End If
+  End If
+  UnixTime = tmpTime
 End Sub
 
 Public Function GetZone() As String
 Dim Differerence As Long
-Dim a As String
+Dim A As String
 Differerence = GetTimeDifference()
 If Differerence > 0 Then
- a = "+"
+ A = "+"
 Else
- a = "-"
+ A = "-"
 End If
 
 Differerence = Abs(Differerence \ 3600)
 If Differerence < 10 Then
- GetZone = a & "0" & Differerence & "00"
+ GetZone = A & "0" & Differerence & "00"
 Else
- GetZone = a & Differerence & "00"
+ GetZone = A & Differerence & "00"
 End If
 End Function

@@ -1,0 +1,111 @@
+######################## EVENT REPLY ########################
+# EVENT <time-stamp> <object> <event type> <parameters>     #
+#############################################################
+
+This list is of what the events _should_ be, to be compatible
+with other servers.
+
+## ANOTHER NOTE
+## The IRCX draft left out a key thing in the EVENT command.
+## You can't specify specific events! To cope, you can use
+## Type.Event.. If you wanted the event for SOCKET OPEN, it'd
+## be SOCKET.OPEN. You can also use the original "wildcard" method
+## if you want.
+
+SOCKET:
+ ACCEPT - any socket that is accepted
+          Server EVENT Time SOCKET ACCEPT RemoteIPAddress:Port LocalIPAddress:Port
+
+ CLOSE  - any socket that closes
+          Server EVENT Time SOCKET CLOSE RemoteIPAddress:Port LocalIPAddress:Port
+
+ BADDNS - when socket's remote ip had bad/fake DNS address
+          Server EVENT Time SOCKET BADDNS RemoteIPAddress:Port LocalIPAddress:Port BadHostname
+
+USER:
+ LOGON   - generated after any user registers (not their nick)
+           Server EVENT Time USER LOGON Mask RemoteIpAddress:Port LocalIpAddress:Port Modes
+
+ LOGOFF  - generated after a QUIT message is recieved, or the user disconnects
+           Server EVENT Time USER LOGOFF Mask RemoteIpAddress:Port
+
+ TIMEOUT - generated when a user timeouts
+           Server EVENT Time USER TIMEOUT Mask RemoteIpAddress:Port
+
+ MODE    - generated when a user changes their modes, or gets modes set on them
+           Server EVENT Time USER MODE Mask RemoteIpAddress:Port Modes
+
+ NICK    - generated when a user changes their nick
+           Server EVENT Time USER NICK Mask RemoteIpAddress:Port
+
+ QUIT    - generated when a user quits; includes quit message
+           Server EVENT Time USER QUIT Mask RemoteIPAddress:Port Reason
+
+ KILL	 - generated when a user is killed
+           Server EVENT Time USER KILL Mask RemoteIPAddress:Port Reason
+
+ INPUT	 - generated when a user is killed from server because of input flooding
+           Server EVENT Time USER INPUT Mask RemoteIPAddress:Port
+
+ OUTPUT	 - generated when a user is killed from server because of output buffer saturation
+           Server EVENT Time USER OUTPUT Mask RemoteIPAddress:Port
+
+MEMBER: 
+ JOIN       - generated when a user joins a channel
+              Server EVENT Time MEMBER JOIN #Channel MemberMask RemoteIPAddress:Port Modes
+
+ PART       - generated when a user parts a channel
+              Server EVENT Time MEMBER PART #Channel MemberMask RemoteIPAddress:Port
+
+ MODE       - generated when a user changes their chanmodes, or gets chanmodes set on them
+
+
+ KICK       - generated when a user is kicked off a channel
+              Server EVENT Time MEMBER KICK #Channel KickedMemberMask KickedRemoteIPAddress:Port KickerMemberMask KickerRemoteIPAddress:Port
+
+CHANNEL:
+ CREATE      - any channel comes into existance (via /create, or /join to an empty chan)
+               Server EVENT Time CHANNEL CREATE #Channel Modes CreatorMask RemoteIpAddress:Port
+
+ DESTROY     - generated when last user parts unregistered channel
+	       Server EVENT Time CHANNEL DESTROY #Channel
+
+ TOPIC       - results when a channel's topic is changed
+               Server EVENT Time CHANNEL TOPIC #Channel HostMask RemoteIpAddress:Port Topic
+
+ KEYWORD     - results when a channel's keyword (+k/memberkey) is changed
+               Server EVENT Time CHANNEL KEYWORD #Channel HostMask RemoteIpAddress:Port Keyword
+
+ LIMIT       - results when a channel's limit is changed; nolimit - 0
+               Server EVENT Time CHANNEL LIMIT #Channel HostMask RemoteIpAddress:Port Limit
+
+ MODE        - generated when a channel's modes are changed
+               Server EVENT Time CHANNEL MODE #Channel CurrentModes HostMask RemoteIpAddress:Port
+
+ COLLISION   - when channels collided and one was killed
+               Server EVENT Time CHANNEL COLLISION #Channel
+
+ MERGE       - when channels collided and were merged
+               Server EVENT Time CHANNEL MERGE #Channel
+
+SERVER:
+ LINK        - when a server connects
+               Server EVENT Time SERVER UNLINK IPAddress:Port OtherServerName PortalName
+
+ UNLINK	     - when a server disconnects
+               Server EVENT Time SERVER LINK IPAddress:Port OtherServerName PortalName
+
+ (the following 2 events may not be implemented)
+ USERCONNECT    - when a user NOT on the current server connects
+ USERDISCONNECT - when a user NOT on the current server disconnects
+
+CONNECT:
+ BANNED		- when a banned user tries to connect
+                  Server EVENT Time CONNECT BANNED UserMask RemoteIpAddress:Port Reason
+
+ BADAUTH	- when a user tries to connect, but specified wrong password
+		  (used for NT Authentication, maybe not necessary)
+                  Server EVENT Time CONNECT BADAUTH UserMask RemoteIpAddress:Port SecurityPackage UserID
+
+ NOACCESS       - when connection not allowed (no I-line)
+                  Server EVENT Time CONNECT NOACCESS UserMask RemoteIpAddress:Port

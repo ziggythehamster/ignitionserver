@@ -1,5 +1,5 @@
 Attribute VB_Name = "m_extracommands"
-'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
+'ignitionServer is (C) Keith Gable and Contributors
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -7,13 +7,14 @@ Attribute VB_Name = "m_extracommands"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
+'
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
-'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
+'Contributors:        Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: m_extracommands.bas,v 1.2 2004/06/05 04:27:30 ziggythehamster Exp $
+' $Id: m_extracommands.bas,v 1.7 2004/06/30 21:39:29 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -55,12 +56,12 @@ End If
 Set Chan = Channels(parv(0))
 If parv(1) = Chan.Prop_Ownerkey And Len(Chan.Prop_Ownerkey) > 0 Then
     Chan.Member.Item(cptr.Nick).IsOwner = True
-    SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +q " & cptr.Nick & vbCrLf, 0
+    SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +q " & cptr.Nick, 0
     SendToServer "MODE " & Chan.Name & " +q " & cptr.Nick, cptr.Nick
 End If
 If parv(1) = Chan.Prop_Hostkey And Len(Chan.Prop_Hostkey) > 0 And Chan.Member.Item(cptr.Nick).IsOwner = False Then
     Chan.Member.Item(cptr.Nick).IsOp = True
-    SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +o " & cptr.Nick & vbCrLf, 0
+    SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +o " & cptr.Nick, 0
     SendToServer "MODE " & Chan.Name & " +o " & cptr.Nick, cptr.Nick
 End If
 
@@ -71,7 +72,7 @@ Public Function m_passcrypt(cptr As clsClient, sptr As clsClient, parv$()) As Lo
 'parv[0] = CryptType
 'parv[1] = PassToBeCrypted
 Dim Pass As String
-If UCase(parv(0)) = "MD5" Then
+If UCase$(parv(0)) = "MD5" Then
     Pass = oMD5.MD5(parv(1))
     SendWsock cptr.index, "NOTICE " & cptr.Nick, ":Encrypted " & parv(1) & " to MD5 as " & Pass, SPrefix
 Else
@@ -83,6 +84,10 @@ Public Function m_chgnick(cptr As clsClient, sptr As clsClient, parv$()) As Long
 'parv[0] = Nick
 'parv[1] = New nick
 If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
+    SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+    Exit Function
+End If
+If Not (cptr.CanChange Or cptr.IsNetAdmin) Then
     SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
     Exit Function
 End If
@@ -171,27 +176,47 @@ End Function
 Public Function m_chghost(cptr As clsClient, sptr As clsClient, parv$()) As Long
 'parv[0] = Nick
 'parv[1] = New Host
-If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
-    SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
-    Exit Function
-End If
-If UBound(parv) <> 1 Then
-  SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "CHGHOST")
-  Exit Function
-End If
-If Len(parv(1)) = 0 Then
-  SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "CHGHOST")
-  Exit Function
-End If
 Dim User As clsClient
-Set User = GlobUsers(parv(0))
-If User Is Nothing Then
-  SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, parv(0))
-  Exit Function
+If cptr.AccessLevel = 4 Then
+  Set User = GlobUsers(parv(0))
+  If User Is Nothing Then Exit Function
+  User.Host = parv(1)
+  ':Nick CHGHOST OtherNick NewHost
+  SendToServer_ButOne "CHGHOST " & User.Nick & " " & parv(1), cptr.ServerName, sptr.Nick
+  If User.Hops = 0 Then
+    'don't send the bloody notice if sptr is NickServ
+    If StrComp(UCase(sptr.Nick), "NICKSERV") <> 0 Then SendSvrMsg "*** " & sptr.Nick & " changed the hostname of " & User.Nick & " to " & parv(1)
+    SendWsock User.index, "NOTICE " & User.Nick, ":" & sptr.Nick & " changed your hostname to " & parv(1), SPrefix
+  End If
+Else
+  If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
+      SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+      Exit Function
+  End If
+  If Not (cptr.CanChange Or cptr.IsNetAdmin) Then
+      SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+      Exit Function
+  End If
+  If UBound(parv) <> 1 Then
+    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "CHGHOST")
+    Exit Function
+  End If
+  If Len(parv(1)) = 0 Then
+    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "CHGHOST")
+    Exit Function
+  End If
+  Set User = GlobUsers(parv(0))
+  If User Is Nothing Then
+    SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, parv(0))
+    Exit Function
+  End If
+  User.Host = parv(1)
+  SendToServer "CHGHOST " & User.Nick & " " & parv(1), cptr.Nick
+  If User.Hops = 0 Then
+    SendSvrMsg "*** " & cptr.Nick & " changed the hostname of " & User.Nick & " to " & parv(1)
+    SendWsock User.index, "NOTICE " & cptr.Nick, ":" & cptr.Nick & " changed your hostname to " & parv(1), SPrefix
+  End If
 End If
-User.Host = parv(1)
-SendSvrMsg "*** " & cptr.Nick & " changed the hostname of " & User.Nick & " to " & parv(1)
-SendWsock User.index, "NOTICE", ":" & cptr.Nick & " changed your hostname to " & parv(1), SPrefix
 End Function
 
 Public Function m_mdie(cptr As clsClient, sptr As clsClient, parv$()) As Long

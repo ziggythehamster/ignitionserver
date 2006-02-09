@@ -1,5 +1,5 @@
 Attribute VB_Name = "mod_main"
-'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
+'ignitionServer is (C) Keith Gable and Contributors
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -7,13 +7,14 @@ Attribute VB_Name = "mod_main"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
+'
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
-'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
+'Contributors:        Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_main.bas,v 1.14 2004/06/06 23:54:03 ziggythehamster Exp $
+' $Id: mod_main.bas,v 1.24 2004/06/30 01:37:55 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -37,7 +38,7 @@ Public Declare Function Send Lib "wsock32.dll" Alias "send" (ByVal s As Long, bu
 Public Declare Function GetTickCount& Lib "kernel32" ()
 Private Declare Function CoCreateGuid Lib "ole32" (ID As Any) As Long
 Private Bye As Boolean
-#Const Debugging = 0
+#Const Debugging = 0 'enabling debugging here also turns on ircx.log
 #Const CanDie = 1
 #Const CanRestart = 1
 #Const EnableNonstandard = 0
@@ -79,6 +80,7 @@ Set GlobUsers = New clsUserHashTable
 Set Opers = New clsUserHashTable
 Set IPHash = New clsIPHashTable
 Set ServerMsg = New clsUserHashTable
+Set WallOps = New clsUserHashTable
 modWhoWasHashTable.SetSize 128, 128, 64
 ReDim Users(0): Channels.SetSize 512, 256, 128
 StartUp = GetTickCount
@@ -88,6 +90,8 @@ GlobUsers.IgnoreCase = True
 Servers.IgnoreCase = True
 Opers.IgnoreCase = True
 ServerMsg.IgnoreCase = True
+WallOps.IgnoreCase = True
+
 Set Sockets = New clsSox
 Rehash vbNullString
 If ErrorLog = True Then
@@ -193,6 +197,7 @@ For tmpN = LBound(tmpU) To UBound(tmpU)
       SendToChan tmpU(tmpN).OnChannels.Item(x), tmpU(tmpN).Prefix & " QUIT :Ping Timeout", vbNullString
     Next x
     If tmpU(tmpN).Hops = 0 Then
+      SendToServer "QUIT :Ping Timeout", tmpU(tmpN).Nick
       m_error tmpU(tmpN), "Closing Link: (Ping Timeout)"
     End If
     Sockets.TerminateSocket tmpU(tmpN).SockHandle
@@ -243,12 +248,20 @@ On Error GoTo PingError
         #If Debugging = 1 Then
           SendSvrMsg "*** Will Ping: " & tmpU(tmpY2).Nick & " (YClass: " & tmpU(tmpY2).Class & ")"
         #End If
-        If (tmpU(tmpY2).Class = YLine(tmpY).index) And ((tmpU(tmpY2).AccessLevel < 4) And (tmpU(tmpY2).AccessLevel > 1)) Then 'don't care about servers, don't ping unregistered clients
-          #If Debugging = 1 Then
-            SendSvrMsg "*** Pinging: " & tmpU(tmpY2).Nick & " (YClass: " & tmpU(tmpY2).Class & ")"
-          #End If
-          SendDirectRaw tmpU(tmpY2), "PING " & SPrefix & vbCrLf
-          tmpU(tmpY2).WaitingForPong = True
+        If (tmpU(tmpY2).Class = YLine(tmpY).index) And (tmpU(tmpY2).AccessLevel < 4) Then 'don't care about servers
+          'if their last action occured longer than PingFreq seconds ago, ping them
+          If UnixTime - tmpU(tmpY2).LastAction >= YLine(tmpY).PingFreq Then
+            #If Debugging = 1 Then
+              SendSvrMsg "*** Pinging: " & tmpU(tmpY2).Nick & " (YClass: " & tmpU(tmpY2).Class & ")"
+            #End If
+            SendDirectRaw tmpU(tmpY2), "PING " & SPrefix & vbCrLf
+            tmpU(tmpY2).WaitingForPong = True
+          Else
+            #If Debugging = 1 Then
+              SendSvrMsg "*** Did not ping " & tmpU(tmpY2).Nick & ", active client (YClass: " & tmpU(tmpY2).Class & ")"
+            #End If
+            tmpU(tmpY2).WaitingForPong = False 'in case it got set
+          End If
         End If
       Next tmpY2
       YLine(tmpY).PingCounter = UnixTime
@@ -347,7 +360,7 @@ Do
       cmd = UCase$(CurCmd)
     End If
     cmd = UCase$(cmd)
-    
+    cptr.LastAction = UnixTime
     Select Case cmd 'Process the command -Dill
         Case "PRIVMSG": Cmds.Privmsg = Cmds.Privmsg + 1: Cmds.PrivmsgBW = Cmds.PrivmsgBW + cmdLen
           If Not cptr.HasRegistered Then
@@ -363,6 +376,12 @@ Do
             GoTo nextmsg
           End If
           Call m_message(cptr, sptr, arglist, True)
+        Case "WHISPER": Cmds.Whisper = Cmds.Whisper + 1: Cmds.WhisperBW = Cmds.WhisperBW + cmdLen
+          If Not cptr.HasRegistered Then
+            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+            GoTo nextmsg
+          End If
+          Call m_whisper(cptr, sptr, arglist)
         Case "NICK": Cmds.Nick = Cmds.Nick + 1: Cmds.NickBW = Cmds.NickBW + cmdLen
           Call m_nick(cptr, sptr, arglist)
         Case "JOIN": Cmds.Join = Cmds.Join + 1: Cmds.JoinBW = Cmds.JoinBW + cmdLen
@@ -379,7 +398,7 @@ Do
           Call m_part(cptr, sptr, arglist)
         Case "MODE": Cmds.Mode = Cmds.Mode + 1: Cmds.ModeBW = Cmds.ModeBW + cmdLen
           If Not cptr.HasRegistered Then
-            If UCase(arglist(0)) = "ISIRCX" Then
+            If UCase$(arglist(0)) = "ISIRCX" Then
               Call m_isircx(cptr, sptr, arglist)
               GoTo nextmsg
             End If
@@ -393,6 +412,12 @@ Do
             GoTo nextmsg
           End If
           Call m_chanpass(cptr, sptr, arglist)
+        Case "KNOCK": 'no, we do NOT want to count this, because it's server-server only atm
+          If Not cptr.HasRegistered Then
+            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+            GoTo nextmsg
+          End If
+          Call m_knock(cptr, sptr, arglist)
         Case "PROP": Cmds.Prop = Cmds.Prop + 1: Cmds.PropBW = Cmds.PropBW + cmdLen
           If Not cptr.HasRegistered Then
             SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
@@ -424,8 +449,15 @@ Do
           End If
           Call m_lusers(cptr, sptr, arglist)
         Case "PASS": Cmds.Pass = Cmds.Pass + 1: Cmds.PassBW = Cmds.PassBW + cmdLen
+            'if they're on the server already, PASS becomes useless
+            If cptr.HasRegistered Then
+              SendWsock cptr.index, ERR_ALREADYREGISTRED & " " & cptr.Nick, TranslateCode(ERR_ALREADYREGISTRED)
+              GoTo nextmsg
+            End If
+            
             If m_pass(cptr, sptr, arglist) = -1 Then
                 m_error cptr, "Closing Link: (Bad Password)"
+                KillStruct cptr.Nick, , False
             End If
         Case "AUTH": Cmds.Auth = Cmds.Auth + 1: Cmds.AuthBW = Cmds.AuthBW + cmdLen
           With cptr
@@ -461,7 +493,7 @@ Do
                     .RealHost = .Host
                     If MaskDNS = True Then
                         If MaskDNSMD5 = True Then
-                            .Host = UCase(modMD5.oMD5.MD5(.RealHost))
+                            .Host = UCase$(modMD5.oMD5.MD5(.RealHost))
                         ElseIf MaskDNSHOST = True Then
                             If Not HostMask = vbNullString Then
                                 .Host = .Nick & "." & HostMask
@@ -469,7 +501,7 @@ Do
                                 'HostMask is unset so we'll swap to MD5 cos the Admin does want some form of masking...
                                 MaskDNSHOST = False
                                 MaskDNSMD5 = True
-                                .Host = UCase(modMD5.oMD5.MD5(.RealHost))
+                                .Host = UCase$(modMD5.oMD5.MD5(.RealHost))
                             End If
                         End If
                     End If
@@ -683,8 +715,6 @@ Do
           End If
             Call m_remoteadm(cptr, sptr, arglist)
         'Case "WALL"
-'        Case "WALLOPS"
-'          m_wallops cptr, sptr, arglist
         'Case "LOCOPS"
         'Case "GLOBOPS"
         Case "HASH": Cmds.Hash = Cmds.Hash + 1: Cmds.HashBW = Cmds.HashBW + cmdLen
@@ -790,7 +820,7 @@ Do
                 SendWsock cptr.index, ERR_UNKNOWNCOMMAND & " " & cptr.Nick, TranslateCode(ERR_UNKNOWNCOMMAND, , , cmd)
             End If
         Case "WALLOPS"
-            Call m_gnotice(cptr, sptr, arglist)
+            Call m_wallops(cptr, sptr, arglist)
         Case "GNOTICE"
             Call m_gnotice(cptr, sptr, arglist)
 '*****************************
@@ -909,13 +939,25 @@ Public Sub KillDupes(ByRef srcArray&())
 End Sub
 
 'This proc is used to make sure an object is unloaded
-Public Sub KillStruct(Name$, Optional InType As enmType = enmTypeClient)
+Public Sub KillStruct(Name$, Optional InType As enmType = enmTypeClient, Optional Registered As Boolean = True, Optional IPAddress As String)
 #If Debugging = 1 Then
     SendSvrMsg "KILLSTRUCT called! (" & Name & ")"
 #End If
 On Error Resume Next
 Dim cptr As clsClient, Chan As clsChannel, I&, User() As clsClient
 If InType = enmTypeClient Then
+    
+'we send registered = false before cptr would be valid
+    If Registered = False Then
+      If MaxConnectionsPerIP > 0 Then
+        IPHash(IPAddress) = IPHash(IPAddress) - 1
+        If IPHash(IPAddress) <= 0 Then
+          IPHash.Remove IPAddress
+        End If
+      End If
+      Exit Sub
+    End If
+    
     Set cptr = GlobUsers(Name)
     If Not cptr Is Nothing Then
         With cptr

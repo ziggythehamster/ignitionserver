@@ -1,5 +1,5 @@
 Attribute VB_Name = "mod_help"
-'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
+'ignitionServer is (C) Keith Gable and Contributors
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -7,13 +7,14 @@ Attribute VB_Name = "mod_help"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
+'
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
-'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
+'Contributors:        Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_help.bas,v 1.6 2004/05/28 21:35:34 ziggythehamster Exp $
+' $Id: mod_help.bas,v 1.8 2004/06/26 07:01:14 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -49,7 +50,7 @@ Public Function m_help(cptr As clsClient, sptr As clsClient, helpcmd As String) 
 #End If
 
 'General Commands
-Select Case UCase(helpcmd)
+Select Case UCase$(helpcmd)
     Case "NICK"
         do_cmd_help cptr.index, cptr.Nick, "NICK", hlp.NickSyntax, hlp.Nick, hlp.NickExample
     Case "OPER"

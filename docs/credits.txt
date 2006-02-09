@@ -1,11 +1,11 @@
 			########################
 			#ignitionServer CREDITS#
 			########################
-# $Id: credits.txt,v 1.5 2004/05/28 21:35:35 ziggythehamster Exp $
+# $Id: credits.txt,v 1.7 2004/06/28 20:50:57 ziggythehamster Exp $
 
 	===========++++++++===========++++++++===========
 
-ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
+ignitionServer is (C) Keith Gable and Contributors
 ----------------------------------------------------
 You must include this notice in any modifications you make. You must additionally
 follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -13,19 +13,22 @@ If you are not familiar with the GPL, please read LICENSE.TXT.
 (you are welcome to add a "Based On" line above this notice, but this notice must
 remain intact!)
 Released under the GNU General Public License
+
 Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-                     Nigel Jones (DigiGuy) <nigel@ignition-project.com>
-                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
+Contributors:        Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
 
 ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 
 	===========++++++++===========++++++++===========
 
-Credits goto the Pure-IRCd Team
- 
+Credits go to the pureIRCd team for providing a good server base:
 Ben Affleck <ben-affleck@users.sourceforge.net>
 Dennis Fisch <dilligent@users.sourceforge.net>
 Johnny aka Pern <dragonsworkshop@users.sourceforge.net>
 Eric Dickman <inkblot777@users.sourceforge.net>
 
-Credits goto Phil Fresle for the MD5 Class
+Credits go to Phil Fresle for the MD5 Class.
+
+Various ignitionServer utilities use icons from Red Hat's Bluecurve(TM)
+user interface. ignitionServer is not affiliated with Red Hat.

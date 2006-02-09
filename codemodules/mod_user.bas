@@ -1,5 +1,5 @@
 Attribute VB_Name = "mod_user"
-'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
+'ignitionServer is (C) Keith Gable and Contributors
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -7,13 +7,14 @@ Attribute VB_Name = "mod_user"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
+'
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
-'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
+'Contributors:        Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_user.bas,v 1.17 2004/06/06 22:24:16 airwalklogik Exp $
+' $Id: mod_user.bas,v 1.29 2004/06/26 07:01:14 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -29,7 +30,7 @@ Attribute VB_Name = "mod_user"
 'if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 Option Explicit
-#Const SendMessageOnInvalidLogin = 0
+#Const SendMessageOnInvalidLogin = 1
 #Const Debugging = 0
 
 Public Function do_nick_name(Nick$) As Long
@@ -40,7 +41,7 @@ Dim I&
 'A'..'}', '_', '-', '0'..'9'
 If IsNumeric(Left$(Nick, 1)) Then Exit Function
 If Left$(Nick, 1) = "-" Then Exit Function
-If StrComp(LCase(Nick), "anonymous", vbTextCompare) = 0 Then Exit Function
+If StrComp(LCase$(Nick), "anonymous", vbTextCompare) = 0 Then Exit Function
 For I = 1 To Len(Nick)
     If Not IsValidString(Mid$(Nick, I, 1)) Then Exit Function
 Next I
@@ -72,7 +73,10 @@ Public Function IsValidString(ByRef strString$) As Boolean
             Exit Function
         ElseIf (strAsc > 96 And strAsc < 97) Then
             Exit Function
-        ElseIf (strAsc > 122 And strString <> "_") Then
+        'ElseIf (strAsc > 122 And strString <> "_") Then
+        ElseIf (strAsc > 125 And strString <> "_") Then
+            Exit Function
+        ElseIf (strAsc = 94) Then
             Exit Function
         End If
     End If
@@ -156,7 +160,7 @@ If cptr.AccessLevel = 4 Then
             WhereAmI = "set host"
             If MaskDNS = True Then
                 If MaskDNSMD5 = True Then
-                    .Host = UCase(modMD5.oMD5.MD5(parv(4)))
+                    .Host = UCase$(modMD5.oMD5.MD5(parv(4)))
                 ElseIf MaskDNSHOST = True Then
                     If Not HostMask = vbNullString Then
                         .Host = .Nick & "." & HostMask
@@ -322,9 +326,14 @@ Else
   'if the user is not currently registering, tell it the new nickname -Dill
   WhereAmI = "bad password"
   If Len(cptr.Nick) = 0 Then
-    If cptr.PassOK = False Then
-        m_error cptr, "Closing Link: (Bad Password)"
-        Exit Function
+    If Len(ILine(cptr.IIndex).Pass) > 0 Then
+      If cptr.PassOK = False Then
+          m_error cptr, "Closing Link: (Bad Password)"
+          KillStruct cptr.Nick, , False, cptr.IP
+          Exit Function
+      End If
+    Else
+      cptr.PassOK = True
     End If
     WhereAmI = "if you experience problems while connecting..."
     SendWsock cptr.index, "NOTICE AUTH", ":*** If you experience problems while connecting please email the admin (" & mod_list.AdminEmail & ") about it and include the server you tried to connect to (" & ServerName & ")."
@@ -526,9 +535,8 @@ End Function
 
 '/*
 '** m_who
-'**  parv[0] = sender prefix
-'**  parv[1] = nickname mask list
-'**  parv[2] = additional selection flag, only 'o' for now. (/who * o)
+'**  parv[0] = mask
+'**  parv[1] = additional selection flag, only 'o' for now. (/who * o)
 '*/
 
 Public Function m_who(cptr As clsClient, sptr As clsClient, parv$()) As Long
@@ -540,10 +548,19 @@ Dim I&, x&, lastchan$, Chan As clsChannel, ChanMember As clsClient, ret As Long,
 If cptr.AccessLevel = 4 Then
 'todo: /who from server
 Else
+    Dim OperOnly As Boolean
     If Len(parv(0)) = 0 Then  'if no mask is given, complain -Dill
         SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "WHO")
         Exit Function
     End If
+    
+    'extra flags!
+    If UBound(parv) >= 1 Then
+      If StrComp(parv(1), "o") = 0 Then
+        OperOnly = True
+      End If
+    End If
+    
     If AscW(parv(0)) = 35 Then
         Set Chan = Channels(parv(0))
         If Chan Is Nothing Then
@@ -579,10 +596,17 @@ Else
                 End If
                 If .IsGlobOperator Or .IsLocOperator Then ExtraInfo = ExtraInfo & "*"
                 If .IsNetAdmin Then ExtraInfo = ExtraInfo & "A"
+                If OperOnly = True Then
+                  If Not (.IsGlobOperator Or .IsLocOperator) Then
+                    ExtraInfo = vbNullString
+                    GoTo SkipUserInChannel
+                  End If
+                End If
                 SendWsock cptr.index, 352 & " " & cptr.Nick & " " & Chan.Name & " " & .User & " " & .Host & " " & ServerName & " " & .Nick & " " & ExtraInfo, ":" & .Hops & " " & .Name
                 ExtraInfo = vbNullString
             End With
             ret = ret + 1
+SkipUserInChannel:
         Next I
     Else
         Clients = GlobUsers.Values
@@ -594,9 +618,16 @@ Else
                         Exit Function
                     End If
                 End If
-                If UCase(Replace(Clients(I).Prefix, ":", "")) Like UCase(CreateMask(Replace(parv(0), ":", ""))) Then
-                    If Clients(I).OnChannels.Count > 0 Then
+                If UCase$(Replace(Clients(I).Prefix, ":", "")) Like UCase$(CreateMask(Replace(parv(0), ":", ""))) Then
+                    If Clients(I).OnChannels.Count > 0 And Not Clients(I).IsInvisible Then
+                        'if the client is invisible, don't tell them the bloody channel!
                         lastchan = Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name & " "
+                    ElseIf Clients(I).OnChannels.Count > 0 And cptr.OnChannels.Count > 0 And Clients(I).IsInvisible Then
+                        If cptr.IsOnChan(Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name) Then
+                          lastchan = Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name & " "
+                        Else
+                          lastchan = "* "
+                        End If
                     Else
                         lastchan = "* "
                     End If
@@ -606,8 +637,15 @@ Else
                       ExtraInfo = "H"
                     End If
                     If Clients(I).IsGlobOperator Or Clients(I).IsLocOperator Then ExtraInfo = ExtraInfo & "*"
+                    If Clients(I).IsNetAdmin Then ExtraInfo = ExtraInfo & "A"
+                    If OperOnly = True Then
+                      If Not (Clients(I).IsGlobOperator Or Clients(I).IsLocOperator) Then
+                        GoTo SkipUser
+                      End If
+                    End If
                     SendWsock cptr.index, "352 " & cptr.Nick & " " & lastchan & Clients(I).User & " " & Clients(I).Host & " " & ServerName & " " & Clients(I).Nick & " " & ExtraInfo, ":" & Clients(I).Hops & " " & Clients(I).Name
                     ret = ret + 1
+SkipUser:
                 End If
             Next I
         End If
@@ -770,40 +808,46 @@ End If
     If DoKLine(cptr) Then
         cptr.IsKilled = True
         cptr.SendQ = vbNullString
-        KillStruct cptr.Nick
+        'klines can only be engaged in m_user before a user registers
+        KillStruct cptr.Nick, , False, cptr.IP
         IrcStat.UnknownConnections = IrcStat.UnknownConnections - 1
         Exit Function
     End If
-    If .PassOK = False Then
-        m_error cptr, "Closing Link: (Bad Password)"
-        Exit Function
+    If Len(ILine(cptr.IIndex).Pass) > 0 Then
+      If .PassOK = False Then
+          m_error cptr, "Closing Link: (Bad Password)"
+          KillStruct cptr.Nick, , False, cptr.IP
+          Exit Function
+      End If
+    Else
+      cptr.PassOK = True
     End If
     If .IP = "127.0.0.1" And Die = True Then
         'rehash the server
         Rehash vbNullString
     End If
     If Die = True Then
-        For x = 1 To .OnChannels.Count
-            SendToChan .OnChannels.Item(x), .Prefix & " AutoKilled: Server Misconfigured", vbNullString
-        Next x
+        'For x = 1 To .OnChannels.Count
+        '    SendToChan .OnChannels.Item(x), .Prefix & " AutoKilled: Server Misconfigured", vbNullString
+        'Next x
         SendToServer "QUIT :AutoKilled: Server Misconfigured [see ircx.conf]", .Nick
         SendWsock .index, "KILL " & .Nick, ":AutoKilled: Server Misconfigured [see ircx.conf]", .Prefix
         m_error cptr, "Closing Link: (AutoKilled: Server Misconfigured [see ircx.conf])"
         ErrorMsg "The server is misconfigured. Please see ircx.conf."
         .IsKilled = True
-        KillStruct .Nick
+        KillStruct .Nick, , False, .IP
         Exit Function
     End If
     If OfflineMode = True Then
         If Len(OfflineMessage) = 0 Then
-            For x = 1 To .OnChannels.Count
-                SendToChan .OnChannels.Item(x), .Prefix & " AutoKilled: Server In Offline Mode", vbNullString
-            Next x
+            'For x = 1 To .OnChannels.Count
+            '    SendToChan .OnChannels.Item(x), .Prefix & " AutoKilled: Server In Offline Mode", vbNullString
+            'Next x
             SendToServer "QUIT :AutoKilled: Server In Offline Mode", .Nick
             SendWsock .index, "KILL " & .Nick, ":AutoKilled: Server In Offline Mode", .Prefix
             m_error cptr, "Closing Link: (AutoKilled: Server In Offline Mode)"
             .IsKilled = True
-            KillStruct .Nick
+            KillStruct .Nick, , False, .IP
             Exit Function
         Else
             For x = 1 To .OnChannels.Count
@@ -813,27 +857,27 @@ End If
             SendWsock .index, "KILL " & .Nick, ":AutoKilled: " & OfflineMessage, .Prefix
             m_error cptr, "Closing Link: (AutoKilled: " & OfflineMessage & ")"
             .IsKilled = True
-            KillStruct .Nick
+            KillStruct .Nick, , False, .IP
             Exit Function
         End If
     End If
     
     If Len(.Nick) = 0 Then Exit Function
     pdat = GetRand
-    SendWsock cptr.index, "NOTICE AUTH", ":*** If you experience problems due to PING timeouts, type '/raw PONG :" & pdat & "' now"
+    SendWsock cptr.index, "NOTICE AUTH", ":*** If you experience problems due to PING timeouts, type '/QUOTE PONG :" & pdat & "' or '/RAW PONG :" & pdat & "' now."
     SendWsock cptr.index, "PING " & pdat, vbNullString, , True
     IrcStat.UnknownConnections = IrcStat.UnknownConnections - 1
   End With
   Else
   With cptr
-  For x = 1 To .OnChannels.Count
-    SendToChan .OnChannels.Item(x), .Prefix & " AutoKilled: Illegal username -- change to an alphanumeric username.", vbNullString
-    Next x
+    'For x = 1 To .OnChannels.Count
+    ' SendToChan .OnChannels.Item(x), .Prefix & " AutoKilled: Illegal username -- change to an alphanumeric username.", vbNullString
+    'Next x
     SendToServer "QUIT :AutoKilled: Illegal username -- change to an alphanumeric username.", .Nick
     SendWsock .index, "KILL " & .Nick, ":AutoKilled: Illegal username -- change to an alphanumeric username.", .Prefix
     m_error cptr, "Closing Link: (AutoKilled: Illegal username -- change to an alphanumeric username.)"
     .IsKilled = True
-    KillStruct .Nick
+    KillStruct .Nick, , False, .IP
     Exit Function
   End With
   End If
@@ -860,11 +904,16 @@ If cptr.AccessLevel = 4 Then
 Else
     On Error Resume Next
     Dim x() As clsChanMember, Chan As clsChannel, Msg As String, y&
-    If Len(parv(0)) = 0 Then parv(0) = "Exit: (" & cptr.Nick & ")"
+    Dim QuitText As String
+    If Len(parv(0)) = 0 Then QuitText = "Client Exited"
     If QuitLen > 0 Then
         parv(0) = Mid$(parv(0), 1, QuitLen)
     End If
-    Msg = cptr.Prefix & " QUIT :Exit: " & parv(0) & vbCrLf
+    'If you specified a message, it goes:
+    '*** Nick has quit ("reason here")
+    'like on freenode :)
+    If Len(parv(0)) > 0 Then QuitText = """" & parv(0) & """"
+    Msg = cptr.Prefix & " QUIT :" & QuitText & vbCrLf
     For y = 1 To cptr.OnChannels.Count
         x = cptr.OnChannels.Item(y).Member.Values
         For I = LBound(x) To UBound(x)
@@ -877,9 +926,19 @@ Else
         Next I
         cptr.OnChannels.Item(y).Member.Remove cptr.Nick
     Next
-    m_error cptr, "Closing Link: (Exit: " & parv(0) & ")" 'confirm the quit and disconnect the client -Dill
-    SendToServer "QUIT " & cptr.Nick & " :" & parv(0), cptr.Nick
-    KillStruct cptr.Nick
+    m_error cptr, "Closing Link: (" & QuitText & ")" 'confirm the quit and disconnect the client -Dill
+    If Len(cptr.Nick) > 0 Then
+      'if there's no nick, don't waste other server's time
+      '(we haven't yet sent them NICK)
+      SendToServer "QUIT " & cptr.Nick & " :" & QuitText, cptr.Nick
+    End If
+    GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & ServerLocalPort
+    If cptr.HasRegistered = False Then
+      KillStruct cptr.Nick, , False, cptr.IP
+      IrcStat.UnknownConnections = IrcStat.UnknownConnections - 1
+    Else
+      KillStruct cptr.Nick
+    End If
     Set cptr = Nothing
 End If
 End Function
@@ -946,23 +1005,23 @@ Else
            '// now THIS could be a major problem
            '// we need to make sure that the AccessLevel is 4, and the user wanted to kill the server in the first place
            '// since this would trigger if a server was connected -ziggy
-           If allusers(I).AccessLevel = 4 And UCase(allusers(I).Prefix) Like UCase(":" & parv(0)) Then '// casing does not matter -ziggy
+           If allusers(I).AccessLevel = 4 And UCase$(allusers(I).Prefix) Like UCase$(":" & parv(0)) Then '// casing does not matter -ziggy
                SendWsock cptr.index, ERR_CANTKILLSERVER & " " & cptr.Nick, TranslateCode(ERR_CANTKILLSERVER)
                Exit Function
            End If
-                     If UCase(allusers(I).Prefix) Like UCase(":" & parv(0)) Then '// casing does not matter -ziggy
-                             For x = 1 To allusers(I).OnChannels.Count
-                   SendToChan allusers(I).OnChannels.Item(x), allusers(I).Prefix & QMsg, vbNullString
-               Next x
-                             If allusers(I).Hops > 0 Then
-                   SendWsock allusers(I).FromLink.index, "KILL " & allusers(I).Nick, ":Killed by " & cptr.Nick & " (" & parv(1) & ")", cptr.Prefix
-               Else
-                   SendWsock allusers(I).index, "KILL " & allusers(I).Nick, ":Killed by " & cptr.Nick & " (" & parv(1) & ")", cptr.Prefix
-                   m_error allusers(I), "Closing Link: (Killed by " & cptr.Prefix & " (" & parv(1) & "))" '// send reason -ziggy
-               End If
-                             KillStruct allusers(I).Nick, enmTypeClient
-               allusers(I).IsKilled = True
-               Set allusers(I) = Nothing
+           If UCase$(allusers(I).Prefix) Like UCase$(":" & parv(0)) Then '// casing does not matter -ziggy
+             For x = 1 To allusers(I).OnChannels.Count
+               SendToChan allusers(I).OnChannels.Item(x), allusers(I).Prefix & QMsg, vbNullString
+             Next x
+             If allusers(I).Hops > 0 Then
+               SendWsock allusers(I).FromLink.index, "KILL " & allusers(I).Nick, ":Killed by " & cptr.Nick & " (" & parv(1) & ")", cptr.Prefix
+             Else
+               SendWsock allusers(I).index, "KILL " & allusers(I).Nick, ":Killed by " & cptr.Nick & " (" & parv(1) & ")", cptr.Prefix
+               m_error allusers(I), "Closing Link: (Killed by " & cptr.Prefix & " (" & parv(1) & "))" '// send reason -ziggy
+             End If
+             KillStruct allusers(I).Nick, enmTypeClient
+             allusers(I).IsKilled = True
+             Set allusers(I) = Nothing
            End If
        Next I
        SendToServer "QUIT :Killed by " & cptr.Nick & " (" & parv(1) & ")", allusers(I).Nick
@@ -1055,15 +1114,19 @@ End Function
 Public Function m_ping(cptr As clsClient, sptr As clsClient, parv$()) As Long
 If cptr.AccessLevel = 4 Then
 'todo
+'RFC1459 says to ignore PINGs from servers
+'but we'll set the lastaction ;)
+cptr.LastAction = UnixTime
+sptr.LastAction = UnixTime
 Else
-  'ignoring destination now
+  ':server PONG server :text
   If Len(parv(0)) = 0 Then
-    SendWsock cptr.index, "PONG", ""
+    SendWsock cptr.index, "PONG " & ServerName, ""
   Else
     If parv(0) = SPrefix Then
-      SendWsock cptr.index, "PONG " & SPrefix, ""
+      SendWsock cptr.index, "PONG " & ServerName, ""
     Else
-      SendWsock cptr.index, "PONG " & parv(0), ""
+      SendWsock cptr.index, "PONG " & ServerName & " :" & parv(0), ""
     End If
   End If
 End If
@@ -1089,7 +1152,7 @@ Else
         SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "OPER")
         Exit Function
     End If
-    #If SendMessageOnInvalidLogin = 1 Then
+    #If SendMessageOnInvalidLogin = 0 Then
         Call DoOLine(cptr, parv(1), parv(0))
     #Else
         If Not DoOLine(cptr, parv(1), parv(0)) Then SendSvrMsg "IRC Operator authentication failed for: " & Replace(cptr.Prefix, ":", "")
@@ -1112,7 +1175,7 @@ End Function
 '*/
 Public Function m_pass(cptr As clsClient, sptr As clsClient, parv$()) As Long
 #If Debugging = 1 Then
-    SendSvrMsg "PASS called! (" & cptr.Nick & ")"
+    SendSvrMsg "PASS called! (" & cptr.Nick & ") (" & sptr.Nick & ")"
 #End If
 Dim ShowNick As String
 If Len(cptr.Nick) = 0 Then
@@ -1125,7 +1188,8 @@ If Len(parv(0)) = 0 Then
     SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & ShowNick, TranslateCode(ERR_NEEDMOREPARAMS, , , "PASS")
     Exit Function
 End If
-If cptr.PassOK = True Then m_pass = 1: Exit Function
+
+'If cptr.PassOK = True Then m_pass = 1: Exit Function
 
 'for password-protected servers,
 'and the link matches the protected I: line,
@@ -1133,15 +1197,18 @@ If cptr.PassOK = True Then m_pass = 1: Exit Function
 'line for themselves, otherwise
 'they'll have two different passwords
 'which is a Bad Thing™
+#If Debugging = 1 Then
+  SendSvrMsg "IIndex: '" & cptr.IIndex & "'; Pass: '" & ILine(cptr.IIndex).Pass & "'"
+#End If
 
-If Len(Trim(ILine(cptr.IIndex).Pass)) <> 0 Then
+If Len(Trim$(ILine(cptr.IIndex).Pass)) <> 0 Then
   Dim tmpPass As String
   If MD5Crypt = True Then
      tmpPass = oMD5.MD5(parv(0))
   Else
      tmpPass = parv(0)
   End If
-  
+
   If StrComp(tmpPass, ILine(cptr.IIndex).Pass) = 0 Then
     m_pass = 1
     cptr.PassOK = True
@@ -1153,29 +1220,55 @@ If Len(Trim(ILine(cptr.IIndex).Pass)) <> 0 Then
   End If
 End If
 
-'servers
+'so they didn't get caught by the I: line?
+'did their password match a L: line?
+#If Debugging = 1 Then
+  SendSvrMsg "*** trying as server"
+#End If
+
 If Not cptr.LLined Then
+    #If Debugging = 1 Then
+      SendSvrMsg "*** not LLined"
+    #End If
     If DoLLine(cptr) Then
-        If StrComp(parv(0), ILine(cptr.IIndex).Pass) = 0 Then
+        #If Debugging = 1 Then
+          SendSvrMsg "DoLLine, checking password..."
+        #End If
+        If StrComp(parv(0), ILine(cptr.IIndex).Pass) = 0 And Len(ILine(cptr.IIndex).Pass) <> 0 Then
+            #If Debugging = 1 Then
+              SendSvrMsg "DoLLine, Password OK!"
+            #End If
             m_pass = 1
             cptr.PassOK = True
         Else
+            #If Debugging = 1 Then
+              SendSvrMsg "DoLLine, Password bad."
+            #End If
             m_pass = -1
             cptr.PassOK = False
+            cptr.LLined = False
+            cptr.AccessLevel = 1
         End If
     Else
         If StrComp(parv(0), LLine(cptr.IIndex).Pass) = 0 Then
+            #If Debugging = 1 Then
+              SendSvrMsg "Not DoLLine, Password OK!"
+            #End If
             m_pass = 1
             cptr.PassOK = True
             cptr.LLined = True
         Else
+            #If Debugging = 1 Then
+              SendSvrMsg "Not DoLLine, Password bad"
+            #End If
+            cptr.AccessLevel = 1
+            m_error cptr, "Closing Link: (Bad Password)"
+            KillStruct cptr.Nick, , False
             m_pass = -1
             cptr.PassOK = False
+            cptr.LLined = False
         End If
     End If
-End If
-If cptr.AccessLevel = 1 Then
-
 End If
 End Function
 
@@ -1229,81 +1322,164 @@ End Function
 
 Public Function add_umodes(cptr As clsClient, Modes$) As String
 #If Debugging = 1 Then
-    SendSvrMsg "Add_umodes called! (" & cptr.Nick & ")"
+    SendSvrMsg "add_umodes called! (" & cptr.Nick & ") (" & Modes & ")"
 #End If
 Dim x&, CurMode$
+Dim ModeList As String
+Dim ExpandModes As Boolean
+ExpandModes = True
+ModeList = ""
 For x = 1 To Len(Modes)
     CurMode = Mid$(Modes, x, 1)
-    Select Case AscW(CurMode)
+    If CurMode = "-" Then ExpandModes = False
+    Select Case Asc(CurMode)
         Case umServerMsg
-            cptr.IsServerMsg = True
-            ServerMsg.Add cptr.GUID, cptr
-            add_umodes = add_umodes & CurMode
+            If cptr.IsServerMsg = False Then
+              cptr.IsServerMsg = True
+              ServerMsg.Add cptr.GUID, cptr
+            End If
+            ModeList = ModeList & CurMode
+        Case umWallOps
+            'don't add it twice
+            If cptr.GetsWallops = False Then
+              cptr.GetsWallops = True
+              WallOps.Add cptr.GUID, cptr
+            End If
+            ModeList = ModeList & CurMode
         Case umLocOper
+            If Not cptr.IsLocOperator Then ModeList = ModeList & Chr(umLocOper)
             cptr.IsLocOperator = True
-            add_umodes = add_umodes & CurMode
+            If ExpandModes = True Then
+              If Not cptr.CanLocRoute Then ModeList = ModeList & Chr(umLocRouting)
+              cptr.CanLocRoute = True
+              If Not cptr.CanRehash Then ModeList = ModeList & Chr(umCanRehash)
+              cptr.CanRehash = True
+              If Not cptr.CanLocKill Then ModeList = ModeList & Chr(umLocKills)
+              cptr.CanLocKill = True
+              If Not cptr.CanKline Then ModeList = ModeList & Chr(umCanKline)
+              cptr.CanKline = True
+              If Not cptr.CanUnkline Then ModeList = ModeList & Chr(umCanUnKline)
+              cptr.CanUnkline = True
+            End If
         Case umGlobOper
+            If Not cptr.IsGlobOperator Then ModeList = ModeList & Chr(umGlobOper)
             cptr.IsGlobOperator = True
-            add_umodes = add_umodes & CurMode
+            If ExpandModes = True Then
+              If Not cptr.IsLocOperator Then ModeList = ModeList & Chr(umLocOper)
+              cptr.IsLocOperator = True
+              If Not cptr.CanLocRoute Then ModeList = ModeList & Chr(umLocRouting)
+              cptr.CanLocRoute = True
+              If Not cptr.CanRehash Then ModeList = ModeList & Chr(umCanRehash)
+              cptr.CanRehash = True
+              If Not cptr.CanLocKill Then ModeList = ModeList & Chr(umLocKills)
+              cptr.CanLocKill = True
+              If Not cptr.CanKline Then ModeList = ModeList & Chr(umCanKline)
+              cptr.CanKline = True
+              If Not cptr.CanUnkline Then ModeList = ModeList & Chr(umCanUnKline)
+              cptr.CanUnkline = True
+              If Not cptr.CanGlobKill Then ModeList = ModeList & Chr(umGlobKills)
+              cptr.CanGlobKill = True
+              If Not cptr.CanGlobRoute Then ModeList = ModeList & Chr(umGlobRouting)
+              cptr.CanGlobRoute = True
+              If Not cptr.CanWallop Then ModeList = ModeList & Chr(umCanWallop)
+              cptr.CanWallop = True
+            End If
+        Case umNetAdmin
+            If Not cptr.IsNetAdmin Then ModeList = ModeList & Chr(umNetAdmin)
+            cptr.IsNetAdmin = True
+            If ExpandModes = True Then
+              If Not cptr.IsGlobOperator Then ModeList = ModeList & Chr(umGlobOper)
+              cptr.IsGlobOperator = True
+              If Not cptr.IsLocOperator Then ModeList = ModeList & Chr(umLocOper)
+              cptr.IsLocOperator = True
+              If Not cptr.CanLocRoute Then ModeList = ModeList & Chr(umLocRouting)
+              cptr.CanLocRoute = True
+              If Not cptr.CanRehash Then ModeList = ModeList & Chr(umCanRehash)
+              cptr.CanRehash = True
+              If Not cptr.CanLocKill Then ModeList = ModeList & Chr(umLocKills)
+              cptr.CanLocKill = True
+              If Not cptr.CanKline Then ModeList = ModeList & Chr(umCanKline)
+              cptr.CanKline = True
+              If Not cptr.CanUnkline Then ModeList = ModeList & Chr(umCanUnKline)
+              cptr.CanUnkline = True
+              If Not cptr.CanGlobKill Then ModeList = ModeList & Chr(umGlobKills)
+              cptr.CanGlobKill = True
+              If Not cptr.CanGlobRoute Then ModeList = ModeList & Chr(umGlobRouting)
+              cptr.CanGlobRoute = True
+              If Not cptr.CanDie Then ModeList = ModeList & Chr(umCanDie)
+              cptr.CanDie = True
+              If Not cptr.CanRestart Then ModeList = ModeList & Chr(umCanRestart)
+              cptr.CanRestart = True
+              If Not cptr.CanWallop Then ModeList = ModeList & Chr(umCanWallop)
+              cptr.CanWallop = True
+              If Not cptr.CanChange Then ModeList = ModeList & Chr(umCanChange)
+              cptr.CanChange = True
+            End If
+        Case umCanWallop
+            cptr.CanWallop = True
+            ModeList = ModeList & CurMode
+        Case umCanChange
+            cptr.CanChange = True
+            ModeList = ModeList & CurMode
         Case umInvisible
             cptr.IsInvisible = True
-            add_umodes = add_umodes & CurMode
+            ModeList = ModeList & CurMode
         Case umHostCloak
             cptr.IsCloaked = True
-            add_umodes = add_umodes & CurMode
+            ModeList = ModeList & CurMode
         Case umCanRehash
             cptr.CanRehash = True
-            add_umodes = add_umodes & CurMode
+            ModeList = ModeList & CurMode
         Case umCanRestart
             cptr.CanRestart = True
-            add_umodes = add_umodes & CurMode
+            ModeList = ModeList & CurMode
         Case umCanDie
             cptr.CanDie = True
-            add_umodes = add_umodes & CurMode
+            ModeList = ModeList & CurMode
         Case umLocRouting
             cptr.CanLocRoute = True
-            add_umodes = add_umodes & CurMode
+            ModeList = ModeList & CurMode
         Case umGlobRouting
             cptr.CanGlobRoute = True
-            add_umodes = add_umodes & CurMode
+            ModeList = ModeList & CurMode
         Case umLocKills
             cptr.CanLocKill = True
-            add_umodes = add_umodes & CurMode
+            ModeList = ModeList & CurMode
         Case umGlobKills
             cptr.CanGlobKill = True
-            add_umodes = add_umodes & CurMode
+            ModeList = ModeList & CurMode
         Case umCanKline
             cptr.CanKline = True
-            add_umodes = add_umodes & CurMode
+            ModeList = ModeList & CurMode
         Case umCanUnKline
             cptr.CanUnkline = True
-            add_umodes = add_umodes & CurMode
+            ModeList = ModeList & CurMode
         Case umRegistered
             cptr.IsRegistered = True
-            add_umodes = add_umodes & CurMode
+            ModeList = ModeList & CurMode
         Case umLProtected
             If Not cptr.IsProtected = True Then
                 cptr.IsLProtected = True
-                add_umodes = add_umodes & CurMode
+                ModeList = ModeList & CurMode
             End If
         Case umProtected
             If cptr.IsLProtected = True Then
                 cptr.IsLProtected = False
             End If
             cptr.IsProtected = True
-            add_umodes = add_umodes & CurMode
-        Case umNetAdmin
-            cptr.IsNetAdmin = True
-            cptr.IsGlobOperator = True
-            add_umodes = add_umodes & CurMode
+            ModeList = ModeList & CurMode
         Case umCanAdd
             cptr.CanAdd = True
-            add_umodes = add_umodes & CurMode
+            ModeList = ModeList & CurMode
         Case umRemoteAdmin
             cptr.IsRemoteAdmClient = True
-            add_umodes = add_umodes & CurMode
+            ModeList = ModeList & CurMode
     End Select
 Next x
+#If Debugging = 1 Then
+  SendSvrMsg "ModeList: " & ModeList
+#End If
+add_umodes = ModeList
 End Function
 
 Public Function m_whowas(cptr As clsClient, sptr As clsClient, parv$()) As Long

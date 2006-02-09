@@ -1,5 +1,5 @@
 Attribute VB_Name = "m_ircx_chan"
-'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
+'ignitionServer is (C) Keith Gable and Contributors
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -7,13 +7,14 @@ Attribute VB_Name = "m_ircx_chan"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
+'
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
-'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
+'Contributors:        Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: m_ircx_chan.bas,v 1.7 2004/06/03 00:31:29 ziggythehamster Exp $
+' $Id: m_ircx_chan.bas,v 1.9 2004/06/26 07:01:13 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -53,9 +54,15 @@ Else
     SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "CREATE")
     Exit Function
   End If
+  'TODO: there should be something besides "no such channel", surely there's a better raw >_<
   If Len(parv(0)) < 2 Then 'cant have a "blank" room name -Airwalk
     CurrentInfo = "channel name null"
-    SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , , "CREATE")
+    SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , , parv(0))
+    Exit Function
+  End If
+  If AscW(parv(0)) <> 35 Then
+    CurrentInfo = "channel name does not begin with #"
+    SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , parv(0))
     Exit Function
   End If
   If MaxChannelsPerUser > 0 Then

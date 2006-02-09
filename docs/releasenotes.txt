@@ -1,76 +1,91 @@
-		RELEASE NOTES FOR IGNITIONSERVER RELEASE: 0.3.1
-# $Id: releasenotes.txt,v 1.10 2004/06/06 23:54:04 ziggythehamster Exp $
+		RELEASE NOTES FOR IGNITIONSERVER RELEASE: 0.3.2
+# $Id: releasenotes.txt,v 1.15 2004/07/02 23:16:56 ziggythehamster Exp $
 
 
 Changes:
-PING timeout message now suggests /RAW PONG :number or /QUOTE PONG :number
-ircx.conf now has more help in it!
-Optimized large portions of the code
-Some nonstandard code is disabled (you have to rebuild iS to enable it).
-/create generates a USER.JOIN event
-/rehash now has fallback defaults, in case you really screw up configuring it
-Added some missing commands to /stats m
-Put /stats m in alphabetical order
-Cleaned up IRCX stuff (MODE ISIRCX/ISIRCX/IRCX)
+Changed the part/quit messages to be like FreeNode: *** Nick has quit ("Reason")
+M: lines now have an extra parameter. This parameter tells the server which adapter to bind on. It goes directly before the port (:6667 => :*:6667). Use * for all adapters.
+Real host names can be used in access entries if fake hostnames are enabled.
+Optimizations
+/version reply is more consistant with standards
+Services are now reported as an IRC service in /whois
+The "...is connecting from <addr>; IP address is <ip>" is now using raw 320 (RPL_WHOISSPECIAL)
+NJOIN now returns "Permission Denied" for clients who aren't servers
+ACCESS entries are now propragrated across the network
+Deleting *!*@* from the access list is now the same as clearing the access list
+Services can now set a channel's ACCOUNT property
+SOCKET events are "normalized"
+/CHGHOST can now be used by servers (and thusly hostname changes can be propragrated)
 
 New Features include:
-Full RFC 1459 client support
-Better support for events
-OnPart support
-Persistant channels
-Macros: <$COLON$> and <$NET$>
-X:IRCXMETHOD - set how to send IRCX raws
-X:REGCHANMODE - how registered channels are handled
-Nearly all the properties are implemented now
-Channel mode +R (persistant channel); can only be set by IRC operators while RegChanMode = 2
-Microsoft Chat 2.5 now connects properly! (Comics don't work; they rely on DATA/REQUEST/REPLY)
-mIRC's edit ban works properly
-Added /INFO -- it has some information on ignitionServer
+New IRC operator level system. You only need generic flags, like N (Network Admin), O (global operator), and o (local operator). Some things can optionally be added to the operator's privileges (for example: protected operator). See ircx.conf for an explaination.
+/who * o now returns all IRC operators
+PROP changes are now propragrated across the network
+WallOps system is now working. Your operators need +W in order to send WallOps (/wallops message).
+Command line control.exe -- lets you start/stop your server from the commandline (used in conjunction with the new monitor)
+IRCXpro Migration Wizard -- lets you convert your existing IRCXpro settings to a format that ignitionServer can read
+X:AUTOVHOST -- automatically give operators a VHost if a VHost exists with the same username and password
+Knock/+u channel mode
+Whisper (/whisper #Channel User Message)
+More oper modes
+New ignitionServer Monitor! It works on all versions of Windows and has a better UI too :)
+New ignitionServer PassCrypt! No new features in it, but it's less buggy and a lot cooler looking
+The monitor now has a "more info" button which shows some server statistics. Refreshed every 5 seconds.
 
 Bug Fixes:
 
 Bug #  | Bug Name
 ---------------------
-       | /who bug involving erroneous modes
-       | Bug with parting multiple channels
-       | do_nick_name didn't check for any capitalization of Anonymous
-       | Illegal nicknames can be set with /chgnick
-       | Redundancy with m_topic
-       | TOPIC and PROP TOPIC don't correlate
-       | MODE +k and PROP MEMBERKEY don't correlate
-959882 | Problems while kicking self
-962843 | Broken top-level events
-908810 | Microsoft Chat 2.5 onjoin crash
-962870 | Sloppy IRCXMETHOD code
-962992 | USER.LOGOFF misfiring
-959874 | Uptime (/stats u) is wrong
-962932 | Wrong timezone
-963274 | Backwards-compatibility
-963281 | Querying IRCX
-963357 | /who is wrong
-       | /list output is wrong
-963364 | Nickname change not propragrated
-964793 | Connection passwords don't work
-959878 | I: line passwords aren't encrypted
-959879 | +Pp are oper flags to everybody but netadmins
-959876 | Modes coming from links aren't formatted properly
-965341 | Access duration doesn't appear to count down (it does)
-       | (related to #965341) Infinite durations are returned negative
-962956 | Mode +b doesn't work
-966253 | Pre-registration replies
-966249 | Telnet doesn't work
-       | USER caused an error if the wrong parameters were sent
-       | Another uptime bug
-967784 | Users setting modes on themselves need User!ID@Host
-967793 | WHOIS/WHOWAS returning wrong error for no parameters
-       | Fixed the bug that would make HUGE error logs
+968389 | readme needs to mention ircx.conf
+968377 | /rehash -MOTD needs to mention it's rehashing ircx.motd
+967769 | MaxClones doesn't work sometimes
+969384 | Link passwords aren't verified
+       | quitting with no message shows Exit: Exit: Nick
+969405 | the server pings non-idle users
+       | wrong ping reply when a client pings the server
+969401 | OnJoin is incorrectly formatted
+968699 | UNIX time doesn't take DST into account (1 hour off)
+       | UNIX time may be a few seconds off
+967788 | Some characters need to be allowed in nicknames
+968650 | SOCKET.CLOSE would not be thrown when MaxClones is reached
+969409 | +P/+p operators cannot join +i channels
+       | If part messages are null, it no longer sends ""
+       | When leaving a channel, the incorrect casing of the room could have been sent
+972282 | Error 91 in m_part
+969310 | M: line needs extension
+969095 | New oper level system
+972872 | QUIT doesn't subtract from unknown connections
+       | Duplicate modes mess up the new oper system
+       | Operators can get illegal modes (+Z, +r, +S, for example)
+       | Real host names can be used in access entries
+973593 | /who * o doesn't work
+       | Users can see your channels if you're +i
+       | CREATE formatting mistake
+974079 | /create lets you make illegal channels
+       | +O wasn't getting set
+975749 | Disable switch for oper mode expansion
+977128 | OPER reply is wrong
+977052 | Various mode problems
+975698 | Admin location was reported as server location
+975143 | L: lines need to allow destination hostnames
+977296 | Weird bugs with /server
+977825 | Erroneous CRLFs
+978619 | Wrong /part error raw
+978588 | Client Exited/Client Quit need to be the same
+       | /raw close SHOULD work now...
+980102 | Normal opers with +P/+p can't kick netadmins with +P/+p and +P > +p
+980284 | ACCESS-related bugs
+       | You can +/- ov a +q user as a +o user
+       | PROP changes get sent to the server that originated the PROP change
+890133 | Some channel information isn't sent to links
+       | Monitor can now start on Windows startup
+       | Monitor no longer hangs while waiting for you to click it
+982347 | Ping timeouts aren't propragrated across the network
+       | Monitor doesn't properly log in
+982986 | You can whisper outside of channels
 
 Comments:
-Many, many bugs were fixed. We suggest everybody upgrades to 0.3.1 as soon
-as possible. ignitionServer 0.3.1 also has many more features and RFC1459
-clients are now properly supported (they weren't in previous versions). The
-installer is also refined, and there are no longer any seperate 9x/NT builds.
-New icons, too.
-
-The updated monitor will hopefully be in 0.3.2, for those of you waiting for
-it. Services is also coming soon.
+Many new features are in this version of ignitionServer! There are also about 30 bugs
+that have been fixed. We highly suggest everybody upgrades to this version to have the
+best and most stable server avaliable. See the other sections for information on what
+we've added/changed/tweaked/fixed. I'm sure you'll like it :)

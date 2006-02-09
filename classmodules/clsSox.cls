@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Attribute VB_Ext_KEY = "SavedWithClassBuilder6" ,"Yes"
 Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
-'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
+'ignitionServer is (C) Keith Gable and Contributors
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -21,13 +21,14 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
+'
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
-'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
+'Contributors:        Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsSox.cls,v 1.6 2004/06/05 04:27:30 ziggythehamster Exp $
+' $Id: clsSox.cls,v 1.8 2004/06/26 07:01:12 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -88,6 +89,15 @@ Private Type typSocketAddr
     sin_zero(7) As Byte
 End Type
 Private Const SOCKADDR_SIZE = 16
+
+'IPv6 -- may need changing later
+Private Type typSocketAddr6
+  sin6_family As Integer
+  sin6_port As Integer
+  sin6_flowinfo As Long
+  sin6_addr As Long
+  sin6_scope_id As Long
+End Type
 
 'Class module Defined
 Private Type typSocket
@@ -419,6 +429,7 @@ Private Function Accept(inSocket As Long) As Long 'Returns: New Sox Number -- in
     #End If
     Dim tmpSocket As Long, Found As Boolean
     Dim tmpSocketAddr As typSocketAddr 'This stores the details of our new socket/client, including the client IP address
+    
     Let tmpSocket = apiAccept(inSocket, tmpSocketAddr, SOCKADDR_SIZE) 'Accept API returns a valid, random, unused socket for us to use for the new client
     If tmpSocket = INVALID_SOCKET Then 'Accept API may not give us a valid socket eg. when all sockets are full, you may have to add additional error trapping if you believe you will use over 32,767 sockets
         'Since a socket was not commited for the new Connection ... we don't have to close it (Since the socket was never even created)
@@ -990,4 +1001,5 @@ If index > 0 Then
     Socks.Remove CStr(hSocket)
     LocalConn = LocalConn - 1
 End If
+
 End Sub

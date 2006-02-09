@@ -1,23 +1,23 @@
 			#######################
 			#ignitionServer README#
 			#######################
-# $Id: readme.txt,v 1.8 2004/06/01 01:31:45 ziggythehamster Exp $
+# $Id: readme.txt,v 1.12 2004/06/29 18:04:06 ziggythehamster Exp $
 
 
 	===========++++++++===========++++++++===========
 
-ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
+ignitionServer is (C) Keith Gable and Contributors
 ----------------------------------------------------
 You must include this notice in any modifications you make. You must additionally
 follow the GPL's provisions for sourcecode distribution and binary distribution.
 If you are not familiar with the GPL, please read LICENSE.TXT.
 (you are welcome to add a "Based On" line above this notice, but this notice must
 remain intact!)
-
 Released under the GNU General Public License
+
 Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
-                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
+Contributors:        Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
 
 ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 
@@ -61,16 +61,15 @@ http://www.catb.org/~esr/faqs/smart-questions.html
 
 3. Installation
 
-ignitionServer should have come with an installer. There are two versions of the installer, one
-for Windows 9x and one for Windows NT. The Windows 9x installer will install on NT systems, but
-the ignitionServer Monitor will not be installed. The Windows NT installer will ONLY work on NT
-systems, because the ignitionServer Monitor uses critical NT system calls.
-
-Windows 9x includes: Windows 95, Windows 98, Windows 98 SE, and Windows Millenium Edition
-Windows NT includes: Windows NT 4, Windows 2000, Windows XP, and Windows Server 2003
+ignitionServer should have come with an installer. This installer runs on Windows 95, 98, Me, 
+2000, XP, and 2003. (NOTE: the ignitionServer Monitor runs on all platforms now!)
 
 This _might_ run under UNIX/Linux with Wine, but you will have to play with it yourself (i.e. do
 not post to the support tracker; WE CAN NOT HELP YOU!)
+
+After installing ignitionServer, you will need to configure it. To do this, browse to where you
+installed ignitionServer and open ircx.conf in Notepad. To change the Message of the Day, edit
+ircx.motd in Notepad.
 
 Remember to disable X:DIE in your ircx.conf file. Failure to do so WILL result in messages like
 "server misconfigured". This is a safety measure, so people don't just use default installs, which 
@@ -205,5 +204,19 @@ A: Simply put, nothing. There's a common misconception about these acronyms. An 
    what character you're using, and a lot more. IRC is more flat, and is designed for text-based communication.
    IRCX allows a bit more dynamic conversation, and that's why some people prefer it. However, some people
    like IRC better because oftentimes IRC servers are a lot more powerful and have more modes and features.
+
+Q: How do I reload a modified MOTD?
+A: As an operator (with rehash privledges), type /rehash -MOTD. This will reload the Message of the Day.
+
+Q: How do I edit the Message of the Day?
+A: In the same folder as ignitionServer, there is a file called "ircx.motd". Open this file with Notepad and
+   save it. If the server is currently running, you will need to type /rehash -MOTD (see above).
+
+Q: How does the Auto VHost (X:AUTOVHOST) system work?
+A: The Auto VHost system is very simple to use and set up. Basically, it changes the hostname of IRC operators
+   to a specific Virtual Host (VHost) when they log in. For this to work, there has to be an O: line and a V: line,
+   both with the same credentials (password/username/hostmask). The X:AUTOVHOST line also needs to be set to "1"
+   (enabled). Once these things are completed, operators can log in (with /oper), and they'll automatically get
+   their VHost if they have one. If an operator doesn't have a VHost, it will be the same as if X:AUTOVHOST is off (0).
 
 If you have any more questions, see our forum at http://forums.ignition-project.com/.

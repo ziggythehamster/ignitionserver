@@ -1,5 +1,5 @@
 Attribute VB_Name = "mod_NativeFunctions"
-'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
+'ignitionServer is (C) Keith Gable and Contributors
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -7,13 +7,14 @@ Attribute VB_Name = "mod_NativeFunctions"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
+'
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
-'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
+'Contributors:        Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_NativeFunctions.bas,v 1.10 2004/06/06 02:45:43 ziggythehamster Exp $
+' $Id: mod_NativeFunctions.bas,v 1.16 2004/06/26 18:02:17 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -48,6 +49,7 @@ Public Function GetLusers(Nick As String) As String
     SendSvrMsg "GETLUSERS called! (" & Nick & ")"
 #End If
 'Chancount/LocServer count are off sometimes
+If IrcStat.UnknownConnections < 0 Then IrcStat.UnknownConnections = 0 'in case it gets negative somehow
 GetLusers = SPrefix & " 251 " & Nick & " :There are " & GlobUsers.Count & " user(s) on " & Servers.Count & " server(s)" & vbCrLf
 If Opers.Count > 0 Then GetLusers = GetLusers & SPrefix & " 252 " & Nick & " " & Opers.Count & " :IRC Operator(s) Online" & vbCrLf
 If IrcStat.UnknownConnections > 0 Then GetLusers = GetLusers & SPrefix & " 253 " & Nick & " " & IrcStat.UnknownConnections & " :Unknown Connection(s)" & vbCrLf
@@ -62,9 +64,9 @@ Public Function GetAdmin(Nick As String) As String
     SendSvrMsg "GETADMIN called! (" & Nick & ")"
 #End If
 GetAdmin = SPrefix & " 256 " & Nick & " :Administrative information about " & ServerName & vbCrLf
-GetAdmin = GetAdmin & SPrefix & " 257 " & Nick & " :Server Location: " & mod_list.AdminLocation & vbCrLf
-GetAdmin = GetAdmin & SPrefix & " 258 " & Nick & " :Contact Name: " & mod_list.Admin & vbCrLf
-GetAdmin = GetAdmin & SPrefix & " 259 " & Nick & " :Contact E-Mail: " & mod_list.AdminEmail
+GetAdmin = GetAdmin & SPrefix & " 257 " & Nick & " :Administrator's Location: " & mod_list.AdminLocation & vbCrLf
+GetAdmin = GetAdmin & SPrefix & " 258 " & Nick & " :Administrator's Name: " & mod_list.Admin & vbCrLf
+GetAdmin = GetAdmin & SPrefix & " 259 " & Nick & " :Administrator's E-Mail: " & mod_list.AdminEmail
 End Function
 
 'it's a pretty bulky bunch of code but it works fine -Dill
@@ -198,6 +200,7 @@ Select Case Flag
         If Cmds.User > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :USER " & Cmds.User & " " & Cmds.UserBW & vbCrLf
         If Cmds.UserHost > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :USERHOST " & Cmds.UserHost & " " & Cmds.UserHostBW & vbCrLf
         If Cmds.Version > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :VERSION " & Cmds.Version & " " & Cmds.VersionBW & vbCrLf
+        If Cmds.Whisper > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :WHISPER " & Cmds.Whisper & " " & Cmds.WhisperBW & vbCrLf
         If Cmds.Who > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :WHO " & Cmds.Who & " " & Cmds.WhoBW & vbCrLf
         If Cmds.Whois > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :WHOIS " & Cmds.Whois & " " & Cmds.WhoisBW & vbCrLf
         If Cmds.WhoWas > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :WHOWAS " & Cmds.WhoWas & " " & Cmds.WhoWasBW & vbCrLf
@@ -221,6 +224,26 @@ For I = LBound(Recv) To UBound(Recv)
     SendWsock Recv(I).index, "NOTICE " & Recv(I).Nick, ":" & Msg, ":" & Origin
 Next I
 If Glob Then SendToServer "GNOTICE :" & Msg, Origin
+End Sub
+Public Sub SendWallOp(Msg As String, Origin As String, Optional Glob As Boolean = True)
+#If Debugging = 1 Then
+  SendSvrMsg "SENDWALLOP Called (" & Origin & ") (" & Msg & ")"
+#End If
+
+If WallOps.Count = 0 Then Exit Sub
+If Len(Origin) = 0 Then Origin = ServerName
+On Error Resume Next
+Dim I As Long, Recv() As clsClient
+Recv = WallOps.Values
+
+If Recv(0) Is Nothing Then Exit Sub
+
+For I = LBound(Recv) To UBound(Recv)
+    SendWsock Recv(I).index, "WALLOPS", ":" & Msg, ":" & Origin
+Next I
+
+'notify servers!
+If Glob = True Then SendToServer "WALLOPS :" & Msg, Origin
 End Sub
 Public Sub ErrorMsg(Msg As String, Optional Glob As Boolean = False, Optional Origin As String)
 If ErrorLog = False Then Exit Sub
@@ -265,4 +288,24 @@ For I = LBound(Val) To UBound(Val)
         End If
     End If
 Next I
+End Function
+
+Public Function MakeNumber(strString As String) As Long
+Dim tmpString As String
+Dim tmpLetter As String
+Dim tmpNewString As String
+Dim A As Long
+
+tmpString = strString
+For A = 1 To Len(tmpString)
+  tmpLetter = Mid$(tmpString, A, 1)
+  If Asc(tmpLetter) >= 48 And Asc(tmpLetter) <= 57 Then
+    tmpNewString = tmpNewString & tmpLetter
+  End If
+Next A
+If Len(tmpNewString) > 0 Then
+  MakeNumber = CLng(tmpNewString)
+Else
+  MakeNumber = 0
+End If
 End Function

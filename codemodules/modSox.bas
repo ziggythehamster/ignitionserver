@@ -1,5 +1,5 @@
 Attribute VB_Name = "modSox"
-'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
+'ignitionServer is (C) Keith Gable and Contributors
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -7,13 +7,14 @@ Attribute VB_Name = "modSox"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
+'
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
-'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
+'Contributors:        Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: modSox.bas,v 1.8 2004/06/05 19:26:12 ziggythehamster Exp $
+' $Id: modSox.bas,v 1.13 2004/06/26 07:01:14 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -53,10 +54,11 @@ If MaxConnectionsPerIP > 0 Then
         IPHash.Remove cptr.IP
     End If
 End If
+
 If cptr.AccessLevel < 4 Then
     'Client connection closed -Dill
     If Len(cptr.Nick) <> 0 And Len(cptr.User) <> 0 And Len(cptr.RealHost) <> 0 Then GenerateEvent "USER", "LOGOFF", cptr.Nick & "!" & cptr.User & "@" & cptr.RealHost, cptr.Nick & "!" & cptr.User & "@" & cptr.RealHost
-    GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP
+    GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & ServerLocalPort
     If cptr.SentQuit Then Exit Sub
     With cptr
         Msg = .Prefix & " QUIT :Client Exited"
@@ -77,8 +79,9 @@ If cptr.AccessLevel < 4 Then
         .IsKilled = True
     End With
     Set cptr = Nothing
+    Set Users(insox) = Nothing
 Else
-    GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP
+    GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & ServerLocalPort
     'Server connection closed -Dill
     Dim I&, User() As clsClient, s&, c&
     User = GlobUsers.Values
@@ -131,7 +134,7 @@ If IsClient Then
     Set NC = GetFreeSlot(insox)
     If MaxConnections > 0 Then
         If LocalConn > MaxConnections Then
-            bArr = StrConv("ERROR :Closing Link: Server is full" & vbCrLf, vbFromUnicode)
+            bArr = StrConv("ERROR :Closing Link: (Server is full)" & vbCrLf, vbFromUnicode)
             Call Send(Sockets.SocketHandle(insox), bArr(0), UBound(bArr) + 1, 0)
             Sockets.TerminateSocket Sockets.SocketHandle(insox)
             Set Users(insox) = Nothing
@@ -139,13 +142,17 @@ If IsClient Then
         End If
     End If
     NC.IP = Sockets.Address(insox)
-    GenerateEvent "SOCKET", "OPEN", "*!*@*", NC.IP
+    On Error Resume Next
+    NC.RemotePort = Sockets.Port(insox)
+    On Error GoTo 0
+    GenerateEvent "SOCKET", "ACCEPT", "*!*@*", NC.IP & ":" & NC.RemotePort & " " & ServerLocalAddr & ":" & ServerLocalPort
     If MaxConnectionsPerIP > 0 Then
         IPHash(NC.IP) = IPHash(NC.IP) + 1
         If IPHash(NC.IP) > MaxConnectionsPerIP Then
-            bArr = StrConv("ERROR :Closing Link: Session limit exceeded, no more connections allowed from your host" & vbCrLf, vbFromUnicode)
+            bArr = StrConv("ERROR :Closing Link: (Session limit exceeded, no more connections allowed from your host)" & vbCrLf, vbFromUnicode)
             Call Send(Sockets.SocketHandle(insox), bArr(0), UBound(bArr) + 1, 0)
             Sockets.TerminateSocket Sockets.SocketHandle(insox)
+            GenerateEvent "SOCKET", "CLOSE", "*!*@*", NC.IP & ":" & NC.RemotePort & " " & ServerLocalAddr & ":" & ServerLocalPort
             IPHash(NC.IP) = IPHash(NC.IP) - 1
             Set Users(insox) = Nothing
             Exit Sub
@@ -158,7 +165,10 @@ If IsClient Then
     NC.AccessLevel = 1
     NC.ServerName = ServerName
     NC.ServerDescription = ServerDescription
-    NC.Host = AddressToName(NC.IP)
+    NC.Host = AddressToName(NC.IP) 'perhaps we should have an option to disable name resolution?
+    #If Debugging = 1 Then
+      SendSvrMsg "Port: " & NC.RemotePort
+    #End If
     Set NC.FromLink = Servers(ServerName)
     If DoILine(NC) Then Exit Sub
     NC.Idle = UnixTime
@@ -178,13 +188,17 @@ Else
     NC.ServerName = ServerName
     NC.ServerDescription = ServerDescription
     NC.Host = AddressToName(NC.IP)
+    NC.RealHost = NC.Host
+    On Error Resume Next
+    NC.RemotePort = Sockets.Port(insox)
+    On Error GoTo 0
     Set NC.FromLink = Servers(ServerName)
     If DoILine(NC) Then Exit Sub
     NC.Idle = UnixTime
     NC.SignOn = UnixTime
     NC.Timeout = 2
     IrcStat.UnknownConnections = IrcStat.UnknownConnections + 1
-    SendAuth = GetLLineN(NC.IP)
+    SendAuth = GetLLineN(NC.IP, NC.RealHost)
     If Len(SendAuth.Server) = 0 Then
         m_error NC, "Closing Link: (No Access)"
         Set NC = Nothing

@@ -1,5 +1,5 @@
 Attribute VB_Name = "mod_Oper"
-'ignitionServer is (C)  Keith Gable, Nigel Jones and Reid Burke.
+'ignitionServer is (C) Keith Gable and Contributors
 '----------------------------------------------------
 'You must include this notice in any modifications you make. You must additionally
 'follow the GPL's provisions for sourcecode distribution and binary distribution.
@@ -7,13 +7,13 @@ Attribute VB_Name = "mod_Oper"
 '(you are welcome to add a "Based On" line above this notice, but this notice must
 'remain intact!)
 'Released under the GNU General Public License
-'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-'                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
-'                     Reid Burke  (AirWalk) <airwalk@ignition-project.com>
 '
+'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
+'Contributors:        Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
+'                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_Oper.bas,v 1.5 2004/06/02 22:36:52 ziggythehamster Exp $
+' $Id: mod_Oper.bas,v 1.7 2004/06/26 07:01:14 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -34,7 +34,7 @@ Public Function m_add(cptr As clsClient, sptr As clsClient, parv$()) As Long
 If cptr.CanAdd Then
 If Dir(App.Path & "\ircx.conf") <> vbNullString Then
     
-    If UCase(parv(0)) = "OPER" Then
+    If UCase$(parv(0)) = "OPER" Then
     
     'Parv 1 - Oper Nick
     'Parv 2 - Oper Pass
@@ -46,7 +46,7 @@ If Dir(App.Path & "\ircx.conf") <> vbNullString Then
         Print #1, "O:" & parv(3) & ":" & parv(2) & ":" & parv(1) & ":" & parv(4) & ":" & CLng(parv(5))
         Close #1
         Call Rehash(vbNullString)
-    ElseIf UCase(parv(0)) = "SERVER" Then
+    ElseIf UCase$(parv(0)) = "SERVER" Then
     
     'Parv 1 - Server Name
     'Parv 2 - Server Pass
@@ -58,7 +58,7 @@ If Dir(App.Path & "\ircx.conf") <> vbNullString Then
         Print #1, "L:" & parv(3) & ":" & parv(2) & ":" & parv(1) & ":" & parv(4) & ":" & CLng(parv(5))
         Close #1
         Call Rehash(vbNullString)
-    ElseIf UCase(parv(0)) = "VHOST" Then
+    ElseIf UCase$(parv(0)) = "VHOST" Then
     
     'Parv 1 - VHost Nick
     'Parv 2 - VHost Pass
@@ -69,7 +69,7 @@ If Dir(App.Path & "\ircx.conf") <> vbNullString Then
         Print #1, "V:" & parv(3) & ":" & parv(1) & ":" & parv(2) & ":" & parv(4)
         Close #1
         Call Rehash(vbNullString)
-    ElseIf UCase(parv(0)) = "HELP" Then
+    ElseIf UCase$(parv(0)) = "HELP" Then
         SendWsock cptr.index, "NOTICE " & cptr.Nick, ":Oper: SYNTAX: /add oper [NickName] [Password] [UserHost] [OperFlags] [ServerClass]", SPrefix
         SendWsock cptr.index, "NOTICE " & cptr.Nick, ":Server: SYNTAX: /add server [ServerName] [Password] [IP] [ServerPort] [ServerClass]", SPrefix
         SendWsock cptr.index, "NOTICE " & cptr.Nick, ":VHost: SYNTAX: /add vhost [UserName] [Password] [VHost] [UserHost]", SPrefix
@@ -89,7 +89,7 @@ End Function
 
 Public Function m_remoteadm(cptr As clsClient, sptr As clsClient, parv$()) As Long
 Dim x&
-If UCase(parv(0)) = "LOGIN" Then
+If UCase$(parv(0)) = "LOGIN" Then
 Dim NewModes$
     If Crypt = True Then
         If MD5Crypt = True Then
@@ -126,13 +126,13 @@ Dim NewModes$
             Exit Function
         End If
     End If
-ElseIf UCase(parv(0)) = "SEND" Then
+ElseIf UCase$(parv(0)) = "SEND" Then
     If cptr.IsRemoteAdmClient Then
-        If UCase(parv(1)) = "OPER" Then
+        If UCase$(parv(1)) = "OPER" Then
             For x = 2 To UBound(OLine)
                 SendWsock cptr.index, "REMOTEADM :SEND OPER " & OLine(x).Name & " " & OLine(x).Pass & " " & OLine(x).Host & " " & OLine(x).AccessFlag & " " & OLine(x).ConnectionClass, vbNullString, , True
             Next x
-        ElseIf UCase(parv(1)) = "SERVER" Then
+        ElseIf UCase$(parv(1)) = "SERVER" Then
             For x = 2 To UBound(LLine)
                 SendWsock cptr.index, "REMOTEADM :SEND SERVER " & LLine(x).Server & " " & LLine(x).Pass & " " & LLine(x).Host & " " & LLine(x).Port & " " & LLine(x).ConnectionClass, vbNullString, , True
             Next x
