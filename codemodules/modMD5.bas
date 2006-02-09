@@ -12,7 +12,7 @@ Attribute VB_Name = "modMD5"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: modMD5.bas,v 1.1 2004/05/28 20:20:54 ziggythehamster Exp $
+' $Id: modMD5.bas,v 1.2 2004/05/28 20:35:05 ziggythehamster Exp $
 '
 '
 'This program is free software.

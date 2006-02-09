@@ -12,7 +12,7 @@ Attribute VB_Name = "m_ircx_chan"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: m_ircx_chan.bas,v 1.2 2004/05/28 20:20:54 ziggythehamster Exp $
+' $Id: m_ircx_chan.bas,v 1.3 2004/05/28 20:35:05 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -50,6 +50,11 @@ Else
   If Len(parv(0)) = 0 Then    'need more params
     CurrentInfo = "need more parameters"
     SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "CREATE")
+    Exit Function
+  End If
+  If Len(parv(0)) < 2 Then 'cant have a "blank" room name -Airwalk
+    CurrentInfo = "channel name null"
+    SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , , "CREATE")
     Exit Function
   End If
   If MaxChannelsPerUser > 0 Then

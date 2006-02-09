@@ -1,4 +1,4 @@
-clsOnChannels = 23, 17, 683, 649, 
+clsOnChannels = 23, 17, 683, 649, Z
 clsServerHashTable = 176, 245, 842, 735, 
 clsUserHashTable = 176, 208, 836, 840, 
 clsBan = 44, 58, 457, 514, 
@@ -11,7 +11,7 @@ clsIPHashTable = 110, 145, 776, 601,
 modErrTrap = 0, 0, 666, 456, 
 mod_channel = 22, 26, 710, 653, 
 modDNS = 154, 203, 820, 659, 
-mod_list = 142, 61, 802, 693, Z
+mod_list = 142, 61, 802, 693, 
 mod_main = 22, 32, 678, 657, 
 mod_NativeFunctions = 132, 156, 792, 788, 
 mod_send = 66, 87, 732, 543, 

@@ -1,7 +1,7 @@
 			#######################
 			#ignitionServer README#
 			#######################
-# $Id: readme.txt,v 1.3 2004/05/28 20:20:55 ziggythehamster Exp $
+# $Id: readme.txt,v 1.4 2004/05/28 20:35:06 ziggythehamster Exp $
 
 
 	===========++++++++===========++++++++===========

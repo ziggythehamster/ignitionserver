@@ -12,7 +12,7 @@ Attribute VB_Name = "mod_channel"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_channel.bas,v 1.3 2004/05/28 20:20:54 ziggythehamster Exp $
+' $Id: mod_channel.bas,v 1.4 2004/05/28 20:35:05 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -101,21 +101,30 @@ Else
           If UBound(parv) = 1 Then
             'only one parameter, obiously they've specified to clear all access
             If Chan.Member.Item(cptr.Nick).IsOp Then
-              tmpLoc = "clear all access"
+              tmpLoc = "clear all access place 1"
               Chan.Bans.Clear
+              tmpLoc = "clear all access place 2"
               Chan.Grants.Clear
+              tmpLoc = "clear all access place 3"
               Chan.Voices.Clear
+              tmpLoc = "clear all access place 4"
               Chan.Hosts.Clear
+              tmpLoc = "clear all access place 5"
               If Chan.Owners.Count > 0 Then
                 SendWsock cptr.index, IRCERR_ACCESSSECURITY & " " & cptr.Nick, TranslateCode(IRCERR_ACCESSSECURITY)
               End If
             ElseIf Chan.Member.Item(cptr.Nick).IsOwner Then
-              tmpLoc = "clear all access (owner)"
+              tmpLoc = "clear all access (owner) place 1"
               Chan.Bans.Clear
+              tmpLoc = "clear all access (owner) place 2"
               Chan.Grants.Clear
+              tmpLoc = "clear all access (owner) place 3"
               Chan.Voices.Clear
+              tmpLoc = "clear all access (owner) place 4"
               Chan.Hosts.Clear
+              tmpLoc = "clear all access (owner) place 5"
               Chan.Owners.Clear
+              tmpLoc = "clear all access (owner) place 6"
             End If
           Else
             tmpLoc = "clear specific level"
@@ -638,6 +647,9 @@ If cptr.AccessLevel = 4 Then
                 Case cmRegistered
                     Chan.IsRegistered = MSwitch
                     NM = NM & "r"
+                Case cmOperOnly
+                    Chan.IsOperOnly = MSwitch
+                    NM = NM & "O"
             End Select
         Next I
         MU = LTrim$(MU)
@@ -1092,6 +1104,27 @@ banover:
                 End If
                 Chan.IsInviteOnly = False
               End Select
+          Case cmOperOnly
+            If cptr.IsGlobOperator Or cptr.IsNetAdmin Then
+            Select Case AscW(op)
+              Case modeAdd
+                If Not Chan.IsOperOnly Then
+                  If UBound(NewModes) = 12 Or UBound(ToUsers) = 12 Then GoTo Flush
+                  ReDim Preserve NewModes(UBound(NewModes) + 1): ReDim Preserve ToUsers(UBound(ToUsers) + 1)
+                  NewModes(UBound(NewModes)) = "O"
+                End If
+                Chan.IsOperOnly = True
+              Case modeRemove
+                If Chan.IsOperOnly Then
+                  If UBound(NewModes) = 12 Or UBound(ToUsers) = 12 Then GoTo Flush
+                  ReDim Preserve NewModes(UBound(NewModes) + 1): ReDim Preserve ToUsers(UBound(ToUsers) + 1)
+                  NewModes(UBound(NewModes)) = "O"
+                End If
+                Chan.IsOperOnly = False
+              End Select
+              Else
+                SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+              End If
             Case Else
                 SendWsock cptr.index, ERR_UNKNOWNMODE & " " & cptr.Nick, TranslateCode(ERR_UNKNOWNMODE, op & Mid$(parv(1), I, 1), Chan.Name)
         End Select
@@ -1293,6 +1326,11 @@ Else
         End If
     End If
     StrCache = A
+    If Len(StrCache) < 2 Then 'cant have a "blank" room name -Airwalk
+        CurrentInfo = "channel name null"
+        SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , , "CREATE")
+        Exit Function
+    End If
     'If AscW(StrCache) <> 35 And AscW(StrCache) <> 48 Then 'note: % = 37, 0 = 48; add % soon - Ziggy
     If AscW(StrCache) <> 35 Then 'use this for now
         CurrentInfo = "no such channel"
@@ -1313,7 +1351,9 @@ Else
     'End If
     CurrentInfo = "setting up chan (exist/nonexist?)"
     If cptr.IsOnChan(StrCache) Then GoTo NextChan
+    CurrentInfo = "setting up chan (exist/nonexist?)1"
     Set Chan = Channels(StrCache)
+    CurrentInfo = "setting up chan (exist/nonexist?)2"
     If Chan Is Nothing Then
       CurrentInfo = "channel does not exist"
       'the channel cptr wants to join doesn't exist, so we create it -Dill
@@ -1338,6 +1378,15 @@ Else
           CurrentInfo = "channel full"
           SendWsock cptr.index, ERR_CHANNELISFULL & " " & cptr.Nick & " " & TranslateCode(ERR_CHANNELISFULL, , Chan.Name), vbNullString, SPrefix
           Exit Function
+        End If
+      End If
+      'Is it Oper Only? - DG
+      CurrentInfo = "channel exists - Oper Only Check"
+      If Chan.IsOperOnly = True Then
+        CurrentInfo = "Channel oper only checking user"
+        If cptr.AccessLevel = 1 Then
+            SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+            Exit Function
         End If
       End If
       'Is cptr banned? -Dill
@@ -1722,6 +1771,45 @@ Else
   Chan.Member.Remove victim.Nick
   victim.OnChannels.Remove Chan.Name
 End If
+End Function
+
+Public Function m_chanpass(cptr As clsClient, sptr As clsClient, parv$()) As Long
+'parv[0] = targetchannel
+'parv[1] = password
+'-DG
+
+#If Debugging = 1 Then
+  SendSvrMsg "CHANPASS called! (" & cptr.Nick & ")"
+#End If
+
+Dim Chan As clsChannel
+'gp = Given Pass
+
+'check if null (not enough params)
+If Len(parv(0)) = 0 Then
+  SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "PROP")
+  Exit Function
+End If
+If Len(parv(1)) = 0 Then
+  SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "PROP")
+  Exit Function
+End If
+Set Chan = Channels(parv(0))
+
+
+
+If parv(1) = Chan.Prop_Ownerkey And Len(Chan.Prop_Ownerkey) > 0 Then
+    Chan.Member.Item(cptr.Nick).IsOwner = True
+    SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +q " & cptr.Nick & vbCrLf, 0
+    SendToServer "MODE " & Chan.Name & " +q " & cptr.Nick, cptr.Nick
+End If
+If parv(1) = Chan.Prop_Hostkey And Len(Chan.Prop_Hostkey) > 0 And Chan.Member.Item(cptr.Nick).IsOwner = False Then
+    Chan.Member.Item(cptr.Nick).IsOp = True
+    SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " +o " & cptr.Nick & vbCrLf, 0
+    SendToServer "MODE " & Chan.Name & " +o " & cptr.Nick, cptr.Nick
+End If
+
+
 End Function
 Public Function m_prop(cptr As clsClient, sptr As clsClient, parv$()) As Long
 'parv[0] = target
@@ -2541,6 +2629,10 @@ With Channel
     End If
     If .IsRegistered Then
         Mid$(GetModes, I, 1) = "r"
+        I = I + 1
+    End If
+    If .IsOperOnly Then
+        Mid$(GetModes, I, 1) = "O"
         I = I + 1
     End If
     If Len(.Key) > 0 And .Limit > 0 Then

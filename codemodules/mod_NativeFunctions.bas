@@ -12,7 +12,7 @@ Attribute VB_Name = "mod_NativeFunctions"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_NativeFunctions.bas,v 1.3 2004/05/28 20:20:54 ziggythehamster Exp $
+' $Id: mod_NativeFunctions.bas,v 1.4 2004/05/28 20:35:05 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -177,6 +177,7 @@ Select Case Flag
         If Cmds.Ping > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :PING " & Cmds.Ping & " " & Cmds.PingBW & vbCrLf
         If Cmds.Pong > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :PONG " & Cmds.Pong & " " & Cmds.PongBW & vbCrLf
         If Cmds.Privmsg > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :PRIVMSG " & Cmds.Privmsg & " " & Cmds.PrivmsgBW & vbCrLf
+        If Cmds.ChanPass > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :CHANPASS " & Cmds.ChanPass & " " & Cmds.ChanPassBW & vbCrLf
         If Cmds.Prop > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :PROP " & Cmds.Prop & " " & Cmds.PropBW & vbCrLf
         If Cmds.Quit > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :QUIT " & Cmds.Quit & " " & Cmds.QuitBW & vbCrLf
         If Cmds.Rehash > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :REHASH " & Cmds.Rehash & " " & Cmds.RehashBW & vbCrLf

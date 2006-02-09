@@ -12,7 +12,7 @@ Attribute VB_Name = "mod_user"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_user.bas,v 1.3 2004/05/28 20:20:54 ziggythehamster Exp $
+' $Id: mod_user.bas,v 1.4 2004/05/28 20:35:05 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -1606,6 +1606,23 @@ For I = 1 To Len(parv(1))
                         NewModes = NewModes & "p"
                     End If
             End Select
+        Case cmOperOnly
+        If cptr.IsGlobOperator Or cptr.IsNetAdmin Then
+            Select Case SetMode
+                Case True
+                    If Not Chan.IsOperOnly Then
+                        Chan.IsOperOnly = True
+                        NewModes = NewModes & "O"
+                    End If
+                Case False
+                    If Chan.IsOperOnly Then
+                        Chan.IsOperOnly = False
+                        NewModes = NewModes & "O"
+                    End If
+            End Select
+        Else
+            SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+        End If
     End Select
 Next I
 If Len(NewModes) <= 1 Then Exit Function

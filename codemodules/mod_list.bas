@@ -12,7 +12,7 @@ Attribute VB_Name = "mod_list"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_list.bas,v 1.3 2004/05/28 20:20:54 ziggythehamster Exp $
+' $Id: mod_list.bas,v 1.4 2004/05/28 20:35:05 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -31,7 +31,7 @@ Option Explicit
 Public Const MaxTrafficRate As Long = 100
 
 '-=BUILD DATE=-
-Public Const BuildDate As String = "20040301"
+Public Const BuildDate As String = "20040313"
 
 #Const Debugging = 0
 
@@ -288,6 +288,7 @@ Public Type Commands
   ChanServ As Long: ChanServBW As Currency
   MemoServ As Long: MemoServBW As Currency
   OperServ As Long: OperServBW As Currency
+  ChanPass As Long: ChanPassBW As Currency
   Prop As Long: PropBW As Currency
   Server As Long: ServerBW As Currency
   WhoWas As Long: WhoWasBW As Currency
@@ -664,6 +665,7 @@ Public Const cmPrivate As Long = 112
 Public Const cmLimit As Long = 108
 Public Const cmKey As Long = 107
 Public Const cmRegistered As Long = 114
+Public Const cmOperOnly As Long = 79
 
 
 '+/- Mode Operators
@@ -674,9 +676,9 @@ Public Const modeRemove As Long = 45
 'Now in alphabetical order - Ziggy
 'Added missing modes
 Public Const UserModes As String = "bcdeikorsxBCDEKOPRSZ"
-Public Const ChanModes As String = "abdehiklmnopqrstuvwxzR"
+Public Const ChanModes As String = "abdehiklmnopqrstuvwxzOR"
 'for the 005 reply
-Public Const ChanModesX As String = "b,k,l,adehimnopqrstuvwxyzR"
+Public Const ChanModesX As String = "b,k,l,adehimnopqrstuvwxyzOR"
 
 'Authentication Packages/IRCX stuff
 Public Const AuthPackages As String = "ANON"

@@ -1,7 +1,7 @@
 			########################
 			#ignitionServer CREDITS#
 			########################
-# $Id: credits.txt,v 1.2 2004/05/28 20:20:55 ziggythehamster Exp $
+# $Id: credits.txt,v 1.3 2004/05/28 20:35:06 ziggythehamster Exp $
 
 	===========++++++++===========++++++++===========
 

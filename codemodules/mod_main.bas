@@ -12,7 +12,7 @@ Attribute VB_Name = "mod_main"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_main.bas,v 1.3 2004/05/28 20:20:54 ziggythehamster Exp $
+' $Id: mod_main.bas,v 1.4 2004/05/28 20:35:05 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -284,6 +284,12 @@ Do
             GoTo nextmsg
           End If
           Call m_mode(cptr, sptr, arglist)
+        Case "CHANPASS": Cmds.ChanPass = Cmds.ChanPass + 1: Cmds.ChanPassBW = Cmds.ChanPassBW + cmdLen
+          If Not cptr.HasRegistered Then
+            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+            GoTo nextmsg
+          End If
+          Call m_chanpass(cptr, sptr, arglist)
         Case "PROP": Cmds.Prop = Cmds.Prop + 1: Cmds.PropBW = Cmds.PropBW + cmdLen
           If Not cptr.HasRegistered Then
             SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)

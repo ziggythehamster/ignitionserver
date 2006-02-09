@@ -24,7 +24,7 @@ Attribute VB_Exposed = False
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsOwners.cls,v 1.2 2004/05/28 20:20:53 ziggythehamster Exp $
+' $Id: clsOwners.cls,v 1.3 2004/05/28 20:35:04 ziggythehamster Exp $
 '
 '
 'This program is free software.
