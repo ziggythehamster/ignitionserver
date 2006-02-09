@@ -16,10 +16,10 @@
 ; HM NIS Edit Wizard helper defines
 SetCompressor lzma
 !define PRODUCT_NAME "ignitionServer"
-!define PRODUCT_VERSION "0.3.2"
+!define PRODUCT_VERSION "0.3.3"
 !define PRODUCT_VERSION_MAJOR "0"
 !define PRODUCT_VERSION_MINOR "3"
-!define PRODUCT_VERSION_REVISION "2"
+!define PRODUCT_VERSION_REVISION "3"
 !define PRODUCT_PUBLISHER "The Ignition Project"
 !define PRODUCT_WEB_SITE "http://www.ignition-project.com/"
 !define PRODUCT_DOCUMENTATION "http://www.ignition-project.com/ignition/server/docs/"
@@ -108,6 +108,9 @@ Section -"Core" SEC01
   SetOverwrite ifnewer
   File "..\ircx.conf"
   File "..\ircx.motd"
+  SetOverwrite on
+  ; Overwrite the docs stuff
+  ; We do update them occasionally.
   SetOutPath "$INSTDIR\docs"
   File "..\docs\credits.txt"
   File "..\docs\license.html"
@@ -130,7 +133,7 @@ SectionEnd
 
 Section "PassCrypt" SEC03
   SetOutPath "$INSTDIR"
-  SetOverwrite ifnewer
+  SetOverwrite on
   File "..\PassCrypt.exe"
   CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\ignitionServer PassCrypt.lnk" "$INSTDIR\PassCrypt.exe"
 SectionEnd
@@ -144,6 +147,7 @@ Section "IRCXpro Migration Wizard" SEC04
 SectionEnd
 
 Section -AdditionalIcons
+  SetOverwrite on
   WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
   WriteIniStr "$INSTDIR\Documentation.url" "InternetShortcut" "URL" "${PRODUCT_DOCUMENTATION}"
   CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\The Ignition Project.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
@@ -152,6 +156,7 @@ Section -AdditionalIcons
 SectionEnd
 
 Section -Post
+  SetOverwrite on
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\ignitionServer.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"

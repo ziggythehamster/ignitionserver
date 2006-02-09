@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_serv"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_serv.bas,v 1.23 2004/07/02 23:16:56 ziggythehamster Exp $
+' $Id: mod_serv.bas,v 1.27 2004/07/21 06:13:45 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -32,6 +32,9 @@ Attribute VB_Name = "mod_serv"
 #Const CanDie = 1
 #Const CanRestart = 1
 #Const Debugging = 0
+'DANGER! ENABLING DEBUGGING HERE MAY MAKE HUGE LOG FILES!
+'(300KB per event per person in some cases)
+'Turn it on at your own risk.
 
 'to prevent sending events multiple times
 Public Event_LastEventTime As Long
@@ -719,7 +722,7 @@ Else
     Exit Function
   End If
   If UBound(parv) = 0 Then
-    Dim tmpAL As Integer
+    Dim tmpAL As Long
     tmpAL = cptr.AccessLevel
     'for remote opers to access stats -zg
     If cptr.IsGlobOperator = True Then tmpAL = 3
@@ -1292,7 +1295,14 @@ Next I
 End Function
 Public Function GenerateEvent(EventType As String, EventName As String, Mask As String, Args As String)
 'this function is called by all things that generate events
-If Event_LastEventTime = UnixTime And Event_LastEventType = EventType And Event_LastEventName = EventName And Event_LastEventArgs = Args Then Exit Function
+'If Event_LastEventTime = UnixTime And Event_LastEventType = EventType And Event_LastEventName = EventName And Event_LastEventArgs = Args Then Exit Function
+#If Debugging = 1 Then
+SendSvrMsg "*** GENERATEEVENT Called! (" & EventType & "." & EventName & ") (" & Mask & ") (" & Args & ") (" & UnixTime & ")"
+#End If
+If (UCase$(Event_LastEventType) = UCase$(EventType)) And (UCase$(Event_LastEventName) = UCase$(EventName)) And (UCase$(Event_LastEventArgs) = UCase$(Args)) Then Exit Function
+#If Debugging = 1 Then
+SendSvrMsg "proceeding with event sending.."
+#End If
 Event_LastEventType = EventType
 Event_LastEventName = EventName
 Event_LastEventArgs = Args
@@ -1300,23 +1310,43 @@ Event_LastEventTime = UnixTime
 On Error Resume Next
 Dim I As Long, Recv() As clsClient
 Dim A As Long
+Dim LastEventEsc As String
+If Opers.Count = 0 Then Exit Function
 Recv() = Opers.Values
 If Recv(0) Is Nothing Then Exit Function
 For I = LBound(Recv) To UBound(Recv)
+  #If Debugging = 1 Then
+    SendSvrMsg "[" & I & "] " & Recv(I).Nick
+  #End If
+  LastEventEsc = ""
   If Recv(I).Events.Count > 0 Then
     For A = 1 To Recv(I).Events.Count
-      If (Recv(I).Events(A).Mask Like Mask) And (UCase$(Recv(I).Events(A).EventType) = UCase$(EventType)) And ((UCase$(Recv(I).Events(A).EventName) = UCase$(EventName)) Or (Len(Recv(I).Events(A).EventName) = 0)) Then
+      #If Debugging = 1 Then
+        SendSvrMsg "[" & I & "] (" & A & ") " & Recv(I).Events.Item(A).EventType & "." & Recv(I).Events.Item(A).EventName & " " & Recv(I).Events.Item(A).Mask
+      #End If
+      If (Recv(I).Events(A).Mask Like Mask) And (UCase$(Recv(I).Events(A).EventType) = UCase$(EventType)) And (UCase$(Recv(I).Events(A).EventName) = UCase$(EventName)) Then
         'can get this event
         'here we make sure that the user wildcarded it
         'or if the user is asking for a specific name
-        If Len(Recv(I).Events.Item(A).EventName) = 0 Then
-          'no event name at all -- assume wildcard
-          SendEvent Recv(I).index, EventType, EventName, Args
-          GoTo nextItem
-        ElseIf EventName = Recv(I).Events.Item(A).EventName Then
+        'If Len(Recv(I).Events.Item(A).EventName) = 0 Then
+        '  'no event name at all -- assume wildcard
+        '  SendEvent Recv(I).index, EventType, EventName, Args
+        '  GoTo nextItem
+        
+        'lasteventesc basically contains the last event sent + mask
+        'so you can't send the stupid thing twice in a row
+        If LastEventEsc = Recv(I).Events.Item(A).EventType & "." & Recv(I).Events.Item(A).EventName & "::" & Recv(I).Events.Item(A).Mask Then GoTo nextItem
+        LastEventEsc = Recv(I).Events.Item(A).EventType & "." & Recv(I).Events.Item(A).EventName & "::" & Recv(I).Events.Item(A).Mask
+        
+        'I'm thinking this is redundant, but I can't be bothered to check
+        'you never know, VB might be stupid and try to execute this twice.
+        If (EventType = Recv(I).Events.Item(A).EventType) And (EventName = Recv(I).Events.Item(A).EventName) Then
           'event name specified, and user did too
+          #If Debugging = 1 Then
+            SendSvrMsg "Sending event " & EventType & "." & EventName & " to " & Recv(I).Nick
+          #End If
           SendEvent Recv(I).index, EventType, EventName, Args
-          GoTo nextItem
+          'GoTo nextItem
         End If
       End If
 nextItem:
@@ -1417,7 +1447,7 @@ Else
       End If
     End If
     tL = "determine action"
-    Dim A As Integer
+    Dim A As Long
     Select Case UCase$(parv(0))
       Case "ADD":
         tL = "add event"
@@ -1464,39 +1494,60 @@ Else
           If Len(EventName) = 0 Then
             tL = "add event channel->all"
             cptr.Events.Add "CHANNEL", Mask, "CREATE"
-            cptr.Events.Add "CHANNEL", Mask, "TOPICCHANGE"
-            cptr.Events.Add "CHANNEL", Mask, "MODECHANGE"
-            cptr.Events.Add "CHANNEL", Mask, "JOIN"
-            cptr.Events.Add "CHANNEL", Mask, "PART"
-            cptr.Events.Add "CHANNEL", Mask, "CLOSE"
+            cptr.Events.Add "CHANNEL", Mask, "TOPIC"
+            cptr.Events.Add "CHANNEL", Mask, "MODE"
+            cptr.Events.Add "CHANNEL", Mask, "KEYWORD"
+            cptr.Events.Add "CHANNEL", Mask, "LIMIT"
+            cptr.Events.Add "CHANNEL", Mask, "DESTROY"
             SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
           ElseIf UCase$(EventName) = "CREATE" Then
             tL = "add event channel->create"
             cptr.Events.Add "CHANNEL", Mask, "CREATE"
             SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
-          ElseIf UCase$(EventName) = "TOPICCHANGE" Then
+          ElseIf UCase$(EventName) = "TOPIC" Then
             tL = "add event channel->topicchange"
-            cptr.Events.Add "CHANNEL", Mask, "TOPICCHANGE"
+            cptr.Events.Add "CHANNEL", Mask, "TOPIC"
             SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
-          ElseIf UCase$(EventName) = "MODECHANGE" Then
+          ElseIf UCase$(EventName) = "MODE" Then
             tL = "add event channel->modechange"
-            cptr.Events.Add "CHANNEL", Mask, "MODECHANGE"
+            cptr.Events.Add "CHANNEL", Mask, "MODE"
             SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
-          ElseIf UCase$(EventName) = "JOIN" Then
-            tL = "add event channel->join"
-            cptr.Events.Add "CHANNEL", Mask, "JOIN"
-            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
-          ElseIf UCase$(EventName) = "PART" Then
-            tL = "add event channel->part"
-            cptr.Events.Add "CHANNEL", Mask, "PART"
-            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
-          ElseIf UCase$(EventName) = "CLOSE" Then
+          ElseIf UCase$(EventName) = "DESTROY" Then
             tL = "add event channel->close"
-            cptr.Events.Add "CHANNEL", Mask, "CLOSE"
+            cptr.Events.Add "CHANNEL", Mask, "DESTROY"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
+          ElseIf UCase$(EventName) = "KEYWORD" Then
+            cptr.Events.Add "CHANNEL", Mask, "KEYWORD"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
+          ElseIf UCase$(EventName) = "LIMIT" Then
+            cptr.Events.Add "CHANNEL", Mask, "LIMIT"
             SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
           Else
             'send error
             tL = "CHANNEL -> invalid event name"
+            SendWsock cptr.index, "902 " & cptr.Nick, TranslateCode(IRCERR_BADFUNCTION, UCase$(parv(1)))
+          End If
+        ElseIf UCase$(EventType) = "MEMBER" Then
+          If Len(EventName) = 0 Then
+            tL = "add event member->all"
+            cptr.Events.Add "MEMBER", Mask, "JOIN"
+            cptr.Events.Add "MEMBER", Mask, "PART"
+            cptr.Events.Add "MEMBER", Mask, "KICK"
+            cptr.Events.Add "MEMBER", Mask, "MODE"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
+          ElseIf UCase$(EventName) = "JOIN" Then
+            cptr.Events.Add "MEMBER", Mask, "JOIN"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
+          ElseIf UCase$(EventName) = "PART" Then
+            cptr.Events.Add "MEMBER", Mask, "PART"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
+          ElseIf UCase$(EventName) = "KICK" Then
+            cptr.Events.Add "MEMBER", Mask, "KICK"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
+          ElseIf UCase$(EventName) = "MODE" Then
+            cptr.Events.Add "MEMBER", Mask, "MODE"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
+          Else
             SendWsock cptr.index, "902 " & cptr.Nick, TranslateCode(IRCERR_BADFUNCTION, UCase$(parv(1)))
           End If
         ElseIf UCase$(EventType) = "USER" Then
@@ -1504,10 +1555,11 @@ Else
             tL = "add event user->all"
             cptr.Events.Add "USER", Mask, "LOGON"
             cptr.Events.Add "USER", Mask, "LOGOFF"
-            cptr.Events.Add "USER", Mask, "MODECHANGE"
-            cptr.Events.Add "USER", Mask, "JOIN"
-            cptr.Events.Add "USER", Mask, "PART"
-            cptr.Events.Add "USER", Mask, "NICKCHANGE"
+            cptr.Events.Add "USER", Mask, "MODE"
+            cptr.Events.Add "USER", Mask, "NICK"
+            cptr.Events.Add "USER", Mask, "KILL"
+            cptr.Events.Add "USER", Mask, "QUIT"
+            cptr.Events.Add "USER", Mask, "TIMEOUT"
             tL = "send event user->all"
             SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
           ElseIf UCase$(EventName) = "LOGON" Then
@@ -1522,29 +1574,26 @@ Else
             cptr.Events.Add "USER", Mask, "LOGOFF"
             tL = "send event user->logoff"
             SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
-          ElseIf UCase$(EventName) = "MODECHANGE" Then
-            'USER.MODECHANGE
+          ElseIf UCase$(EventName) = "MODE" Then
+            'USER.MODE
             tL = "add event user->modechange"
-            cptr.Events.Add "USER", Mask, "MODECHANGE"
+            cptr.Events.Add "USER", Mask, "MODE"
             tL = "send event user->modechange"
             SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
-          ElseIf UCase$(EventName) = "JOIN" Then
-            'USER.JOIN
-            tL = "add event user->join"
-            cptr.Events.Add "USER", Mask, "JOIN"
-            tL = "send event user->join"
-            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
-          ElseIf UCase$(EventName) = "PART" Then
-            'USER.PART
-            tL = "add event user->part"
-            cptr.Events.Add "USER", Mask, "PART"
-            tL = "send event user->part"
-            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
-          ElseIf UCase$(EventName) = "NICKCHANGE" Then
-            'USER.NICKCHANGE
+          ElseIf UCase$(EventName) = "NICK" Then
+            'USER.NICK
             tL = "add event user->nickchange"
-            cptr.Events.Add "USER", Mask, "NICKCHANGE"
+            cptr.Events.Add "USER", Mask, "NICK"
             tL = "send event user->nickchange"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
+          ElseIf UCase$(EventName) = "TIMEOUT" Then
+            cptr.Events.Add "USER", Mask, "TIMEOUT"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
+          ElseIf UCase$(EventName) = "QUIT" Then
+            cptr.Events.Add "USER", Mask, "QUIT"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
+          ElseIf UCase$(EventName) = "KILL" Then
+            cptr.Events.Add "USER", Mask, "KILL"
             SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase$(parv(1)), Mask)
           Else
             'send error

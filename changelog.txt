@@ -6,7 +6,7 @@
 # DG = DigiGuy (digi_guy@users.sourceforge.net)
 # AW = Airwalk (airwalk@ignition-project.com)
 #
-# $Id: changelog.txt,v 1.89 2004/07/02 23:23:00 ziggythehamster Exp $
+# $Id: changelog.txt,v 1.110 2004/07/25 01:36:34 ziggythehamster Exp $
 #
 ### Project Start ###
 #
@@ -456,3 +456,56 @@ Zg - [2-Jul] - Fixed Nigel's e-mail address
 Zg - [2-Jul] - Removed -cvs identifier (for release)
 Zg - [2-Jul] - Modified ircx.conf for release
 Zg - [2-Jul] - And don't forget to make the same changes to migwiz.cftpl...
+#
+### RELEASE - 0.3.2 - BETA 2 ###
+#
+Zg - [4-Jul] - Fixed bug #984801 ("No O-Lines for your host" lacks nickname)
+Zg - [4-Jul] - Version number changes all over the place
+Zg - [4-Jul] - Added a bunch of devel-docs to the repository
+Zg - [8-Jul] - More work on the new mode code thingy (probably ready to implement)
+Zg - [9-Jul] - I believe it's now time to add the new mode code to the project :). I'll probably keep the user mode code, since it's not quite as buggy as the channel mode code.
+Zg - [9-Jul] - Might as well also put the channel ban list stuff too...
+Zg - [10-Jul] - Added MAXTARGETS=5 to the 005 reply
+Zg - [10-Jul] - Removed STD=i-d because I have no idea what it means
+Zg - [10-Jul] - Added some more stuff to the 005 reply (nicklen, max channels per user, etc.)
+Zg - [10-Jul] - Fixed bug #983820 (mode bug)
+Zg - [10-Jul] - Fixed bug with the output of the "you have joined too many channels" error
+Zg - [10-Jul] - DATA/REQUEST/REPLY is now done! Need to tweak it a bit more though (to clean it up a little)
+Zg - [10-Jul] - Fixed bug #988403 (prop doesn't allow specific item retreival)
+Zg - [13-Jul] - Fixed bug #989095 (you can set mode +l 0)
+Zg - [13-Jul] - Fixed bug #988757 (new mode code has broken ban support)
+Zg - [13-Jul] - Fixed bug #989222 (PROP #channel needs to return need more parameters)
+Zg - [13-Jul] - Fixed bug where the ban set time would not show up in XChat (an extra colon)
+Zg - [13-Jul] - Fixed bug #988749 (erroneous CRLF onjoin)
+Zg - [13-Jul] - Fixed bug #989161 (USERHOST returns more than 5 results)
+Zg - [13-Jul] - Fixed bug #990475 (erroneous CRLF in WHOIS)
+Zg - [15-Jul] - Fixed bug #988705 (+hps mode problem)
+Zg - [15-Jul] - Fixed bug #989920 (+h cannot be set by links)
+Zg - [15-Jul] - Worked on some prop cleanup
+Zg - [16-Jul] - Added user properties GUID, Identity, Nick, and OID.
+Zg - [16-Jul] - For some reason, the GUIDs generated are nothing like normal Windows GUIDs. Perhaps a good thing.
+Zg - [16-Jul] - For the record, GUIDs change every time a connection is (re)opened. This means it's useless to use a GUID to tell one user from another.
+Zg - [16-Jul] - Worked on some LIST code. As a result, channel names can no longer contain * or ?.
+Zg - [16-Jul] - Fixed bug that prevented /join 0 from working. You can now part all with /join 0 :)
+Zg - [16-Jul] - /list with wildcards now works. Apparently, VB has a more advanced Like thing than I thought :)
+Zg - [17-Jul] - Fixed bug #888693 (wildcard listing is broken) [see above]
+Zg - [19-Jul] - Changed Winsock errors returned as "Unknown" to the error message defined by the Platform SDK
+Zg - [20-Jul] - Found some code on PSCode that can properly get the LocalPort! Now, I can "normalize" the events properly :).
+Zg - [20-Jul] - For some stupid reason, ignitionServer used Winsock 1.1. Now, we're using Winsock 2.0 or higher. It seems a bit smoother, now.
+Zg - [20-Jul] - Fixed bug #994283 (you can send blank messages)
+Zg - [20-Jul] - Wee bit of code cleanup...
+Zg - [20-Jul] - Changed some Integers to Longs, should speed some things up 1/1000th of a millisecond... :)
+Zg - [20-Jul] - Changed places where for some reason the PureIRCd team felt the urge to use Val as an array to use something else. Val is a function built into VB already. Fixing this cuts compile time by at least 6 seconds.
+Zg - [21-Jul] - Most USER events are now complete. USER.JOIN and USER.PART need to be remapped to MEMBER.
+Zg - [21-Jul] - Converted USER.PART and USER.JOIN to MEMBER.PART and MEMBER.JOIN
+Zg - [21-Jul] - MEMBER.MODE complete
+Zg - [21-Jul] - MEMBER.KICK complete
+Zg - [21-Jul] - TODO: Replace all instances of ServerLocalAddr with clsClient.LocalHostname (and make a function that gets the local hostname, similar to clsClient.LocalPort)
+Zg - [21-Jul] - Did some USER.LOGOFF stuff... USER.DISCONNECT... and probably a bunch of others
+Zg - [21-Jul] - Fixed some more event bugs (mostly duplicate event sends and stuff)
+Zg - [21-Jul] - Removed a SaveSetting that is no longer needed (old workaround for the old ignitionServer Monitor)
+Zg - [21-Jul] - CHANNEL.MODE, CHANNEL.TOPIC, CHANNEL.CREATE, yada yada yada
+Zg - [21-Jul] - More channel events :)
+Zg - [21-Jul] - Fixed bug #965947 (some events need consistency)
+Zg - [25-Jul] - Preparing for release...
+Zg - [25-Jul] - Fixed bug where you could create a channel with ? or * in the name

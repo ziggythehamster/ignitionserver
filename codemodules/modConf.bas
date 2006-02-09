@@ -14,7 +14,7 @@ Attribute VB_Name = "modConf"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: modConf.bas,v 1.17 2004/06/26 07:01:13 ziggythehamster Exp $
+' $Id: modConf.bas,v 1.20 2004/07/21 03:13:00 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -49,7 +49,7 @@ If MLine = False Then m = Replace(m, "<$NET$>", IRCNet) 'this would be "invalid"
 Macros = m
 End Function
 Public Sub Rehash(Flag As String)
-Dim Line() As String, Char As String, Temp As String, FF As Integer: FF = FreeFile
+Dim Line() As String, Char As String, Temp As String, FF As Long: FF = FreeFile
 Select Case UCase$(Flag)
     Case vbNullString
         'Restore to Default
@@ -572,7 +572,7 @@ Next I
 End Function
 
 Public Function GetMotD()
-Dim FF As Integer, Temp As String
+Dim FF As Long, Temp As String
 FF = FreeFile
 If Dir(App.Path & "\ircx.motd") <> vbNullString Then
   Open App.Path & "\ircx.motd" For Input As FF
@@ -633,7 +633,7 @@ For I = 2 To UBound(OLine)
                     
                     'this event should be generated _before_ the user becomes an operator
                     '(no chance in getting his own mode flags thrown at him)
-                    GenerateEvent "USER", "MODECHANGE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & tmpSendFlags
+                    GenerateEvent "USER", "MODE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & tmpSendFlags
                     cptr.AccessLevel = 3
                     Opers.Add cptr.GUID, cptr
                     '// don't send the flags if there aren't any
@@ -644,11 +644,11 @@ For I = 2 To UBound(OLine)
                     DoOLine = True
                     Exit Function
                 Else
-                    SendWsock cptr.index, ERR_PASSWDMISMATCH, TranslateCode(ERR_PASSWDMISMATCH)
+                    SendWsock cptr.index, ERR_PASSWDMISMATCH & " " & cptr.Nick, TranslateCode(ERR_PASSWDMISMATCH)
                     Exit Function
                 End If
             Else
-                SendWsock cptr.index, ERR_NOOPERHOST, TranslateCode(ERR_NOOPERHOST)
+                SendWsock cptr.index, ERR_NOOPERHOST & " " & cptr.Nick, TranslateCode(ERR_NOOPERHOST)
                 Exit Function
             End If
         Else
@@ -669,7 +669,7 @@ For I = 2 To UBound(OLine)
                     
                     'this event should be generated _before_ the user becomes an operator
                     '(no chance in getting his own mode flags thrown at him)
-                    GenerateEvent "USER", "MODECHANGE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & tmpSendFlags
+                    GenerateEvent "USER", "MODE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & tmpSendFlags
                     cptr.AccessLevel = 3
                     Opers.Add cptr.GUID, cptr
                     '// don't send the flags if there aren't any
@@ -680,17 +680,17 @@ For I = 2 To UBound(OLine)
                     If AVHost Then DoVLine cptr, OperName, OldPass, True
                     Exit Function
                 Else
-                    SendWsock cptr.index, ERR_PASSWDMISMATCH, TranslateCode(ERR_PASSWDMISMATCH)
+                    SendWsock cptr.index, ERR_PASSWDMISMATCH & " " & cptr.Nick, TranslateCode(ERR_PASSWDMISMATCH)
                     Exit Function
                 End If
             Else
-                SendWsock cptr.index, ERR_NOOPERHOST, TranslateCode(ERR_NOOPERHOST)
+                SendWsock cptr.index, ERR_NOOPERHOST & " " & cptr.Nick, TranslateCode(ERR_NOOPERHOST)
                 Exit Function
             End If
         End If
     End If
 Next I
-SendWsock cptr.index, ERR_NOOPERHOST, TranslateCode(ERR_NOOPERHOST)
+SendWsock cptr.index, ERR_NOOPERHOST & " " & cptr.Nick, TranslateCode(ERR_NOOPERHOST)
 End Function
 
 Public Function GetLLineC(Server As String) As LLines

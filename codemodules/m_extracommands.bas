@@ -14,7 +14,7 @@ Attribute VB_Name = "m_extracommands"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: m_extracommands.bas,v 1.7 2004/06/30 21:39:29 ziggythehamster Exp $
+' $Id: m_extracommands.bas,v 1.9 2004/07/21 03:13:00 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -123,7 +123,7 @@ User.Nick = parv(1)
 SendSvrMsg "*** " & cptr.Nick & " changed the nickname of " & tmpNick & " to " & parv(1)
 'now to do the standard nick change -z
 Dim AllVisible As New Collection
-Dim NickX As Integer
+Dim NickX As Long
 Dim I As Integer
 ReDim RecvArr(1)
 'notify channels -z
@@ -151,10 +151,11 @@ If Len(User.Nick) > 0 Then GlobUsers.Remove tmpNick
 GlobUsers.Add parv(1), User
 tempVar = tmpNick
 User.Nick = parv(1)
-GenerateEvent "USER", "NICKCHANGE", Replace(tmpPrefix, ":", ""), Replace(tmpPrefix, ":", "") & " " & cptr.Nick
+'USER NICK HostMask NewNick
+GenerateEvent "USER", "NICK", Replace(tmpPrefix, ":", ""), Replace(tmpPrefix, ":", "") & " " & cptr.Nick
 User.Prefix = ":" & User.Nick & "!" & User.User & "@" & User.Host
 Dim WasOwner As Boolean, WasOp As Boolean, WasHOp As Boolean, WasVoice As Boolean
-Dim tmpData As Integer
+Dim tmpData As Long
 For NickX = 1 To User.OnChannels.Count
      With User.OnChannels.Item(NickX).Member
        WasOwner = .Item(tempVar).IsOwner

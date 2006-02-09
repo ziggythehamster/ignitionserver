@@ -1,0 +1,9 @@
+IRCXpro => ignitionServer Oper Level Conversion
+***********************************************
+
+Administrator = NPs
+GlobOper = OHPs
+SysMgr = -OocekbBKPWHs (i.e. no global routing)
+SysOp = -OocekbBPWs (no global routing, no glob killing, no /chghost or /chgnick)
+IRCOp = oPs
+HelpOp = -os

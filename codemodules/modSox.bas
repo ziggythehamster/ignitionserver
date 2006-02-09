@@ -14,7 +14,7 @@ Attribute VB_Name = "modSox"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: modSox.bas,v 1.13 2004/06/26 07:01:14 ziggythehamster Exp $
+' $Id: modSox.bas,v 1.15 2004/07/21 05:18:56 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -57,8 +57,9 @@ End If
 
 If cptr.AccessLevel < 4 Then
     'Client connection closed -Dill
-    If Len(cptr.Nick) <> 0 And Len(cptr.User) <> 0 And Len(cptr.RealHost) <> 0 Then GenerateEvent "USER", "LOGOFF", cptr.Nick & "!" & cptr.User & "@" & cptr.RealHost, cptr.Nick & "!" & cptr.User & "@" & cptr.RealHost
-    GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & ServerLocalPort
+    If Len(cptr.Nick) > 0 And Len(cptr.User) > 0 And Len(cptr.RealHost) > 0 Then GenerateEvent "USER", "QUIT", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " :Client Exited"
+    If Len(cptr.Nick) > 0 And Len(cptr.User) > 0 And Len(cptr.RealHost) > 0 Then GenerateEvent "USER", "LOGOFF", cptr.Nick & "!" & cptr.User & "@" & cptr.RealHost, cptr.Nick & "!" & cptr.User & "@" & cptr.RealHost
+    GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & cptr.LocalPort
     If cptr.SentQuit Then Exit Sub
     With cptr
         Msg = .Prefix & " QUIT :Client Exited"
@@ -81,7 +82,7 @@ If cptr.AccessLevel < 4 Then
     Set cptr = Nothing
     Set Users(insox) = Nothing
 Else
-    GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & ServerLocalPort
+    GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & cptr.LocalPort
     'Server connection closed -Dill
     Dim I&, User() As clsClient, s&, c&
     User = GlobUsers.Values
@@ -144,15 +145,16 @@ If IsClient Then
     NC.IP = Sockets.Address(insox)
     On Error Resume Next
     NC.RemotePort = Sockets.Port(insox)
+    NC.LocalPort = Sockets.LocalPort(Sockets.SocketHandle(insox))
     On Error GoTo 0
-    GenerateEvent "SOCKET", "ACCEPT", "*!*@*", NC.IP & ":" & NC.RemotePort & " " & ServerLocalAddr & ":" & ServerLocalPort
+    GenerateEvent "SOCKET", "ACCEPT", "*!*@*", NC.IP & ":" & NC.RemotePort & " " & ServerLocalAddr & ":" & NC.LocalPort
     If MaxConnectionsPerIP > 0 Then
         IPHash(NC.IP) = IPHash(NC.IP) + 1
         If IPHash(NC.IP) > MaxConnectionsPerIP Then
             bArr = StrConv("ERROR :Closing Link: (Session limit exceeded, no more connections allowed from your host)" & vbCrLf, vbFromUnicode)
             Call Send(Sockets.SocketHandle(insox), bArr(0), UBound(bArr) + 1, 0)
             Sockets.TerminateSocket Sockets.SocketHandle(insox)
-            GenerateEvent "SOCKET", "CLOSE", "*!*@*", NC.IP & ":" & NC.RemotePort & " " & ServerLocalAddr & ":" & ServerLocalPort
+            GenerateEvent "SOCKET", "CLOSE", "*!*@*", NC.IP & ":" & NC.RemotePort & " " & ServerLocalAddr & ":" & NC.LocalPort
             IPHash(NC.IP) = IPHash(NC.IP) - 1
             Set Users(insox) = Nothing
             Exit Sub
@@ -183,7 +185,6 @@ Else
     Set NC = GetFreeSlot(insox)
     NC.SockHandle = Sockets.SocketHandle(insox)
     NC.IP = Sockets.Address(insox)
-    GenerateEvent "SOCKET", "OPEN", "*!*@*", NC.IP
     NC.AccessLevel = 4
     NC.ServerName = ServerName
     NC.ServerDescription = ServerDescription
@@ -191,7 +192,9 @@ Else
     NC.RealHost = NC.Host
     On Error Resume Next
     NC.RemotePort = Sockets.Port(insox)
+    NC.LocalPort = Sockets.LocalPort(Sockets.SocketHandle(insox))
     On Error GoTo 0
+    GenerateEvent "SOCKET", "ACCEPT", "*!*@*", NC.IP & ":" & NC.RemotePort & " " & ServerLocalAddr & ":" & NC.LocalPort
     Set NC.FromLink = Servers(ServerName)
     If DoILine(NC) Then Exit Sub
     NC.Idle = UnixTime
@@ -259,6 +262,9 @@ If cptr.tmpused Then
             SendToChan cptr.OnChannels.Item(x), cptr.Prefix & " QUIT :Max temp. RecvQ length exceeded", vbNullString
         Next x
         SendToServer "QUIT :Max temp. RecvQ length exceeded", cptr.Nick
+        GenerateEvent "USER", "QUIT", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " :Max temp. RecvQ length exceeded"
+        GenerateEvent "USER", "LOGOFF", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "")
+        GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & cptr.LocalPort
         KillStruct cptr.Nick, enmTypeClient
         m_error cptr, "Closing Link: Max temp. RecvQ length exceeded"
         Sockets.TerminateSocket cptr.SockHandle
@@ -285,6 +291,9 @@ For I = 0 To UBound(StrArray)
                         SendToChan cptr.OnChannels.Item(x), cptr.Prefix & " QUIT :Max RecvQ length exceeded", vbNullString
                     Next x
                     SendToServer "QUIT :Max RecvQ length exceeded", cptr.Nick
+                    GenerateEvent "USER", "QUIT", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " :Max RecvQ length exceeded"
+                    GenerateEvent "USER", "LOGOFF", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "")
+                    GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & cptr.LocalPort
                     KillStruct cptr.Nick, enmTypeClient
                     m_error cptr, "Closing Link: Max RecvQ length exceeded"
                     Sockets.TerminateSocket cptr.SockHandle
@@ -325,6 +334,9 @@ With cptr
         .OnChannels.Item(y).Member.Remove .Nick
     Next y
     SendToServer "QUIT :Socket Error: " & inDescription, .Nick
+    GenerateEvent "USER", "DISCONNECT", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " :Socket Error: " & inDescription
+    GenerateEvent "USER", "LOGOFF", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "")
+    GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & cptr.LocalPort
     KillStruct .Nick
     .IsKilled = True
 End With

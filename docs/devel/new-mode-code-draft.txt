@@ -1,0 +1,332 @@
+'New Mode Code Draft
+'-------------------
+
+'This draft basically covers how I think the new mode code should be handled. This is similar to my big comment block thing above ACCESS :)
+'Oh yeah, and I use tabs instead of spaces here. If you view this in Windows Notepad, it'll probably take up a lot of room. Get something like
+'Notepad++ (search sourceforge.net) and set your tab length to like 2 spaces. That'll fix it :)
+'
+'Incoming String: MODE #Channel +o-v Moo Moo
+'parv(0) = #Channel
+'parv(1) = +o-v
+'parv(2) = Moo
+'parv(3) = Moo
+'
+'To parse this, you need to know the following bits of information:
+'1) Are we setting or unsetting the mode?
+'2) Does the user have permission to set/unset the mode?
+'3) What mode is it?
+'
+'In code, the questions can be answered like this (bearing in mind that this will NOT
+'work for users trying to set modes on themselves -- that needs to be handled elsewhere):
+
+Dim MSwitch           As Boolean
+Dim CurMode           As Long
+Dim UserPrivs         As Long
+Dim A                 As Long
+Dim X                 As Long
+Dim NumParams         As Long
+Dim CurParam          As Long
+Dim NewModes          As String 'Generic new mode output
+Dim NewModesExtra     As String 'For modes with extra parameters (+kvoq)
+Dim TargetUser        As clsClient
+Dim SendPrivateRemove As Boolean
+Dim SendSecretRemove  As Boolean
+Dim SendHiddenRemove  As Boolean
+
+'                                     [NQOV]
+'Normal = 0                           [0000]
+'Normal + Voice = 1                   [0001]
+'Normal + Host = 2                    [0010]
+'Normal + Host + Voice = 3            [0011]
+'Normal + Owner = 4                   [0100]
+'Normal + Owner + Voice = 5           [0101]
+'Normal + Owner + Host = 6            [0110]
+'Normal + Owner + Host + Voice = 7    [0111]
+
+'This code also assumes that you're ALREADY in m_mode. That's why some of the stuff isn't initialized.
+
+'It's a lot easier to match numbers than it is to keep going into Chan
+If Chan.Member.Item(cptr.Nick).IsVoice Then UserPrivs = UserPrivs + 1
+If Chan.Member.Item(cptr.Nick).IsOp Then UserPrivs = UserPrivs + 2
+If Chan.Member.Item(cptr.Nick).IsOwner Then UserPrivs = UserPrivs + 4
+
+'Chr(43) = +
+'Chr(45) = -
+
+NumParams = UBound(parv) 'This is to simplify further checking :)
+If NumParams > 1 Then
+  CurParam = 2
+Else
+  CurParam = NumParams
+End If
+
+For A = 1 To Len(parv(1))
+	CurMode = Asc(Mid$(parv(1), A, 1))
+	Select Case CurMode
+		Case modeAdd
+			MSwitch = True
+			NewModes = NewModes & "+"
+		Case modeRemove
+			MSwitch = False
+			NewModes = NewModes & "-"
+		Case cmVoice
+			If UserPrivs > 1 Then
+				If CurParam <= NumParams Then
+					'We don't want to continue processing if the current param is
+					'greater than the number of params
+					If CurParam > 1 Then
+						'You can't set +v without specifying a target
+						Set TargetUser = GlobUsers(parv(CurParam))
+						'So we get the right casing for the nickname :)
+						If TargetUser Is Nothing Then
+							SendWsock cptr.index, ERR_USERNOTINCHANNEL & " " & cptr.Nick, TranslateCode(ERR_USERNOTINCHANNEL, parv(CurParam), Chan.Name)
+							GoTo NextMode
+						End If
+						Chan.Member.Item(TargetUser.Nick).IsVoice = MSwitch
+						NewModes = NewModes & "v"
+						If Len(NewModesExtra) > 0 Then
+							NewModesExtra = NewModesExtra & " " & TargetUser.Nick
+						Else
+							NewModesExtra = TargetUser.Nick
+						End If
+						CurParam = CurParam + 1
+					End If
+				End If
+			Else
+				SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
+			End If
+		Case cmOp
+			If UserPrivs > 1 Then
+				If CurParam <= NumParams Then
+					If CurParam > 1 Then
+						Set TargetUser = GlobUsers(parv(CurParam))
+						If TargetUser Is Nothing Then
+							SendWsock cptr.index, ERR_USERNOTINCHANNEL & " " & cptr.Nick, TranslateCode(ERR_USERNOTINCHANNEL, parv(CurParam), Chan.Name)
+							GoTo NextMode
+						End If
+						Chan.Member.Item(TargetUser.Nick).IsOp = MSwitch
+						NewModes = NewModes & "o"
+						If Len(NewModesExtra) > 0 Then
+							NewModesExtra = NewModesExtra & " " & TargetUser.Nick
+						Else
+							NewModesExtra = TargetUser.Nick
+						End If
+						CurParam = CurParam + 1
+					End If
+				End If
+			Else
+				SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
+			End If		
+		Case cmOwner
+			If UserPrivs > 4 Then
+				If CurParam <= NumParams Then
+					If CurParam > 1 Then
+						Set TargetUser = GlobUsers(parv(CurParam))
+						If TargetUser Is Nothing Then
+							SendWsock cptr.index, ERR_USERNOTINCHANNEL & " " & cptr.Nick, TranslateCode(ERR_USERNOTINCHANNEL, parv(CurParam), Chan.Name)
+							GoTo NextMode
+						End If
+						Chan.Member.Item(TargetUser.Nick).IsOwner = MSwitch
+						NewModes = NewModes & "q"
+						If Len(NewModesExtra) > 0 Then
+							NewModesExtra = NewModesExtra & " " & TargetUser.Nick
+						Else
+							NewModesExtra = TargetUser.Nick
+						End If
+						CurParam = CurParam + 1
+					End If
+				End If
+			Else
+				SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
+         End If
+      Case cmLimit
+         If UserPrivs > 1 Then
+            Select Case MSwitch
+               Case True
+                  If CurParam <= NumParams Then
+                     If CurParam > 1 Then
+                        Chan.Limit = CLng(MakeNumber(parv(CurParam)))
+                        NewModes = NewModes & "l"
+                        If Len(NewModesExtra) > 0 Then
+                           NewModesExtra = NewModesExtra & " " & Chan.Limit
+                        Else
+                           NewModesExtra = Chan.Limit
+                        End If
+                        CurParam = CurParam + 1
+                     End If
+                  End If
+               Case False
+                  Chan.Limit = 0
+                  NewModes = Newmodes & "l"
+            End Select
+         Else
+            SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
+         End If
+      Case cmKey
+         If UserPrivs > 1 Then
+            If CurParam <= NumParams Then
+               If CurParam > 1 Then
+                  Select Case MSwitch
+                     Case True
+                        Chan.Key = parv(CurParam)
+                        Chan.Prop_Memberkey = parv(CurParam)
+                        NewModes = NewModes & "k"
+                        If Len(NewModesExtra) > 0 Then
+                           NewModesExtra = NewModesExtra & " " & parv(CurParam)
+                        Else
+                           NewModesExtra = parv(CurParam)
+                        End If
+                        CurParam = CurParam + 1
+                     Case False
+                        If StrComp(Chan.Key, parv(CurParam)) = 0 Then
+                           Chan.Key = vbNullString
+                           Chan.Prop_Memberkey = vbNullString
+                           NewModes = NewModes & "k"
+                           If Len(NewModesExtra) > 0 Then
+                              NewModesExtra = NewModesExtra & " " & parv(CurParam)
+                           Else
+                              NewModesExtra = parv(CurParam)
+                           End If
+                           CurParam = CurParam + 1
+                        End If
+                  End Select
+               End If
+            End If
+         Else
+            SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
+         End If
+      Case cmBan
+         If UserPrivs > 1 Then
+            If CurParam <= NumParams Then
+               If CurParam > 1 Then
+                  Select Case MSwitch
+                     Case True
+                        Mask = CreateMask(parv(CurParam))
+                        
+                        If Not FindDeny(Chan, Mask) Then
+                          Set Ban = Nothing
+                          Chan.Bans.AddX Mask, cptr.Nick, UnixTime, 0, vbNullString, Mask
+                        End If
+                        CurParam = CurParam + 1
+                     Case False
+                        Mask = CreateMask(parv(CurParam))
+                        
+                        If FindDeny(Chan, Mask) Then
+                           Chan.Bans.Remove Mask
+                        End If
+                        CurParam = CurParam + 1
+                  End Select
+               Else
+                  'get bans (CurParam = 1, therefore there was only one param)
+                  For x = 1 To Chan.Bans.Count
+                    SendWsock cptr.index, SPrefix & " " & RPL_BANLIST & " " & cptr.Nick & " " & Chan.Name & " " & Chan.Bans(x).Mask & " " & Chan.Bans(x).SetBy & " :" & Chan.Bans(x).SetOn, vbNullString, , True
+                  Next x
+                  SendWsock cptr.index, SPrefix & " " & RPL_ENDOFBANLIST & " " & cptr.Nick & " " & Chan.Name & " :End of Channel Ban List", vbNullString, , True
+               End If
+            End If
+         Else
+            SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
+         End If
+      Case cmSecret
+         If UserPrivs > 1 Then
+            If Chan.IsHidden Then SendHiddenRemove = True
+            If Chan.IsPrivate Then SendPrivateRemove = True
+            Chan.IsSecret = MSwitch
+            Chan.IsHidden = False
+            Chan.IsPrivate = False
+            SendSecretRemove = False
+            NewModes = NewModes & "s"
+         Else
+         	SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
+         End If
+      Case cmPrivate
+         If UserPrivs > 1 Then
+            If Chan.IsHidden Then SendHiddenRemove = True
+            If Chan.IsSecret Then SendSecretRemove = True
+            Chan.IsPrivate = MSwitch
+            Chan.IsHidden = False
+            Chan.IsSecret = False
+            SendPrivateRemove = False
+         Else
+         	SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
+         End If
+      Case cmHidden
+         If UserPrivs > 1 Then
+            If Chan.IsPrivate Then SendPrivateRemove = True
+            If Chan.IsSecret Then SendSecretRemove = True
+            Chan.IsHidden = MSwitch
+            Chan.IsPrivate = False
+            Chan.IsSecret = False
+            SendHiddenRemove = False
+         Else
+            SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
+         End If
+      Case cmInviteOnly
+         If UserPrivs > 1 Then
+            Chan.IsInviteOnly = MSwitch
+            NewModes = NewModes & "i"
+         Else
+         	SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
+         End If
+      Case cmModerated
+         If UserPrivs > 1 Then
+            Chan.IsModerated = MSwitch
+            NewModes = NewModes & "m"
+         Else
+            SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
+         End If
+      Case cmKnock
+         If UserPrivs > 1 Then
+            Chan.IsKnock = MSwitch
+            NewModes = NewModes & "u"
+         Else
+            SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
+         End If
+      Case cmNoExternalMsg
+         If UserPrivs > 1 Then
+            Chan.IsNoExternalMsgs = MSwitch
+            NewModes = NewModes & "n"
+         Else
+            SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
+         End If
+      Case cmOpTopic
+         If UserPrivs > 1 Then
+            Chan.IsTopicOps = MSwitch
+            NewModes = NewModes & "t"
+         Else
+            SendWsock cptr.index, ERR_CHANOPRIVSNEEDED & " " & cptr.Nick, TranslateCode(ERR_CHANOPRIVSNEEDED, , Chan.Name)
+         End If
+      Case cmOperOnly
+         If cptr.IsNetAdmin Or cptr.IsGlobOperator Then
+            Chan.IsOperOnly = MSwitch
+            NewModes = NewModes & "O"
+         Else
+            SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+         End If
+      Case cmPersistant
+         If RegChanMode_ModeR Then
+            If cptr.IsNetAdmin Or cptr.IsGlobOperator Then
+               Chan.IsPersistant = MSwitch
+               NewModes = NewModes & "R"
+            Else
+               SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+            End If
+         Else
+            Select Case MSwitch
+               Case True
+                  SendWsock cptr.index, ERR_UNKNOWNMODE & " " & cptr.Nick, TranslateCode(ERR_UNKNOWNMODE, "+R", Chan.Name)
+               Case False
+                  SendWsock cptr.index, ERR_UNKNOWNMODE & " " & cptr.Nick, TranslateCode(ERR_UNKNOWNMODE, "-R", Chan.Name)
+            End Select
+         End If
+      Case Else
+         Select Case MSwitch
+            Case True
+               SendWsock cptr.index, ERR_UNKNOWNMODE & " " & cptr.Nick, TranslateCode(ERR_UNKNOWNMODE, "+" & Chr(CurMode), Chan.Name)
+            Case False
+               SendWsock cptr.index, ERR_UNKNOWNMODE & " " & cptr.Nick, TranslateCode(ERR_UNKNOWNMODE, "-" & Chr(CurMode), Chan.Name)
+         End Select
+	End Select
+
+NextMode:
+Next A

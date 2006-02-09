@@ -14,7 +14,7 @@ Attribute VB_Name = "m_ircx_chan"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: m_ircx_chan.bas,v 1.9 2004/06/26 07:01:13 ziggythehamster Exp $
+' $Id: m_ircx_chan.bas,v 1.14 2004/07/25 02:15:38 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -65,6 +65,16 @@ Else
     SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , parv(0))
     Exit Function
   End If
+  If InStr(1, parv(0), "*") > 0 Then
+      CurrentInfo = "illegal channel name"
+      SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , , parv(0))
+      Exit Function
+  End If
+  If InStr(1, parv(0), "?") > 0 Then
+      CurrentInfo = "illegal channel name"
+      SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , , parv(0))
+      Exit Function
+  End If
   If MaxChannelsPerUser > 0 Then
     If cptr.OnChannels.Count >= MaxChannelsPerUser Then
         'this could be turned into its own S: line thing
@@ -104,9 +114,8 @@ Else
     End If
     SendWsock cptr.index, SPrefix & " " & RPL_ENDOFNAMES & " " & cptr.Nick & " " & Chan.Name & " :End of /NAMES list.", vbNullString, , True
     SendToServer "JOIN " & Chan.Name, cptr.Nick
-    GenerateEvent "USER", "JOIN", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " " & Chan.Name
-    GenerateEvent "CHANNEL", "CREATE", Chan.Name, Chan.Name & " " & cptr.Nick
-    GenerateEvent "CHANNEL", "JOIN", Chan.Name, Chan.Name & " " & cptr.Nick
+    GenerateEvent "CHANNEL", "CREATE", Chan.Name, Chan.Name & " +" & Split(GetModes(Chan), " ")(0) & " " & Replace(cptr.Prefix, ":", "")
+    GenerateEvent "MEMBER", "JOIN", Replace(cptr.Prefix, ":", ""), Chan.Name & " " & Replace(cptr.Prefix, ":", "") & " +q"
   Else
     CurrentInfo = "channel exists"
     SendWsock cptr.index, IRCERR_CHANNELEXIST & " " & cptr.Nick, TranslateCode(IRCERR_CHANNELEXIST, , parv(0))
@@ -116,8 +125,8 @@ End Function
 
 Public Sub ParseModes(ModeString As String, Chan As clsChannel)
 Dim ModesArray() As String
-Dim CurParam As Integer
-Dim A As Integer
+Dim CurParam As Long
+Dim A As Long
 CurParam = 1 '1 would default to the first mode parameter
 ModesArray = Split(ModeString, " ")
 For A = 1 To Len(ModesArray(0))
@@ -130,6 +139,7 @@ For A = 1 To Len(ModesArray(0))
     Chan.IsPrivate = False
   End If
   If Chr(cmInviteOnly) = Mid$(ModesArray(0), A, 1) Then Chan.IsInviteOnly = True
+  If Chr(cmOperOnly) = Mid$(ModesArray(0), A, 1) Then Chan.IsOperOnly = True
   If Chr(cmPersistant) = Mid$(ModesArray(0), A, 1) And RegChanMode_ModeR Then Chan.IsPersistant = True
   If Chr(cmSecret) = Mid$(ModesArray(0), A, 1) Then
     Chan.IsSecret = True
@@ -162,3 +172,130 @@ For A = 1 To Len(ModesArray(0))
   'todo: allow opers to make a chan +r
 Next A
 End Sub
+Public Function m_whisper(cptr As clsClient, sptr As clsClient, parv$()) As Long
+#If Debugging = 1 Then
+    SendSvrMsg "WHISPER called! (" & cptr.Nick & ")"
+#End If
+'/*****************************************************
+'* I know, this is basically a copy of m_message -_-  *
+'******************************************************/
+Dim cmd$, RecList$(), I, x&, Chan As clsChannel, Recp As clsClient, RecvServer() As clsClient, ChM As clsChanMember
+If cptr.AccessLevel = 4 Then
+    Set Chan = Channels(parv(0))
+    If Chan Is Nothing Then Exit Function
+    
+    RecList = Split(parv(1), ",")
+    For Each I In RecList
+        If AscW(CStr(I)) = 35 Then
+            'you can't whisper to a channel...
+            GoTo NextCmd
+        Else
+            Set Recp = GlobUsers(CStr(I))
+            If Recp Is Nothing Then
+                GoTo NextCmd
+            End If
+            If Recp.Hops > 0 Then
+                'The user is an remote user
+                SendWsock Recp.FromLink.index, "WHISPER " & Chan.Name & " " & Recp.Nick, ":" & parv(2), ":" & sptr.Nick
+            Else
+                'the user is an local user
+                SendWsock Recp.index, "WHISPER " & Chan.Name & " " & Recp.Nick, ":" & parv(2), sptr.Prefix
+            End If
+        End If
+NextCmd:
+    Next
+Else
+    If Len(parv(0)) = 0 Then 'if no recipient is given, return an error -Dill
+      SendWsock cptr.index, ERR_NORECIPIENT & " " & cptr.Nick, TranslateCode(ERR_NORECIPIENT, "WHISPER")
+      Exit Function
+    End If
+    If UBound(parv) = 1 Then 'if cptr didnt tell us what to send, complain -Dill
+      SendWsock cptr.index, ERR_NOTEXTTOSEND & " " & cptr.Nick, TranslateCode(ERR_NOTEXTTOSEND)
+      Exit Function
+    End If
+    If Len(parv(2)) = 0 Then
+      SendWsock cptr.index, ERR_NOTEXTTOSEND & " " & cptr.Nick, TranslateCode(ERR_NOTEXTTOSEND)
+      Exit Function
+    End If
+    If cptr.IsGagged Then 'if they're gagged, they can't speak
+      If BounceGagMsg Then SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
+      Exit Function
+    End If
+    'does the channel exist?
+    Set Chan = Channels(parv(0))
+    If Chan Is Nothing Then
+      SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , parv(0))
+      Exit Function
+    End If
+    
+    'allow them to whisper if the channel is -n
+    If Chan.Member.Item(cptr.Nick) Is Nothing And Chan.IsNoExternalMsgs Then
+      SendWsock cptr.index, ERR_NOTONCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOTONCHANNEL, , Chan.Name)
+      Exit Function
+    End If
+    
+    RecList = Split(parv(1), ",")
+    For Each I In RecList
+      If Len(I) = 0 Then GoTo nextmsg
+      If AscW(CStr(I)) = 35 Then
+        SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, CStr(I))
+        GoTo nextmsg
+      Else
+        'user message -Dill
+        If InStr(1, I, "*") <> 0 Then
+          If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then 'Can't send to wildcarded recipient list if not an oper -Dill
+            SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+            Exit Function
+          Else
+            'WILDCARD recievelist -Dill
+            Dim Umask$, Target() As clsClient
+            Umask = ":" & CreateMask(CStr(I))
+            Target = GlobUsers.Values
+            For x = LBound(Target) To UBound(Target)
+                If Target(x).Prefix Like Umask Then
+                    If Target(x).Hops = 0 Then
+                        SendWsock Target(x).index, "WHISPER " & Chan.Name & " " & Target(x).Nick, ":" & parv(2), cptr.Prefix
+                    Else
+                        SendWsock Target(x).FromLink.index, "WHISPER " & Chan.Name & " " & Target(x).Nick, ":" & parv(2), ":" & cptr.Nick
+                    End If
+                End If
+            Next x
+            GoTo nextmsg
+          End If
+        End If
+        
+        'not wildcarded
+        On Local Error Resume Next
+        'to avoid possible confusion
+        'we're using sptr in order to not waste memory with initializing another client class
+        Set sptr = GlobUsers(CStr(I))
+        If sptr Is Nothing Then 'in case user does not exist -Dill
+          SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, CStr(I))
+          GoTo nextmsg
+        End If
+        Dim tmpChan As clsChannel
+        
+        'don't deliver the whisper if they're not on the channel specified
+        Set tmpChan = sptr.OnChannels.Item(Chan.Name)
+        If tmpChan Is Nothing Then
+          SendWsock cptr.index, ERR_USERNOTINCHANNEL, cptr.Nick & " " & TranslateCode(ERR_USERNOTINCHANNEL, sptr.Nick, Chan.Name)
+          GoTo nextmsg
+        End If
+        
+        'deliver the message -Dill
+        If sptr.Hops = 0 Then
+            SendWsock sptr.index, "WHISPER " & Chan.Name & " " & sptr.Nick, ":" & parv(2), cptr.Prefix
+        Else
+            SendWsock sptr.FromLink.index, "WHISPER " & Chan.Name & " " & sptr.Nick, ":" & parv(2), ":" & cptr.Nick
+        End If
+        If Len(sptr.AwayMsg) > 0 Then
+            SendWsock cptr.index, RPL_AWAY & " " & cptr.Nick & " " & sptr.Nick, ":" & sptr.AwayMsg
+        End If
+        'reset idle time
+        cptr.Idle = UnixTime
+      End If
+nextmsg:
+    Next
+End If
+End Function
+

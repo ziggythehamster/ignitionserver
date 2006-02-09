@@ -8,11 +8,11 @@
 # ignitionServer!                    #
 ######################################
 
-# ignitionServer 0.3.1 Configuration File
+# ignitionServer 0.3.3 Configuration File
 # Lines that begin with # are comments and IGNORED by ignitionServer!
 
 ################################################### 
-# $Id: migwiz.cftpl,v 1.6 2004/07/02 23:23:00 ziggythehamster Exp $ 
+# $Id: migwiz.cftpl,v 1.8 2004/07/10 02:31:22 ziggythehamster Exp $ 
 ###################################################
 
 !insertmacro generator
@@ -50,8 +50,9 @@
 !insertmacro a-line
 
 #[ S: Lines - Security Settings ]###########################################
-# S:<MaxConn>:<MaxClones>:<MaxChans>:<NickLen>:<TopicLen>:<KickLen>:       #
-#   <PartLen>:<KeyLen>:<QuitLen>:<MaxWhoLen>:<MaxListLen>:<MaxMsgsInQueue> #
+# S:<MaxConn>:<MaxClones>:<MaxChansPerUser>:<NickLen>:<TopicLen>:          #
+#   <KickLen>:<PartLen>:<KeyLen>:<QuitLen>:<MaxWhoLen>:<MaxListLen>:       #
+#   <MaxMsgsInQueue>                                                       #
 ############################################################################
 # The security line sets limits to the length of certian strings and       #
 # replies. Some do not yet apply. In any field, 0 means "infinite".        #

@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_NativeFunctions"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_NativeFunctions.bas,v 1.16 2004/06/26 18:02:17 ziggythehamster Exp $
+' $Id: mod_NativeFunctions.bas,v 1.18 2004/07/20 22:11:43 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -71,7 +71,7 @@ End Function
 
 'it's a pretty bulky bunch of code but it works fine -Dill
 'Massive cleanup, 1st mar 03 -Dill
-Public Function GetStats(Nick As String, AccessLvl As Integer, Flag As String, Optional Param As String) As String
+Public Function GetStats(Nick As String, AccessLvl As Long, Flag As String, Optional Param As String) As String
 #If Debugging = 1 Then
     SendSvrMsg "GETSTATS called! (" & Flag & ")"
 #End If
@@ -154,6 +154,7 @@ Select Case Flag
         If Cmds.Close > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :CLOSE " & Cmds.Close & " " & Cmds.CloseBW & vbCrLf
         If Cmds.Connect > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :CONNECT " & Cmds.Connect & " " & Cmds.ConnectBW & vbCrLf
         If Cmds.Create > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :CREATE " & Cmds.Create & " " & Cmds.CreateBW & vbCrLf
+        If Cmds.Data > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :DATA " & Cmds.Data & " " & Cmds.DataBW & vbCrLf
         If Cmds.Die > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :DIE " & Cmds.Die & " " & Cmds.DieBW & vbCrLf
         If Cmds.Hash > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :HASH " & Cmds.Hash & " " & Cmds.HashBW & vbCrLf
         If Cmds.Info > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :INFO " & Cmds.Info & " " & Cmds.InfoBW & vbCrLf
@@ -188,6 +189,8 @@ Select Case Flag
         If Cmds.Prop > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :PROP " & Cmds.Prop & " " & Cmds.PropBW & vbCrLf
         If Cmds.Quit > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :QUIT " & Cmds.Quit & " " & Cmds.QuitBW & vbCrLf
         If Cmds.Rehash > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :REHASH " & Cmds.Rehash & " " & Cmds.RehashBW & vbCrLf
+        If Cmds.Reply > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :REPLY " & Cmds.Reply & " " & Cmds.ReplyBW & vbCrLf
+        If Cmds.Request > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :REQUEST " & Cmds.Request & " " & Cmds.RequestBW & vbCrLf
         If Cmds.Restart > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :RESTART " & Cmds.Restart & " " & Cmds.RestartBW & vbCrLf
         If Cmds.SAMode > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :SAMODE " & Cmds.SAMode & " " & Cmds.SAModeBW & vbCrLf
         If Cmds.Server > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :SERVER " & Cmds.Server & " " & Cmds.ServerBW & vbCrLf
@@ -278,12 +281,12 @@ Public Function GetServer(Mask$) As clsClient
 #If Debugging = 1 Then
     SendSvrMsg "GETSERVER called! (" & Mask & ")"
 #End If
-Dim I&, Val() As clsClient
-Val = Servers.Values
-For I = LBound(Val) To UBound(Val)
-    If Not Val(I).Hops = 0 Then
-        If Val(I).ServerName Like Mask Then
-            Set GetServer = Val(I)
+Dim I&, ClientVal() As clsClient
+ClientVal = Servers.Values
+For I = LBound(ClientVal) To UBound(ClientVal)
+    If Not ClientVal(I).Hops = 0 Then
+        If ClientVal(I).ServerName Like Mask Then
+            Set GetServer = ClientVal(I)
             Exit Function
         End If
     End If

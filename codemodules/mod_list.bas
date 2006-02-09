@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_list"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_list.bas,v 1.41 2004/07/02 23:16:55 ziggythehamster Exp $
+' $Id: mod_list.bas,v 1.49 2004/07/25 01:36:35 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -37,7 +37,7 @@ Option Explicit
 Public Const MaxTrafficRate As Long = 100
 
 '-=BUILD DATE=-
-Public Const BuildDate As String = "20040702"
+Public Const BuildDate As String = "20040725"
 
 #Const Debugging = 0
 
@@ -349,6 +349,9 @@ Public Type Commands
   ChgNick As Long: ChgNickBW As Currency
   Add As Long: AddBW As Currency
   Whisper As Long: WhisperBW As Currency
+  Data As Long: DataBW As Currency
+  Request As Long: RequestBW As Currency
+  Reply As Long: ReplyBW As Currency
 End Type
 
 '/*
@@ -778,6 +781,10 @@ Public Function TranslateCode$(Code&, Optional Nick$, Optional Chan$, Optional c
 #End If
 On Error Resume Next
 Select Case Code
+  'replies
+  Case RPL_WHOISREGNICK
+    TranslateCode = ":is a registered nick"
+  'errors
   Case ERR_NOSUCHNICK
     TranslateCode = Nick & " :No such nick/channel"
   Case ERR_NOSUCHSERVER
@@ -913,7 +920,7 @@ Select Case Code
     TranslateCode = ":Start of events"
   Case IRCRPL_EVENTEND
     TranslateCode = ":End of events"
-  Case RPL_WHOISREGNICK
-    TranslateCode = ":is a registered nick"
+  Case IRCERR_BADTAG
+    TranslateCode = cmd & " :Bad message tag."
 End Select
 End Function

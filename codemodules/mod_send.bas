@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_send"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_send.bas,v 1.7 2004/06/26 07:01:14 ziggythehamster Exp $
+' $Id: mod_send.bas,v 1.9 2004/07/20 22:11:44 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -31,6 +31,9 @@ Attribute VB_Name = "mod_send"
 
 Option Explicit
 #Const Debugging = 0
+
+'TODO: Fix the send routines that use Val() -- Val() is an official VB function and it causes slowdowns
+
 Public Sub SendDirect(index As Long, cmd$)
 On Error Resume Next
 With Users(index)
@@ -97,16 +100,16 @@ End Sub
 
 Public Function SendToChan(Chan As clsChannel, Msg As String, From As String) As Boolean
 On Error Resume Next
-Dim I As Long, Val() As clsChanMember
+Dim I As Long, ClientVal() As clsChanMember
 Msg = Msg & vbCrLf
 ServerTraffic = ServerTraffic + (Chan.Member.Count * Len(Msg))
 'The first checks everytime if the target is the sender, so it executes a *BIT* slower than the other -Dill
-Val = Chan.Member.Values
+ClientVal = Chan.Member.Values
 If Len(From) > 0 Then
-    For I = LBound(Val) To UBound(Val)
-        If Not StrComp(From, Val(I).Member.Nick) = 0 Then
-            If Val(I).Member.Hops = 0 Then
-                With Val(I).Member
+    For I = LBound(ClientVal) To UBound(ClientVal)
+        If Not StrComp(From, ClientVal(I).Member.Nick) = 0 Then
+            If ClientVal(I).Member.Hops = 0 Then
+                With ClientVal(I).Member
                     If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                         .SendQ = .SendQ & Msg
                         On Local Error Resume Next
@@ -119,9 +122,9 @@ If Len(From) > 0 Then
         End If
     Next I
 Else
-    For I = LBound(Val) To UBound(Val)
-        If Val(I).Member.Hops = 0 Then
-            With Val(I).Member
+    For I = LBound(ClientVal) To UBound(ClientVal)
+        If ClientVal(I).Member.Hops = 0 Then
+            With ClientVal(I).Member
                 If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                     .SendQ = .SendQ & Msg
                     On Local Error Resume Next
@@ -136,16 +139,16 @@ End If
 End Function
 Public Function SendToChanIRCX(Chan As clsChannel, Msg As String, From As String) As Boolean
 On Error Resume Next
-Dim I As Long, Val() As clsChanMember
+Dim I As Long, ClientVal() As clsChanMember
 Msg = Msg & vbCrLf
 ServerTraffic = ServerTraffic + (Chan.Member.Count * Len(Msg))
 'The first checks everytime if the target is the sender, so it executes a *BIT* slower than the other -Dill
-Val = Chan.Member.Values
+ClientVal = Chan.Member.Values
 If Len(From) > 0 Then
-    For I = LBound(Val) To UBound(Val)
-        If Not StrComp(From, Val(I).Member.Nick) = 0 Then
-            If Val(I).Member.Hops = 0 Then
-                With Val(I).Member
+    For I = LBound(ClientVal) To UBound(ClientVal)
+        If Not StrComp(From, ClientVal(I).Member.Nick) = 0 Then
+            If ClientVal(I).Member.Hops = 0 Then
+                With ClientVal(I).Member
                     If .IsIRCX Then
                       If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                           .SendQ = .SendQ & Msg
@@ -160,9 +163,9 @@ If Len(From) > 0 Then
         End If
     Next I
 Else
-    For I = LBound(Val) To UBound(Val)
-        If Val(I).Member.Hops = 0 Then
-            With Val(I).Member
+    For I = LBound(ClientVal) To UBound(ClientVal)
+        If ClientVal(I).Member.Hops = 0 Then
+            With ClientVal(I).Member
                 If .IsIRCX Then
                   If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                       .SendQ = .SendQ & Msg
@@ -177,21 +180,26 @@ Else
     Next I
 End If
 End Function
+
+'/* 20-Jul-2004 - Removed DATA/REQUEST/REPLY stuff    */
+'/* It appears official IRCX no longer implements it  */
+'/* as this function did. More memory, please! :) -Zg */
+
 Public Function SendToChanOpsIRCX(Chan As clsChannel, Msg As String, From As String) As Boolean
 On Error Resume Next
-Dim I As Long, Val() As clsChanMember
+Dim I As Long, ClientVal() As clsChanMember
 Msg = Msg & vbCrLf
 ServerTraffic = ServerTraffic + (Chan.Member.Count * Len(Msg))
 'The first checks everytime if the target is the sender, so it executes a *BIT* slower than the other -Dill
-Val = Chan.Member.Values
+ClientVal = Chan.Member.Values
 If Len(From) > 0 Then
-    For I = LBound(Val) To UBound(Val)
-        If Not StrComp(From, Val(I).Member.Nick) = 0 Then
-            If Val(I).Member.Hops = 0 Then
-                With Val(I).Member
+    For I = LBound(ClientVal) To UBound(ClientVal)
+        If Not StrComp(From, ClientVal(I).Member.Nick) = 0 Then
+            If ClientVal(I).Member.Hops = 0 Then
+                With ClientVal(I).Member
                     If .IsIRCX Then
                       If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
-                          If Val(I).IsOp Or Val(I).IsOwner Then
+                          If ClientVal(I).IsOp Or ClientVal(I).IsOwner Then
                             .SendQ = .SendQ & Msg
                             On Local Error Resume Next
                             ColOutClientMsg.Add .index, CStr(.index)
@@ -205,12 +213,12 @@ If Len(From) > 0 Then
         End If
     Next I
 Else
-    For I = LBound(Val) To UBound(Val)
-        If Val(I).Member.Hops = 0 Then
-            With Val(I).Member
+    For I = LBound(ClientVal) To UBound(ClientVal)
+        If ClientVal(I).Member.Hops = 0 Then
+            With ClientVal(I).Member
                 If .IsIRCX Then
                   If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
-                    If Val(I).IsOp Or Val(I).IsOwner Then
+                    If ClientVal(I).IsOp Or ClientVal(I).IsOwner Then
                       .SendQ = .SendQ & Msg
                       On Local Error Resume Next
                       ColOutClientMsg.Add .index, CStr(.index)
@@ -226,16 +234,16 @@ End If
 End Function
 Public Function SendToChan1459(Chan As clsChannel, Msg As String, From As String) As Boolean
 On Error Resume Next
-Dim I As Long, Val() As clsChanMember
+Dim I As Long, ClientVal() As clsChanMember
 Msg = Msg & vbCrLf
 ServerTraffic = ServerTraffic + (Chan.Member.Count * Len(Msg))
 'The first checks everytime if the target is the sender, so it executes a *BIT* slower than the other -Dill
-Val = Chan.Member.Values
+ClientVal = Chan.Member.Values
 If Len(From) > 0 Then
-    For I = LBound(Val) To UBound(Val)
-        If Not StrComp(From, Val(I).Member.Nick) = 0 Then
-            If Val(I).Member.Hops = 0 Then
-                With Val(I).Member
+    For I = LBound(ClientVal) To UBound(ClientVal)
+        If Not StrComp(From, ClientVal(I).Member.Nick) = 0 Then
+            If ClientVal(I).Member.Hops = 0 Then
+                With ClientVal(I).Member
                     If Not .IsIRCX Then
                       If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                           .SendQ = .SendQ & Msg
@@ -250,9 +258,9 @@ If Len(From) > 0 Then
         End If
     Next I
 Else
-    For I = LBound(Val) To UBound(Val)
-        If Val(I).Member.Hops = 0 Then
-            With Val(I).Member
+    For I = LBound(ClientVal) To UBound(ClientVal)
+        If ClientVal(I).Member.Hops = 0 Then
+            With ClientVal(I).Member
                 If Not .IsIRCX Then
                   If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                       .SendQ = .SendQ & Msg
@@ -269,16 +277,16 @@ End If
 End Function
 Public Function SendRawToChanOps(Chan As clsChannel, Raw As Long, Msg As String, From As String) As Boolean
 On Error Resume Next
-Dim I As Long, Val() As clsChanMember
+Dim I As Long, ClientVal() As clsChanMember
 Msg = Msg & vbCrLf
 ServerTraffic = ServerTraffic + (Chan.Member.Count * Len(Msg))
 'The first checks everytime if the target is the sender, so it executes a *BIT* slower than the other -Dill
-Val = Chan.Member.Values
+ClientVal = Chan.Member.Values
 If Len(From) > 0 Then
-    For I = LBound(Val) To UBound(Val)
-        If Not StrComp(From, Val(I).Member.Nick) = 0 Then
-            If Val(I).Member.Hops = 0 Then
-                With Val(I).Member
+    For I = LBound(ClientVal) To UBound(ClientVal)
+        If Not StrComp(From, ClientVal(I).Member.Nick) = 0 Then
+            If ClientVal(I).Member.Hops = 0 Then
+                With ClientVal(I).Member
                     If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                         If Chan.Member.Item(.Nick).IsOp Or Chan.Member.Item(.Nick).IsOwner Then
                           .SendQ = .SendQ & SPrefix & " " & Raw & " " & .Nick & " " & Msg
@@ -293,9 +301,9 @@ If Len(From) > 0 Then
         End If
     Next I
 Else
-    For I = LBound(Val) To UBound(Val)
-        If Val(I).Member.Hops = 0 Then
-            With Val(I).Member
+    For I = LBound(ClientVal) To UBound(ClientVal)
+        If ClientVal(I).Member.Hops = 0 Then
+            With ClientVal(I).Member
                 If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                     If Chan.Member.Item(.Nick).IsOp Or Chan.Member.Item(.Nick).IsOwner Then
                       .SendQ = .SendQ & SPrefix & " " & Raw & " " & .Nick & " " & Msg
@@ -312,16 +320,16 @@ End If
 End Function
 Public Function SendRawToChan(Chan As clsChannel, Raw As Long, Msg As String, From As String) As Boolean
 On Error Resume Next
-Dim I As Long, Val() As clsChanMember
+Dim I As Long, ClientVal() As clsChanMember
 Msg = Msg & vbCrLf
 ServerTraffic = ServerTraffic + (Chan.Member.Count * Len(Msg))
 'The first checks everytime if the target is the sender, so it executes a *BIT* slower than the other -Dill
-Val = Chan.Member.Values
+ClientVal = Chan.Member.Values
 If Len(From) > 0 Then
-    For I = LBound(Val) To UBound(Val)
-        If Not StrComp(From, Val(I).Member.Nick) = 0 Then
-            If Val(I).Member.Hops = 0 Then
-                With Val(I).Member
+    For I = LBound(ClientVal) To UBound(ClientVal)
+        If Not StrComp(From, ClientVal(I).Member.Nick) = 0 Then
+            If ClientVal(I).Member.Hops = 0 Then
+                With ClientVal(I).Member
                     If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                         .SendQ = .SendQ & SPrefix & " " & Raw & " " & .Nick & " " & Msg
                         On Local Error Resume Next
@@ -334,9 +342,9 @@ If Len(From) > 0 Then
         End If
     Next I
 Else
-    For I = LBound(Val) To UBound(Val)
-        If Val(I).Member.Hops = 0 Then
-            With Val(I).Member
+    For I = LBound(ClientVal) To UBound(ClientVal)
+        If ClientVal(I).Member.Hops = 0 Then
+            With ClientVal(I).Member
                 If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                     .SendQ = .SendQ & SPrefix & " " & Raw & " " & .Nick & " " & Msg
                     On Local Error Resume Next
@@ -350,24 +358,24 @@ Else
 End If
 End Function
 Public Sub SendToServer(Msg As String, Optional Prefix As String)
-Dim I&, Val() As clsClient
+Dim I&, ClientVal() As clsClient
 If Len(Prefix) = 0 Then Prefix = ServerName
-Val = Servers.Values
-For I = LBound(Val) To UBound(Val)
-    If Val(I).Hops = 1 Then
-        SendWsock Val(I).index, ":" & Prefix & " " & Msg, vbNullString, vbNullString, True
+ClientVal = Servers.Values
+For I = LBound(ClientVal) To UBound(ClientVal)
+    If ClientVal(I).Hops = 1 Then
+        SendWsock ClientVal(I).index, ":" & Prefix & " " & Msg, vbNullString, vbNullString, True
     End If
 Next I
 End Sub
 
 Public Sub SendToServer_ButOne(Msg As String, Except$, Optional Prefix As String)
-Dim I&, Val() As clsClient
+Dim I&, ClientVal() As clsClient
 If Len(Prefix) = 0 Then Prefix = ServerName
-Val = Servers.Values
-For I = LBound(Val) To UBound(Val)
-    If Val(I).Hops = 1 Then
-        If Not StrComp(Val(I).ServerName, Except, vbTextCompare) = 0 Then
-            SendWsock Val(I).index, ":" & Prefix & " " & Msg, vbNullString, vbNullString, True
+ClientVal = Servers.Values
+For I = LBound(ClientVal) To UBound(ClientVal)
+    If ClientVal(I).Hops = 1 Then
+        If Not StrComp(ClientVal(I).ServerName, Except, vbTextCompare) = 0 Then
+            SendWsock ClientVal(I).index, ":" & Prefix & " " & Msg, vbNullString, vbNullString, True
         End If
     End If
 Next I
@@ -385,16 +393,16 @@ End Sub
 
 Public Function SendToChanOwners(Chan As clsChannel, Msg As String, From As String) As Boolean
 On Error Resume Next
-Dim I As Long, Val() As clsChanMember
+Dim I As Long, ClientVal() As clsChanMember
 Msg = Msg & vbCrLf
 ServerTraffic = ServerTraffic + (Chan.Member.Count * Len(Msg))
 'The first checks everytime if the target is the sender, so it executes a *BIT* slower than the other -Dill
-Val = Chan.Member.Values
+ClientVal = Chan.Member.Values
 If Len(From) > 0 Then
-    For I = LBound(Val) To UBound(Val)
-        If Not StrComp(From, Val(I).Member.Nick) = 0 Then
-            If Val(I).Member.Hops = 0 Then
-                With Val(I).Member
+    For I = LBound(ClientVal) To UBound(ClientVal)
+        If Not StrComp(From, ClientVal(I).Member.Nick) = 0 Then
+            If ClientVal(I).Member.Hops = 0 Then
+                With ClientVal(I).Member
                     If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                         On Local Error Resume Next
                         If Chan.Member.Item(.Nick).IsOwner Then
@@ -409,9 +417,9 @@ If Len(From) > 0 Then
         End If
     Next I
 Else
-    For I = LBound(Val) To UBound(Val)
-        If Val(I).Member.Hops = 0 Then
-            With Val(I).Member
+    For I = LBound(ClientVal) To UBound(ClientVal)
+        If ClientVal(I).Member.Hops = 0 Then
+            With ClientVal(I).Member
                 If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                     On Local Error Resume Next
                         If Chan.Member.Item(.Nick).IsOwner Then
@@ -428,16 +436,16 @@ End If
 End Function
 Public Function SendToChanOps(Chan As clsChannel, Msg As String, From As String) As Boolean
 On Error Resume Next
-Dim I As Long, Val() As clsChanMember
+Dim I As Long, ClientVal() As clsChanMember
 Msg = Msg & vbCrLf
 ServerTraffic = ServerTraffic + (Chan.Member.Count * Len(Msg))
 'The first checks everytime if the target is the sender, so it executes a *BIT* slower than the other -Dill
-Val = Chan.Member.Values
+ClientVal = Chan.Member.Values
 If Len(From) > 0 Then
-    For I = LBound(Val) To UBound(Val)
-        If Not StrComp(From, Val(I).Member.Nick) = 0 Then
-            If Val(I).Member.Hops = 0 Then
-                With Val(I).Member
+    For I = LBound(ClientVal) To UBound(ClientVal)
+        If Not StrComp(From, ClientVal(I).Member.Nick) = 0 Then
+            If ClientVal(I).Member.Hops = 0 Then
+                With ClientVal(I).Member
                     If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                         On Local Error Resume Next
                         If Chan.Member.Item(.Nick).IsOwner Or Chan.Member.Item(.Nick).IsOp Then
@@ -452,9 +460,9 @@ If Len(From) > 0 Then
         End If
     Next I
 Else
-    For I = LBound(Val) To UBound(Val)
-        If Val(I).Member.Hops = 0 Then
-            With Val(I).Member
+    For I = LBound(ClientVal) To UBound(ClientVal)
+        If ClientVal(I).Member.Hops = 0 Then
+            With ClientVal(I).Member
                 If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                     On Local Error Resume Next
                         If Chan.Member.Item(.Nick).IsOwner Or Chan.Member.Item(.Nick).IsOp Then

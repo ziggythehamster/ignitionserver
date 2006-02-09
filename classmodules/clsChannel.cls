@@ -28,7 +28,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsChannel.cls,v 1.8 2004/06/26 07:01:11 ziggythehamster Exp $
+' $Id: clsChannel.cls,v 1.9 2004/07/20 22:11:42 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -83,7 +83,7 @@ Public Prop_Client As String
 Public Prop_OnJoin As String
 Public Prop_OnPart As String
 '* the following will be implemented in the future
-Public Prop_Lag As Integer
+Public Prop_Lag As Long
 Public Prop_Account As String
 Public Prop_ClientGUID As String
 Public Prop_ServicePath As String

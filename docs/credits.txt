@@ -1,7 +1,7 @@
 			########################
 			#ignitionServer CREDITS#
 			########################
-# $Id: credits.txt,v 1.7 2004/06/28 20:50:57 ziggythehamster Exp $
+# $Id: credits.txt,v 1.8 2004/07/25 01:36:35 ziggythehamster Exp $
 
 	===========++++++++===========++++++++===========
 
@@ -29,6 +29,8 @@ Johnny aka Pern <dragonsworkshop@users.sourceforge.net>
 Eric Dickman <inkblot777@users.sourceforge.net>
 
 Credits go to Phil Fresle for the MD5 Class.
+
+Credits go to Emiliano Scavuzzo <anshoku@yahoo.com> for a few API calls that weren't in the original pureIRCd source (like the one that gets the local port).
 
 Various ignitionServer utilities use icons from Red Hat's Bluecurve(TM)
 user interface. ignitionServer is not affiliated with Red Hat.

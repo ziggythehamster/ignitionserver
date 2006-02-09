@@ -28,7 +28,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsClient.cls,v 1.13 2004/06/26 07:01:11 ziggythehamster Exp $
+' $Id: clsClient.cls,v 1.17 2004/07/20 22:11:42 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -61,7 +61,7 @@ Public GUID As String
 Public Prefix As String
 Public ServerName As String
 Public ServerDescription As String
-'Public Port As String
+Public LocalPort As Long
 Public RemotePort As Long
 Public SendQ As String
 Public SignOn As Long
@@ -77,8 +77,10 @@ Public GetsWallops As Boolean '+w
 Public WaitingForPong As Boolean 'set by ping sub
 Public LastAction As Long 'so you don't get pinged if active
 
+Public OID As Long
+
 Public RealHost As String 'Thanks to DG for pointing this out
-Public WhoisAccessLevel As Integer 'AccessLevel of user asking for /whois
+Public WhoisAccessLevel As Long 'AccessLevel of user asking for /whois
 Public WhoisIRCX As Boolean 'state of IRCX of the user asking for /whois
 
 'Substituted Modes as String with Booleans
@@ -185,7 +187,7 @@ Public Function GetWhois(Nickname$) As String
 GetWhois = SPrefix & " " & RPL_WHOISUSER & " " & Nickname & " " & Nick & " " & User & " " & Host & " * :" & Name & vbCrLf
 If WhoisAccessLevel >= 3 Or Nickname = Nick Then
   Dim tmpIP As String
-  If Len(IP) <> 0 Then
+  If Len(IP) > 0 Then
     tmpIP = IP
   Else
     tmpIP = "unknown"
@@ -215,13 +217,14 @@ ElseIf IsGlobOperator Then
 ElseIf IsLocOperator Then
     GetWhois = GetWhois & SPrefix & " 313 " & Nickname & " " & Nick & " :is a local IRC Operator" & vbCrLf
 End If
-If Idle > 0 Then GetWhois = GetWhois & SPrefix & " 317 " & Nickname & " " & Nick & " " & (UnixTime - Idle) & " " & SignOn & " :seconds idle, signon time" & vbCrLf
+If Idle > 0 Then GetWhois = GetWhois & SPrefix & " 317 " & Nickname & " " & Nick & " " & (UnixTime - Idle) & " " & SignOn & " :seconds idle, signon time"
 WhoisAccessLevel = 0
 End Function
 Private Sub Class_Initialize()
 Set OnChannels = New clsOnChannels
 Set Events = New clsEvents
 GUID = CreateGUID
+OID = 0
 #If Debugging = 1 Then
     SendSvrMsg "Client class created"
 #End If

@@ -26,7 +26,7 @@ Attribute VB_Exposed = False
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsVoices.cls,v 1.6 2004/06/26 07:01:12 ziggythehamster Exp $
+' $Id: clsVoices.cls,v 1.7 2004/07/20 22:11:42 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -85,7 +85,7 @@ Public Sub Remove(vntIndexKey As Variant)
     mCol.Remove vntIndexKey
 End Sub
 Public Sub Clear() 'need this in order to facilitate access clearing
-Dim A As Integer
+Dim A As Long
     If mCol.Count > 0 Then
       For A = 1 To mCol.Count
         mCol.Remove A

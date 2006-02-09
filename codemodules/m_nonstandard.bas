@@ -14,7 +14,7 @@ Attribute VB_Name = "m_nonstandard"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: m_nonstandard.bas,v 1.3 2004/06/26 07:01:13 ziggythehamster Exp $
+' $Id: m_nonstandard.bas,v 1.4 2004/07/21 03:13:00 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -92,10 +92,10 @@ NewModes = add_umodes(User, FiltModes)
 If Len(NewModes) = 0 Then Exit Function
 Select Case User.Hops
     Case Is > 0
-        GenerateEvent "USER", "MODECHANGE", Replace(User.Prefix, ":", ""), Replace(User.Prefix, ":", "") & " +" & NewModes
+        GenerateEvent "USER", "MODE", Replace(User.Prefix, ":", ""), Replace(User.Prefix, ":", "") & " +" & NewModes
         SendWsock User.FromLink.index, "MODE " & User.Nick, "+" & Replace(NewModes, "+", ""), cptr.Prefix
     Case Else
-        GenerateEvent "USER", "MODECHANGE", Replace(User.Prefix, ":", ""), Replace(User.Prefix, ":", "") & " +" & NewModes
+        GenerateEvent "USER", "MODE", Replace(User.Prefix, ":", ""), Replace(User.Prefix, ":", "") & " +" & NewModes
         SendWsock User.index, "MODE " & User.Nick, "+" & Replace(NewModes, "+", ""), cptr.Prefix
 End Select
 End Function

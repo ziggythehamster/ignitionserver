@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_main"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_main.bas,v 1.24 2004/06/30 01:37:55 ziggythehamster Exp $
+' $Id: mod_main.bas,v 1.29 2004/07/21 06:13:45 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -70,7 +70,6 @@ StartUpDate = Now
 Error_Connect
 InitUnixTime
 InitList
-SaveSetting "ignitionServer", "Settings", "Path", App.Path
 hTmrUnixTime = SetTimer(0&, 0&, 1000&, AddressOf uT)
 hTmrDestroyWhoWas = SetTimer(0&, 0&, 300000, AddressOf DestroyWhoWas)
 IrcStat.GlobServers = 1
@@ -198,6 +197,7 @@ For tmpN = LBound(tmpU) To UBound(tmpU)
     Next x
     If tmpU(tmpN).Hops = 0 Then
       SendToServer "QUIT :Ping Timeout", tmpU(tmpN).Nick
+      GenerateEvent "USER", "TIMEOUT", Replace(tmpU(tmpN).Prefix, ":", ""), Replace(tmpU(tmpN).Prefix, ":", "")
       m_error tmpU(tmpN), "Closing Link: (Ping Timeout)"
     End If
     Sockets.TerminateSocket tmpU(tmpN).SockHandle
@@ -506,8 +506,8 @@ Do
                         End If
                     End If
                     'generate User Logon event
-                    GenerateEvent "USER", "LOGON", .Nick & "!" & .User & "@" & .RealHost, .Nick & "!" & .User & "@" & .RealHost
-                    SendWsock .index, SPrefix & " 001 " & .Nick & " :Welcome to the " & IRCNet & " IRC Network " & .Nick & "!" & .User & "@" & .RealHost, vbNullString, , True
+                    GenerateEvent "USER", "LOGON", .Nick & "!" & .User & "@" & .RealHost, .Nick & "!" & .User & "@" & .RealHost & " " & .IP & ":" & .RemotePort & " " & ServerLocalAddr & ":" & .LocalPort & " +"
+                    SendWsock .index, SPrefix & " 001 " & .Nick & " :Welcome to the " & IRCNet & " IRC Network, " & .Nick & "!" & .User & "@" & .RealHost, vbNullString, , True
                     SendWsock .index, SPrefix & " 002 " & .Nick & " :Your host is " & ServerName & ", running version ignitionServer-" & AppVersion, vbNullString, , True
                     If Len(ServerLocation) <> 0 Then
                       SendWsock .index, SPrefix & " 003 " & .Nick & " :This server was (re)started " & StartUpDate & " and is in " & ServerLocation, vbNullString, , True
@@ -515,7 +515,11 @@ Do
                       SendWsock .index, SPrefix & " 003 " & .Nick & " :This server was (re)started " & StartUpDate, vbNullString, , True
                     End If
                     SendWsock .index, SPrefix & " 004 " & .Nick & " " & ServerName & " ignitionServer " & UserModes & " " & ChanModes, vbNullString, , True
-                    SendWsock .index, SPrefix & " 005 " & .Nick & " IRCX CHANTYPES=# PREFIX=(qov).@+ CHANMODES=" & ChanModesX & " NETWORK=" & Replace(IRCNet, " ", "_") & " CASEMAPPING=ascii CHARSET=ascii STD=i-d :are supported by this server", vbNullString, , True
+                    If MaxChannelsPerUser > 0 Then
+                      SendWsock .index, SPrefix & " 005 " & .Nick & " IRCX CHANTYPES=# CHANLIMIT=#:" & MaxChannelsPerUser & " NICKLEN=" & NickLen & " PREFIX=(qov).@+ CHANMODES=" & ChanModesX & " NETWORK=" & Replace(IRCNet, " ", "_") & " CASEMAPPING=ascii CHARSET=ascii MAXTARGETS=5 MAXCLONES=" & MaxConnectionsPerIP & " :are supported by this server", vbNullString, , True
+                    Else
+                      SendWsock .index, SPrefix & " 005 " & .Nick & " IRCX CHANTYPES=# NICKLEN=" & NickLen & " PREFIX=(qov).@+ CHANMODES=" & ChanModesX & " NETWORK=" & Replace(IRCNet, " ", "_") & " CASEMAPPING=ascii CHARSET=ascii MAXTARGETS=5 MAXCLONES=" & MaxConnectionsPerIP & " :are supported by this server", vbNullString, , True
+                    End If
                     IrcStat.GlobUsers = IrcStat.GlobUsers + 1: IrcStat.LocUsers = IrcStat.LocUsers + 1
                     If IrcStat.MaxGlobUsers < IrcStat.GlobUsers Then IrcStat.MaxGlobUsers = IrcStat.MaxGlobUsers + 1
                     If IrcStat.MaxLocUsers < IrcStat.LocUsers Then IrcStat.MaxLocUsers = IrcStat.MaxLocUsers + 1
@@ -541,6 +545,24 @@ Do
           Call m_isircx(cptr, sptr, arglist)
         Case "IRCX": Cmds.Ircx = Cmds.Ircx + 1: Cmds.IrcxBW = Cmds.IrcxBW + cmdLen
           Call m_ircx(cptr, sptr, arglist)
+        Case "DATA": Cmds.Data = Cmds.Data + 1: Cmds.DataBW = Cmds.DataBW + cmdLen
+          If Not cptr.HasRegistered Then
+            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+            GoTo nextmsg
+          End If
+          Call m_ircx_data(cptr, sptr, arglist, 0)
+        Case "REQUEST": Cmds.Request = Cmds.Request + 1: Cmds.RequestBW = Cmds.RequestBW + cmdLen
+          If Not cptr.HasRegistered Then
+            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+            GoTo nextmsg
+          End If
+          Call m_ircx_data(cptr, sptr, arglist, 1)
+        Case "REPLY": Cmds.Reply = Cmds.Reply + 1: Cmds.ReplyBW = Cmds.ReplyBW + cmdLen
+          If Not cptr.HasRegistered Then
+            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+            GoTo nextmsg
+          End If
+          Call m_ircx_data(cptr, sptr, arglist, 2)
         Case "QUIT": Cmds.Quit = Cmds.Quit + 1: Cmds.QuitBW = Cmds.QuitBW + cmdLen
           Call m_quit(cptr, sptr, arglist)
         Case "VHOST"

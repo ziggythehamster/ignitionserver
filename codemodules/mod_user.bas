@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_user"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_user.bas,v 1.29 2004/06/26 07:01:14 ziggythehamster Exp $
+' $Id: mod_user.bas,v 1.35 2004/07/21 05:18:57 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -355,14 +355,15 @@ Else
   End If
   WhereAmI = "assign new nick to database"
   'assign the new nick to the database -Dill
+  tempVar = cptr.Nick
+  If Len(cptr.Nick) > 0 Then GenerateEvent "USER", "NICK", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " " & tempVar
   If Len(cptr.Nick) > 0 Then GlobUsers.Remove cptr.Nick
   GlobUsers.Add parv(0), cptr
-  tempVar = cptr.Nick
   cptr.Nick = parv(0)
-  GenerateEvent "USER", "NICKCHANGE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " " & cptr.Nick
   cptr.Prefix = ":" & cptr.Nick & "!" & cptr.User & "@" & cptr.Host
+  
   Dim WasOwner As Boolean, WasOp As Boolean, WasHOp As Boolean, WasVoice As Boolean
-  Dim tmpData As Integer
+  Dim tmpData As Long
   For m_nick = 1 To cptr.OnChannels.Count
        With cptr.OnChannels.Item(m_nick).Member
          WasOwner = .Item(tempVar).IsOwner
@@ -438,6 +439,10 @@ Else
       Exit Function
     End If
     If UBound(parv) = 0 Then 'if cptr didnt tell us what to send, complain -Dill
+      SendWsock cptr.index, ERR_NOTEXTTOSEND & " " & cptr.Nick, TranslateCode(ERR_NOTEXTTOSEND)
+      Exit Function
+    End If
+    If Len(parv(1)) = 0 Then
       SendWsock cptr.index, ERR_NOTEXTTOSEND & " " & cptr.Nick, TranslateCode(ERR_NOTEXTTOSEND)
       Exit Function
     End If
@@ -900,6 +905,7 @@ If cptr.AccessLevel = 4 Then
     Next I
     KillStruct sptr.Nick
     SendToServer_ButOne "QUIT " & sptr.Nick & " :" & parv(0), cptr.ServerName, sptr.Nick
+    GenerateEvent "USER", "QUIT", Replace(sptr.Prefix, ":", ""), Replace(sptr.Prefix, ":", "") & " :" & parv(0)
     Set sptr = Nothing
 Else
     On Error Resume Next
@@ -932,7 +938,9 @@ Else
       '(we haven't yet sent them NICK)
       SendToServer "QUIT " & cptr.Nick & " :" & QuitText, cptr.Nick
     End If
-    GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & ServerLocalPort
+    GenerateEvent "USER", "QUIT", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " :" & QuitText
+    GenerateEvent "USER", "LOGOFF", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "")
+    GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & cptr.LocalPort
     If cptr.HasRegistered = False Then
       KillStruct cptr.Nick, , False, cptr.IP
       IrcStat.UnknownConnections = IrcStat.UnknownConnections - 1
@@ -978,6 +986,9 @@ If cptr.AccessLevel = 4 Then
        SendWsock User.index, "KILL " & User.Nick, ":Killed by " & sender & " (" & parv(1) & ")", sender '// include reason -ziggy
        m_error User, "Closing Link: (Killed by " & sender & " (" & parv(1) & "))" '// this automatically disconnects the user -ziggy
    End If
+   GenerateEvent "USER", "KILL", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " :" & parv(1)
+   GenerateEvent "USER", "LOGOFF", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "")
+   GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & cptr.LocalPort
    KillStruct User.Nick '// User.Nick is the right capitalization; parv(0) isn't -ziggy
    User.IsKilled = True '// this should be set so the other parts of the program know we killed it -ziggy
    SendToServer_ButOne "KILL " & User.Nick & " :" & parv(1), cptr.ServerName, sender
@@ -1017,8 +1028,12 @@ Else
                SendWsock allusers(I).FromLink.index, "KILL " & allusers(I).Nick, ":Killed by " & cptr.Nick & " (" & parv(1) & ")", cptr.Prefix
              Else
                SendWsock allusers(I).index, "KILL " & allusers(I).Nick, ":Killed by " & cptr.Nick & " (" & parv(1) & ")", cptr.Prefix
-               m_error allusers(I), "Closing Link: (Killed by " & cptr.Prefix & " (" & parv(1) & "))" '// send reason -ziggy
+               m_error allusers(I), "Closing Link: (Killed by " & Replace(cptr.Prefix, ":", "") & " (" & parv(1) & "))" '// send reason -ziggy
              End If
+             
+             GenerateEvent "USER", "KILL", Replace(allusers(I).Prefix, ":", ""), Replace(allusers(I).Prefix, ":", "") & " :" & parv(1)
+             GenerateEvent "USER", "LOGOFF", Replace(allusers(I).Prefix, ":", ""), Replace(allusers(I).Prefix, ":", "")
+             GenerateEvent "SOCKET", "CLOSE", "*!*@*", allusers(I).IP & ":" & allusers(I).RemotePort & " " & ServerLocalAddr & ":" & allusers(I).LocalPort
              KillStruct allusers(I).Nick, enmTypeClient
              allusers(I).IsKilled = True
              Set allusers(I) = Nothing
@@ -1046,6 +1061,9 @@ Else
            Next x
            SendSvrMsg "Recieved KILL message for " & User.Nick & " from " & cptr.Nick & " (" & parv(1) & ")" '// include reason -ziggy
            SendToServer "QUIT :Killed by " & cptr.Nick & " (" & parv(1) & ")", User.Nick
+           GenerateEvent "USER", "KILL", Replace(User.Prefix, ":", ""), Replace(User.Prefix, ":", "") & " :" & parv(1)
+           GenerateEvent "USER", "LOGOFF", Replace(User.Prefix, ":", ""), Replace(User.Prefix, ":", "")
+           GenerateEvent "SOCKET", "CLOSE", "*!*@*", User.IP & ":" & User.RemotePort & " " & ServerLocalAddr & ":" & User.LocalPort
            KillStruct User.Nick
        Else
            If Not cptr.CanLocKill Then
@@ -1058,7 +1076,10 @@ Else
            SendSvrMsg "Recieved KILL message for " & User.Nick & " from " & cptr.Nick & " (" & parv(1) & ")" '// include reason -ziggy
            SendToServer "QUIT :Killed by " & cptr.Nick & " (" & parv(1) & ")", User.Nick
            SendWsock User.index, "KILL " & User.Nick, ":Killed by " & cptr.Nick & " (" & parv(1) & ")", cptr.Prefix
-           m_error User, "Closing Link: (Killed by " & cptr.Prefix & " (" & parv(1) & "))" '// m_error disconnects the user -ziggy
+           GenerateEvent "USER", "KILL", Replace(User.Prefix, ":", ""), Replace(User.Prefix, ":", "") & " :" & parv(1)
+           GenerateEvent "USER", "LOGOFF", Replace(User.Prefix, ":", ""), Replace(User.Prefix, ":", "")
+           GenerateEvent "SOCKET", "CLOSE", "*!*@*", User.IP & ":" & User.RemotePort & " " & ServerLocalAddr & ":" & User.LocalPort
+           m_error User, "Closing Link: (Killed by " & Replace(cptr.Prefix, ":", "") & " (" & parv(1) & "))" '// m_error disconnects the user -ziggy
            User.IsKilled = True
            KillStruct User.Nick
        End If
@@ -1291,7 +1312,7 @@ Else
   For I = 0 To UBound(parv)
     Set User = GlobUsers(parv(I))
     If Not User Is Nothing Then ret = ret & User.Nick & IIf((User.IsLocOperator Or User.IsGlobOperator), "*", vbNullString) & "=" & IIf(Len(User.AwayMsg) > 0, "-", "+") & User.User & "@" & User.Host & " "
-    If I = 5 Then Exit For
+    If I = 4 Then Exit For 'alas, off by one!
   Next I
   SendWsock cptr.index, RPL_USERHOST & " " & cptr.Nick, ":" & Trim$(ret)
 End If
@@ -1552,3 +1573,225 @@ End If
 Call DoVLine(cptr, parv(0), parv(1))
 End Function
 
+Public Function m_ircx_data(cptr As clsClient, sptr As clsClient, parv$(), DataRequestReply As Long) As Long
+#If Debugging = 1 Then
+    SendSvrMsg "DATA/REQUEST/REPLY called! (" & cptr.Nick & ")"
+#End If
+Dim cmd$, RecList$(), I, x&, Chan As clsChannel, Recp As clsClient, RecvServer() As clsClient, ChM As clsChanMember
+'Command: DATA/REQUEST/REPLY <target> <tag> :<message>
+'Reply:   :<sender> :DATA/REQUEST/REPLY <target> <tag> :<message>
+'(there should be a flag to include or exclude the colon?)
+
+If cptr.AccessLevel = 4 Then
+    If DataRequestReply = 0 Then
+        cmd = "DATA"
+    ElseIf DataRequestReply = 1 Then
+        cmd = "REQUEST"
+    Else
+        cmd = "REPLY"
+    End If
+    
+    RecList = Split(parv(0), ",")
+    For Each I In RecList
+        If AscW(CStr(I)) = 35 Then
+            Set Chan = Channels(CStr(I))
+            If Chan Is Nothing Then GoTo NextCmd
+            'If SendIRCXDataToChan(Chan, sptr, cmd, parv(1), parv(2), cptr.Nick) Then
+            If SendToChan(Chan, sptr.Prefix & " " & cmd & " " & Chan.Name & " " & parv(1) & " :" & parv(2), cptr.Nick) Then
+                SendToServer_ButOne cmd & " " & Chan.Name & " " & parv(1) & " :" & parv(2), cptr.ServerName, sptr.Nick
+            End If
+        Else
+            Set Recp = GlobUsers(CStr(I))
+            If Recp Is Nothing Then
+                'SendWsock cptr.Index, "KILL " & CStr(i), ":" & i & " <-- Unknown client"
+                GoTo NextCmd
+            End If
+            If Recp.Hops > 0 Then
+                'The user is a remote user
+                SendWsock Recp.FromLink.index, cmd & " " & Recp.Nick & " " & parv(1), ":" & parv(2), ":" & sptr.Nick
+            Else
+                'the user is an local user
+                SendWsock Recp.index, cmd & " " & Recp.Nick & " " & parv(1), ":" & parv(2), sptr.Prefix
+            End If
+        End If
+NextCmd:
+    Next
+Else
+    'the IRCX draft says that only IRCX users can use data
+    If Not cptr.IsIRCX Then
+      SendWsock cptr.index, ERR_UNKNOWNCOMMAND & " " & cptr.Nick, TranslateCode(ERR_UNKNOWNCOMMAND, , , cmd)
+      Exit Function
+    End If
+    If Len(parv(0)) = 0 Then 'if no recipient is given, return an error -Dill
+      SendWsock cptr.index, ERR_NORECIPIENT & " " & cptr.Nick, TranslateCode(ERR_NORECIPIENT, cmd)
+      Exit Function
+    End If
+    If UBound(parv) = 1 Then 'if cptr didnt tell us what to send, complain -Dill
+      SendWsock cptr.index, ERR_NOTEXTTOSEND & " " & cptr.Nick, TranslateCode(ERR_NOTEXTTOSEND)
+      Exit Function
+    End If
+    If cptr.IsGagged Then 'if they're gagged, they can't speak (or send data)
+      If BounceGagMsg Then SendWsock cptr.index, IRCERR_SECURITY & " " & cptr.Nick, TranslateCode(IRCERR_SECURITY)
+      Exit Function
+    End If
+    
+    If DataRequestReply = 0 Then
+        cmd = "DATA"
+    ElseIf DataRequestReply = 1 Then
+        cmd = "REQUEST"
+    Else
+        cmd = "REPLY"
+    End If
+    
+    RecList = Split(parv(0), ",")
+    For Each I In RecList
+      If Len(I) = 0 Then GoTo nextmsg
+      If AscW(CStr(I)) = 35 Then
+        'Channel message -Dill
+        Set Chan = Channels(CStr(I))
+        If Chan Is Nothing Then 'In case Channel does not exist -Dill
+          SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, CStr(I))
+          GoTo nextmsg
+        End If
+        With Chan
+            'I know NOEXTERN should apply to DATA/REQUEST/REPLY (it's only logical)
+            'but what about the moderated thing?
+            If .IsNoExternalMsgs Then
+                If .GetUser(cptr.Nick) Is Nothing Then
+                  SendWsock cptr.index, ERR_CANNOTSENDTOCHAN, cptr.Nick & " " & TranslateCode(ERR_CANNOTSENDTOCHAN, .Name)
+                  GoTo nextmsg
+                End If
+            End If
+            If .IsModerated Then
+              Set ChM = .Member.Item(cptr.Nick)
+              If Not (ChM.IsVoice Or ChM.IsHOp Or ChM.IsOp Or ChM.IsOwner) Then
+                  SendWsock cptr.index, ERR_CANNOTSENDTOCHAN, cptr.Nick & " " & TranslateCode(ERR_CANNOTSENDTOCHAN, , .Name)
+                  Set ChM = Nothing
+                  GoTo nextmsg
+              End If
+              Set ChM = Nothing
+            End If
+            If IsBanned(Chan, cptr) Then
+                SendWsock cptr.index, ERR_CANNOTSENDTOCHAN, cptr.Nick & " " & TranslateCode(ERR_CANNOTSENDTOCHAN, , .Name)
+                GoTo nextmsg
+            End If
+            'check tags
+            If Left$(UCase$(parv(1)), 3) = "ADM" Then
+              If Not cptr.IsNetAdmin Then
+                SendWsock cptr.index, IRCERR_BADTAG, cptr.Nick & " " & TranslateCode(IRCERR_BADTAG, , , cmd)
+                Exit Function
+              End If
+            ElseIf Left$(UCase$(parv(1)), 3) = "SYS" Then
+              If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
+                SendWsock cptr.index, IRCERR_BADTAG, cptr.Nick & " " & TranslateCode(IRCERR_BADTAG, , , cmd)
+                Exit Function
+              End If
+            ElseIf Left$(UCase$(parv(1)), 3) = "OWN" Then
+              If Not Chan.Member.Item(cptr.Nick).IsOwner Then
+                SendWsock cptr.index, IRCERR_BADTAG, cptr.Nick & " " & TranslateCode(IRCERR_BADTAG, , , cmd)
+                Exit Function
+              End If
+            ElseIf Left$(UCase$(parv(1)), 3) = "HST" Then
+              If Not (Chan.Member.Item(cptr.Nick).IsOp Or Chan.Member.Item(cptr.Nick).IsOwner) Then
+                SendWsock cptr.index, IRCERR_BADTAG, cptr.Nick & " " & TranslateCode(IRCERR_BADTAG, , , cmd)
+                Exit Function
+              End If
+            End If
+            'tags are OK! send along now :)
+            If SendToChan(Chan, cptr.Prefix & " " & cmd & " " & .Name & " " & parv(1) & " :" & parv(2), cptr.Nick) Then
+                SendToServer cmd & " " & .Name & " " & parv(1) & " :" & parv(2), cptr.Nick
+            End If
+        End With
+        'reset idle time
+        cptr.Idle = UnixTime
+      Else
+        'user message -Dill
+        If InStr(1, I, "*") <> 0 Then
+          If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then 'Can't send to wildcarded recipient list if not an oper -Dill
+            SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
+            Exit Function
+          Else
+            'WILDCARD recievelist -Dill
+            Dim Umask$, Target() As clsClient
+            Umask = ":" & CreateMask(CStr(I))
+            Target = GlobUsers.Values
+            
+            'check tags
+            If Left$(UCase$(parv(1)), 3) = "ADM" Then
+              If Not cptr.IsNetAdmin Then
+                SendWsock cptr.index, IRCERR_BADTAG, cptr.Nick & " " & TranslateCode(IRCERR_BADTAG, , , cmd)
+                Exit Function
+              End If
+            ElseIf Left$(UCase$(parv(1)), 3) = "SYS" Then
+              If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
+                SendWsock cptr.index, IRCERR_BADTAG, cptr.Nick & " " & TranslateCode(IRCERR_BADTAG, , , cmd)
+                Exit Function
+              End If
+            'we're allowing OWN and HST tags because this part can only be executed by opers
+            'and obviously we don't care about owners or hosts :)
+            End If
+            'tags are OK! send along now :)
+            
+            For x = LBound(Target) To UBound(Target)
+                If Target(x).Prefix Like Umask Then
+                    If Target(x).Hops = 0 Then
+                        SendWsock Target(x).index, cmd & " " & Target(x).Nick & " " & parv(1), ":" & parv(2), cptr.Prefix
+                    Else
+                        SendWsock Target(x).FromLink.index, cmd & " " & Target(x).Nick & " " & parv(1), ":" & parv(2), ":" & cptr.Nick
+                    End If
+                End If
+            Next x
+            GoTo nextmsg
+          End If
+        End If
+        On Local Error Resume Next
+        
+        'yes, we ARE reusing sptr because we're lazy bums
+        'TODO: stop being lazy
+        Set sptr = GlobUsers(CStr(I))
+        If sptr Is Nothing Then
+          SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, CStr(I))
+          GoTo nextmsg
+        End If
+        
+        'check tags
+        If Left$(UCase$(parv(1)), 3) = "ADM" Then
+          If Not cptr.IsNetAdmin Then
+            SendWsock cptr.index, IRCERR_BADTAG, cptr.Nick & " " & TranslateCode(IRCERR_BADTAG, , , cmd)
+            Exit Function
+          End If
+        ElseIf Left$(UCase$(parv(1)), 3) = "SYS" Then
+          If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
+            SendWsock cptr.index, IRCERR_BADTAG, cptr.Nick & " " & TranslateCode(IRCERR_BADTAG, , , cmd)
+            Exit Function
+          End If
+        'for the record, you can NOT be an owner or a host when sending directly!
+        'if you can, please someone tell me, because as far as I know it's physically impossible
+        'since there is no context of a channel
+        ElseIf Left$(UCase$(parv(1)), 3) = "OWN" Then
+          SendWsock cptr.index, IRCERR_BADTAG, cptr.Nick & " " & TranslateCode(IRCERR_BADTAG, , , cmd)
+          Exit Function
+        ElseIf Left$(UCase$(parv(1)), 3) = "HST" Then
+          SendWsock cptr.index, IRCERR_BADTAG, cptr.Nick & " " & TranslateCode(IRCERR_BADTAG, , , cmd)
+          Exit Function
+        End If
+        'tags are OK! send along now :)
+        
+        'deliver the message -Dill
+        If sptr.Hops = 0 Then
+            SendWsock sptr.index, cmd & " " & sptr.Nick & " " & parv(1), ":" & parv(2), cptr.Prefix
+        Else
+            SendWsock sptr.FromLink.index, cmd & " " & sptr.Nick & " " & parv(1), ":" & parv(2), ":" & cptr.Nick
+        End If
+        
+        'should we really send the away msg if they're away?
+        If Len(sptr.AwayMsg) > 0 Then
+            SendWsock cptr.index, RPL_AWAY & " " & cptr.Nick & " " & sptr.Nick, ":" & sptr.AwayMsg
+        End If
+        'reset idle time
+        cptr.Idle = UnixTime
+      End If
+nextmsg:
+    Next
+End If
+End Function

@@ -13,7 +13,7 @@ Attribute VB_Name = "mod_Oper"
 '                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_Oper.bas,v 1.7 2004/06/26 07:01:14 ziggythehamster Exp $
+' $Id: mod_Oper.bas,v 1.8 2004/07/21 03:13:00 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -98,10 +98,10 @@ Dim NewModes$
                 If Len(NewModes) = 0 Then Exit Function
                 Select Case cptr.Hops
                     Case Is > 0
-                        GenerateEvent "USER", "MODECHANGE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & NewModes
+                        GenerateEvent "USER", "MODE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & NewModes
                         SendWsock cptr.FromLink.index, "MODE " & cptr.Nick, "+" & Replace(NewModes, "+", ""), cptr.Prefix
                     Case Else
-                        GenerateEvent "USER", "MODECHANGE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & NewModes
+                        GenerateEvent "USER", "MODE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & NewModes
                         SendWsock cptr.index, "MODE " & cptr.Nick, "+" & Replace(NewModes, "+", ""), cptr.Prefix
                 End Select
             Else
@@ -115,10 +115,10 @@ Dim NewModes$
             If Len(NewModes) = 0 Then Exit Function
             Select Case cptr.Hops
                 Case Is > 0
-                    GenerateEvent "USER", "MODECHANGE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & NewModes
+                    GenerateEvent "USER", "MODE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & NewModes
                     SendWsock cptr.FromLink.index, "MODE " & cptr.Nick, "+" & Replace(NewModes, "+", ""), cptr.Prefix
                 Case Else
-                    GenerateEvent "USER", "MODECHANGE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & NewModes
+                    GenerateEvent "USER", "MODE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & NewModes
                     SendWsock cptr.index, "MODE " & cptr.Nick, "+" & Replace(NewModes, "+", ""), cptr.Prefix
             End Select
         Else

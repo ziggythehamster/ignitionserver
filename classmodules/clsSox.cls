@@ -28,7 +28,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsSox.cls,v 1.8 2004/06/26 07:01:12 ziggythehamster Exp $
+' $Id: clsSox.cls,v 1.10 2004/07/20 19:44:11 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -347,6 +347,15 @@ Private Const IPPROTO_MAX As Long = 256
 
 Private Const GWL_WNDPROC As Long = (-4)
 
+Private Const OFFSET_2 As Long = 65536
+
+'Winsock Versions
+Private Const WINSOCK_1_0 As Long = &H1
+Private Const WINSOCK_1_1 As Long = &H101
+Private Const WINSOCK_2_0 As Long = &H2
+Private Const WINSOCK_2_1 As Long = &H102 'does 2.1 exist?
+Private Const WINSOCK_2_2 As Long = &H202
+
 'Public Const WINSOCK_MESSAGE As Long = 4025 'The only Message type currently used ... not anymore :)
 Private Const soxSERVER As Long = 4026& ' This indicates that the Socket is either a Listening Socket, or was created from a Listening Socket, either way, our machine is acting as a Sox Server
 Private Const soxCLIENT As Long = 4027& ' This indicates that the Socket is a connection we established to another computer/server, therefore our machine is acting as a Sox Client on this Socket
@@ -357,7 +366,7 @@ Private Declare Function apiSocket Lib "WS2_32" Alias "socket" (ByVal af As Long
 Private Declare Function apiCloseSocket Lib "WS2_32" Alias "closesocket" (ByVal s As Long) As Long
 Private Declare Function apiBind Lib "WS2_32" Alias "bind" (ByVal s As Long, addr As typSocketAddr, ByVal namelen As Long) As Long
 Private Declare Function apiListen Lib "WS2_32" Alias "listen" (ByVal s As Long, ByVal backlog As Long) As Long
-Private Declare Function apiConnect Lib "WS2_32" Alias "connect" (ByVal s As Long, Name As typSocketAddr, ByVal namelen As Long) As Long
+Private Declare Function apiConnect Lib "WS2_32" Alias "connect" (ByVal s As Long, name As typSocketAddr, ByVal namelen As Long) As Long
 Private Declare Function apiAccept Lib "WS2_32" Alias "accept" (ByVal s As Long, addr As typSocketAddr, addrLen As Long) As Long
 Private Declare Function apiWSAAsyncSelect Lib "WS2_32" Alias "WSAAsyncSelect" (ByVal s As Long, ByVal hWnd As Long, ByVal wMsg As Long, ByVal lEvent As Long) As Long
 Private Declare Function apiRecv Lib "WS2_32" Alias "recv" (ByVal s As Long, buf As Any, ByVal buflen As Long, ByVal flags As Long) As Long
@@ -370,7 +379,8 @@ Private Declare Function apiNToHL Lib "WS2_32" Alias "ntohl" (ByVal netlong As L
 Private Declare Function apiNToHS Lib "WS2_32" Alias "ntohs" (ByVal netshort As Long) As Integer 'Network To Host Short
 Private Declare Function apiIPToNL Lib "WS2_32" Alias "inet_addr" (ByVal cp As String) As Long
 Private Declare Function apiNLToIP Lib "WS2_32" Alias "inet_ntoa" (ByVal inn As Long) As Long
-Private Declare Function apiGetHostName Lib "WS2_32" Alias "gethostname" (ByVal Name As String, ByVal namelen As Long) As Long
+Private Declare Function apiGetHostName Lib "WS2_32" Alias "gethostname" (ByVal name As String, ByVal namelen As Long) As Long
+Private Declare Function api_getsockname Lib "ws2_32.dll" Alias "getsockname" (ByVal s As Long, ByRef name As typSocketAddr, ByRef namelen As Long) As Long
 Private Declare Function apiShutDown Lib "WS2_32" Alias "shutdown" (ByVal s As Long, ByVal how As Long) As Long
 Private Declare Function WSAGetLastError Lib "WSOCK32" () As Long
 
@@ -388,7 +398,7 @@ Private Sockets() As typSocket
 Private Socks As New Collection
 
 Private Sub Class_Initialize()
-    If apiWSAStartup(&H101, WSADATA) = SOCKET_ERROR Then
+    If apiWSAStartup(WINSOCK_2_0, WSADATA) = SOCKET_ERROR Then
         Call MsgBox("WinSock failed to initialize properly - Error#: " & err.LastDllError) 'Creates an 'application instance' and memory space in the WinSock DLL (MUST be cleaned up later)
         ErrorMsg "Winsock failed to initialize properly (Error #" & err.LastDllError & ")"
     Else
@@ -920,7 +930,7 @@ Private Sub RaiseError(insox As Long, inCode As Long, inProcedure As String, inS
     Select Case inCode
         Case WSABASEERR: Call Sox_Error(insox, inCode, "General Winsock subsystem failure", inProcedure, inSnipet) 'Just sounds cool :)))
         Case WSAEINTR: Call Sox_Error(insox, inCode, "Interrupted function call", inProcedure, inSnipet)
-        Case WSAEBADF: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
+        Case WSAEBADF: Call Sox_Error(insox, inCode, "The file handle supplied is not valid.", inProcedure, inSnipet) ' Platform SDK
         Case WSAEACCES: Call Sox_Error(insox, inCode, "Permission Denied", inProcedure, inSnipet)
         Case WSAEFAULT: Call Sox_Error(insox, inCode, "Bad address", inProcedure, inSnipet)
         Case WSAEINVAL: Call Sox_Error(insox, inCode, "Invalid argument", inProcedure, inSnipet)
@@ -967,17 +977,17 @@ Private Sub RaiseError(insox As Long, inCode As Long, inProcedure As String, inS
         Case WSANOTINITIALISED: Call Sox_Error(insox, inCode, "Successful WSAStartup not yet performed", inProcedure, inSnipet)
         Case WSAEDISCON1: Call Sox_Error(insox, inCode, "Graceful shutdown in progress", inProcedure, inSnipet)
         Case WSAEDISCON2: Call Sox_Error(insox, inCode, "Graceful shutdown in progress", inProcedure, inSnipet)
-        Case WSAENOMORE: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
-        Case WSAECANCELLED: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
-        Case WSAEINVALIDPROCTABLE: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
-        Case WSAEINVALIDPROVIDER: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
-        Case WSAEPROVIDERFAILEDINIT: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
+        Case WSAENOMORE: Call Sox_Error(insox, inCode, "No more results can be returned by WSALookupServiceNext.", inProcedure, inSnipet) ' Platform SDK
+        Case WSAECANCELLED: Call Sox_Error(insox, inCode, "A call to WSALookupServiceEnd was made while this call was still processing. The call has been canceled.", inProcedure, inSnipet) ' Platform SDK
+        Case WSAEINVALIDPROCTABLE: Call Sox_Error(insox, inCode, "The procedure call table is invalid.", inProcedure, inSnipet) ' Platform SDK
+        Case WSAEINVALIDPROVIDER: Call Sox_Error(insox, inCode, "The requested service provider is invalid.", inProcedure, inSnipet) ' Platform SDK
+        Case WSAEPROVIDERFAILEDINIT: Call Sox_Error(insox, inCode, "The requested service provider could not be loaded or initialized.", inProcedure, inSnipet) ' Platform SDK
         Case WSASYSCALLFAILURE: Call Sox_Error(insox, inCode, "System call failure", inProcedure, inSnipet)
-        Case WSASERVICE_NOT_FOUND: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
+        Case WSASERVICE_NOT_FOUND: Call Sox_Error(insox, inCode, "No such service is known. The service cannot be found in the specified name space.", inProcedure, inSnipet) ' Platform SDK
         Case WSATYPE_NOT_FOUND: Call Sox_Error(insox, inCode, "Class type not found", inProcedure, inSnipet)
-        Case WSA_E_NO_MORE: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
-        Case WSA_E_CANCELLED: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
-        Case WSAEREFUSED: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
+        Case WSA_E_NO_MORE: Call Sox_Error(insox, inCode, "No more results can be returned by WSALookupServiceNext.", inProcedure, inSnipet) ' Platform SDK
+        Case WSA_E_CANCELLED: Call Sox_Error(insox, inCode, "A call to WSALookupServiceEnd was made while this call was still processing. The call has been canceled.", inProcedure, inSnipet) ' Platform SDK
+        Case WSAEREFUSED: Call Sox_Error(insox, inCode, "A database query failed because it was actively refused.", inProcedure, inSnipet) ' Platform SDK
         Case WSAHOST_NOT_FOUND: Call Sox_Error(insox, inCode, "Host not found", inProcedure, inSnipet)
         Case WSATRY_AGAIN: Call Sox_Error(insox, inCode, "Non-authoritative host not found", inProcedure, inSnipet)
         Case WSANO_RECOVERY: Call Sox_Error(insox, inCode, "This is a non-recoverable error", inProcedure, inSnipet)
@@ -1003,3 +1013,23 @@ If index > 0 Then
 End If
 
 End Sub
+Public Function LocalPort(ByVal lngSocket As Long) As Long
+Dim lngResult As Long
+Dim udtSockAddr As typSocketAddr
+
+lngResult = api_getsockname(lngSocket, udtSockAddr, LenB(udtSockAddr))
+
+If lngResult = SOCKET_ERROR Then
+    LocalPort = 0
+Else
+    LocalPort = IntegerToUnsigned(apiNToHS(udtSockAddr.sin_port))
+End If
+
+End Function
+Public Function IntegerToUnsigned(Value As Integer) As Long
+If Value < 0 Then
+    IntegerToUnsigned = Value + OFFSET_2
+Else
+    IntegerToUnsigned = Value
+End If
+End Function
