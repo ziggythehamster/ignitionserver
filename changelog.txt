@@ -1,0 +1,89 @@
+###############################
+## Ignition Server ChangeLog ##
+###############################
+
+Zg = Ziggy(ziggy@silentsoft.net)
+DG = DigiGuy(digi_guy@users.sourceforge.net)
+
+
+### Project Start ###
+
+Zg - added .Owner to some parts of the code
+Zg - added IRCX command to some parts of the code (mod_main probably)
+Zg - [3-Dec] - changed everything that says "pureIRCd" to say "ignitionServer" (to avoid future confusion)
+Zg - [3-Dec] - fixed /ADMIN reply and format of A: line (original crew had it messed up)
+Zg - [3-Dec] - added property variables
+Zg - [3-Dec] - when checking for privs, check for owner as well
+Zg - [3-Dec] - changed cloak/+x to deaf/+d (same purpose); +x in ircx is diff.
+Zg - [3-Dec] - added m_prop, displays oid/topic
+Zg - [4-Dec] - prop name is now set automatically, added check for key also check to see if the ownerkey or hostkey was specified (which are both valid)
+Zg - [4-Dec] - removed /join 0 ability, somehow messed it up... (or wasn't working to begin with [for one it was originally /join #0])
+Zg - [5-Dec] - for some weird reason, /prop is only accessible if you are an ircop ... doesn't appear to even execute the code under it... checking for bad values?! Duh.. looks like I wasn't setting Chan to the proper value before checking...
+Zg - [6-Dec] - fixed some stuff in prop handling, added handling for these props: client, creation, name, oid, and illegally named properties (bad property)
+Zg - [6-Dec] - added PROP and AUTH to /stats m
+Zg - [7-Dec] - added IsHidden (+h) to modes
+Zg - [7-Dec] - improved some property stuff, now depends on room visibility and member status (user, member, op, owner, voice, etc.)
+Zg - [7-Dec] - added props: LANGUAGE, ONJOIN, ONPART, SUBJECT, TOPIC. + todo: make propsender decide who to send to (now sends to all, most props should only be sent to ops when changed (onjoin, onpart); also, onjoin and onpart aren't handled
+Zg - [7-Dec] - added constant for mode +h
+Zg - [7-Dec] - mode +h can be set and unset (does not take effect yet)
+Zg - [7-Dec] - apparent bug in the setting/unsetting of +p/+s/+h: the modes don't get sent as removed to the client; circumvented by making it always kill the bad modes
+Zg - [7-Dec] -  outside props don't work; you musy be in channel for it to work atm
+DG - [10-Dec] - Changed the ChangeLog so it's easier to understand :P
+DG - [10-Dec] - Added all new Help System - Should be good.
+DG - [10-Dec] - Added copyright notice as well
+DG - [10-Dec] - Stopped Multi Instances running (Mutex type of thing)
+DG - [10-Dec] - Added GPL Stuff Plus General Docs - Credits.txt only needs content now and will be done sometime in the next 48 hrs
+DG - [10-Dec] - Added REAL content the /ircdhelp cmd + Fixed /ircdhelp who giving nick help
+DG - [11-Dec] - Fixed Bug #857903(/nick won't allow | in a nick)
+DG - [11-Dec] - Fixed Bug #857341(/stats o should not be public)
+DG - [11-Dec] - Started on CHGHOST and CHGNICK (New Task - #90351)
+DG - [11-Dec] - Finished Credits.txt
+DG - [11-Dec] - Added Oper Help - More just for a Test Commit
+DG - [11-Dec] - Renamed ircd.conf to ircx.conf
+DG - [11-Dec] - Renamed hard coding of motd file name from ircd.motd to ircx.motd
+DG - [12-Dec] - Added Halfop, Changed ChanHidden Mode to H, Fixed Bugs 858578 & 858588, Fixed Broken Link to clsChanMemberHashTable.cls
+DG - [12-Dec] - Moved Documentation to a New Dir(Docs) + Added Readme.rtf and license.rtf
+Zg - [11-Dec] - Fixed #858578 part 1: Deopping Owners
+Zg - [12-Dec] - Fixed several errors from the original pure-IRCd (need more params doesn't return the right command occasionally -- hard coded problem)
+Zg - [12-Dec] - Fixed #858578 part 2: Kicking owners
+Zg - [12-Dec] - {BUG #858578} Fixed!
+Zg - [13-Dec] - Removed HalfOp until we can decide on a mode for it
+Zg - [13-Dec] - Added /LISTX
+Zg - [13-Dec] - /LISTX being a little bitchy
+Zg - [13-Dec] - /LISTX is implemented, minimally for now.
+Zg - [13-Dec] - /IRCDHELP renamed to /IRCXHELP (/ircdhelp and /raw help will work, however)
+Zg - [13-Dec] - Added two functions: SendToChanOwners, SendToChanOps. Same format as SendToChan. SendToChanOps sends to owners and hosts
+Zg - [13-Dec] - Added OwnerKey
+Zg - [13-Dec] - Added HostKey
+Zg - [13-Dec] - HostKey and OwnerKey make you the appropriate status in the channel
+Zg - [13-Dec] - You should no longer be able to ban IRCops
+Zg - [13-Dec] - Miscallenous other things (check diffs for official definition)
+Zg - [14-Dec] - Found bug #860115
+Zg - [14-Dec] - Fixed bug #860115 (temporary fix - |, [, and ] are now disallowed in nicknames again)
+Zg - [14-Dec] - Fixed bug #860140
+Zg - [15-Dec] - Cleaned the ircx.conf up a little bit
+Zg - [15-Dec] - IRC Operators are now made Owner in all channels they join
+Zg - [15-Dec] - Added MODE ISIRCX, ISIRCX, variable for capabilities (future extension)
+Zg - [15-Dec] - Fixed VHost thing that DG found in his copy (pre-existing condition)
+Zg - [15-Dec] - Added "is connecting from" to whois - someone's real hostname; had to add WhoisAccessLevel in order to facilitate this
+Zg - [19-Dec] - Added a crapload of stuff tonight, including (but not limited to) the beginning of the access list, creation prop, /whois and /stats enhancements, and a few bugfixes
+Zg - [19-Dec] - OnJoin now shows up
+Zg - [19-Dec] - More access related stuff (Reason)
+Zg - [20-Dec] - All ACCESS #Channel ADD and ACCESS #Channel CLEAR commands work, however I need to check to see if an access entry already exists (you can add SilentSoft-Ziggy to access an infinite number of times)
+Zg - [21-Dec] - You can't ban someone with +b more than one time anymore (well, you could if you kept doing different things with their hostmask)
+Zg - [21-Dec] - Added Access Delete
+Zg - [22-Dec] - Access Delete checks for proper privledges first, and if the entry doesn't exist, it doesn't add it
+Zg - [22-Dec] - Access has been added! Now to fix the bugs which make it not work... (doing a commit just in case i screw stuff up)
+Zg - [22-Dec] - It was bound to happen: I made a stupid mistake... when I copied and pasted the classes I forgot to change the clsVoice to the proper class in a few places
+Zg - [22-Dec] - In an attempt to stop errors, AddX has become a method (I never really used it the way it was)
+Zg - [22-Dec] - I am an idiot! :D The whole problem this whole entire time was about 4 lines I didn't put in Class_Initialize and Class_Terminate. I've been screwing with this for the past 3 days! GRR!!!!! Someone hit me in the head with a 2x4 (actually, since I'm a hamster, it might hurt a lot)
+Zg - [22-Dec] - Added checks for duplicate access entries when ADDing
+Zg - [22-Dec] - People are q/o/v based on their access entries
+Zg - [22-Dec] - You can defeat a ban if you are granted, or host/owner, or if you specify a working key (host/member/owner)
+Zg - [22-Dec] - Serious issues with determining if an entry exists or not (very annoying)
+Zg - [22-Dec] - Fixed the annoying issues with access add/delete
+Zg - [22-Dec] - YAY!!!!!!!! I FINALLY FIXED ACCESS! WHEE! Look at me! Ahem.. anyways.. I probably added about ~150 lines or so of unnecessary code (oops).. And duration isn't yet coded (meaning all entries are permanent until I code it in)
+Zg - [22-Dec] - The server now sets IsIRCX whenever you turn IRCX on (and sends usermode +x)
+Zg - [22-Dec] - GetModes returns +h now (whoops - slight mishap there)
+Zg - [23-Dec] - /list and /listx now hide rooms that are +h
+Zg - [10-Jan] - revised ircx.conf (preparing for release of 0.1.2)
