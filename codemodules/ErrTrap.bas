@@ -13,7 +13,7 @@ Attribute VB_Name = "modErrTrap"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: ErrTrap.bas,v 1.4 2004/05/28 21:27:36 ziggythehamster Exp $
+' $Id: ErrTrap.bas,v 1.6 2004/06/05 04:27:30 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -227,8 +227,7 @@ Public Function ExceptionFilter(ByRef ExceptionPtrs As EXCEPTION_POINTERS) As Lo
   Loop
   strException = GetExceptionText(Rec.ExceptionCode)
   m_Description = strException
-  SendSvrMsg "Server error: " & Rec.ExceptionCode & " -- " & strException
-  SendSvrMsg "Trying to continue execution"
+  ErrorMsg "Fatal exception " & Rec.ExceptionCode & "(" & strException & "). Attempting to continue execution..."
   ExceptionFilter = EXCEPTION_CONTINUE_EXECUTION
 End Function
 

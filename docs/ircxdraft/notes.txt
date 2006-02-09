@@ -1,0 +1,11 @@
+This directory contains all of the known IRCX drafts. Because none of them give versions, we can't 
+accurately pick which one was supposed to be "the" IRCX standard. However, because it is newer, 
+draft-pfenning-irc-extensions-04.txt is the draft we are using for reference. Older ones should be
+ignored and are only here for backwards-reference (i.e. the newest one seems to have left out an
+error message that is necessary -- "Some entries were not removed due to security", but it's in an 
+older one).
+
+If you are developing for IRCX, we HIGHLY suggest you use draft-pfenning-irc-extensions-04.txt for
+reference. It seems that all IRCX implementations are using this particular draft, and it is also 
+newer (the preface says you should use the newest one, as well).
+

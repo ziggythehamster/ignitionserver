@@ -13,7 +13,7 @@ Attribute VB_Name = "mod_Unixtime"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_Unixtime.bas,v 1.4 2004/05/28 21:27:37 ziggythehamster Exp $
+' $Id: mod_Unixtime.bas,v 1.6 2004/05/30 18:01:16 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -40,6 +40,7 @@ Private Type SYSTEMTIME
   wMilliseconds As Integer
 End Type
 
+
 Private Type TIME_ZONE_INFORMATION
   Bias As Long
   StandardName(63) As Byte
@@ -57,9 +58,58 @@ Private Const TIME_ZONE_ID_DAYLIGHT As Long = 2&
 
 Private Declare Function GetTimeZoneInformation Lib "kernel32" (lpTimeZoneInformation As TIME_ZONE_INFORMATION) As Long
 
+Private Function GetTimeDifference() As Long
+    'Returns  the time difference between
+    'local & GMT time in seconds.
+    'If the  result is negative, your time zone
+    'lags behind GMT zone.
+    'If the  result is positive, your time zone is ahead.
+
+    Dim tz As TIME_ZONE_INFORMATION
+    Dim retcode As Long
+    Dim Difference As Long
+
+    'retrieve the time zone information
+    retcode = GetTimeZoneInformation(tz)
+
+    'convert to seconds
+    Difference = -tz.Bias * 60
+    'cache the result
+
+    GetTimeDifference = Difference
+
+    'if we are in daylight  saving time, apply the bias.
+    If retcode = TIME_ZONE_ID_DAYLIGHT& Then
+        If tz.DaylightDate.wMonth <> 0 Then
+            'if tz.DaylightDate.wMonth = 0 then the daylight
+            'saving time change doesn't occur
+            GetTimeDifference = Difference - tz.DaylightBias * 60
+        End If
+    End If
+
+End Function
+
 Public Sub InitUnixTime()
   Dim tzi As TIME_ZONE_INFORMATION
   UnixTime = DateDiff("s", DateValue("1/1/1970"), Now)
   Call GetTimeZoneInformation(tzi)
   UnixTime = UnixTime + (tzi.Bias * 60)
 End Sub
+
+Public Function GetZone() As String
+Dim Differerence As Long
+Dim a As String
+Differerence = GetTimeDifference()
+If Differerence > 0 Then
+ a = "+"
+Else
+ a = "-"
+End If
+
+Differerence = Abs(Differerence \ 3600)
+If Differerence < 10 Then
+ GetZone = a & "0" & Differerence & "00"
+Else
+ GetZone = a & Differerence & "00"
+End If
+End Function

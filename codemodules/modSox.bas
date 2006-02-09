@@ -13,7 +13,7 @@ Attribute VB_Name = "modSox"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: modSox.bas,v 1.4 2004/05/28 21:27:37 ziggythehamster Exp $
+' $Id: modSox.bas,v 1.8 2004/06/05 19:26:12 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -55,7 +55,7 @@ If MaxConnectionsPerIP > 0 Then
 End If
 If cptr.AccessLevel < 4 Then
     'Client connection closed -Dill
-    GenerateEvent "USER", "LOGOFF", cptr.Nick & "!" & cptr.User & "@" & cptr.RealHost, cptr.Nick & "!" & cptr.User & "@" & cptr.RealHost
+    If Len(cptr.Nick) <> 0 And Len(cptr.User) <> 0 And Len(cptr.RealHost) <> 0 Then GenerateEvent "USER", "LOGOFF", cptr.Nick & "!" & cptr.User & "@" & cptr.RealHost, cptr.Nick & "!" & cptr.User & "@" & cptr.RealHost
     GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP
     If cptr.SentQuit Then Exit Sub
     With cptr
@@ -212,9 +212,29 @@ If cptr.IsKilled Then
 End If
 If Len(StrMsg) = 0 Then Exit Sub
 StrMsg = Replace(StrMsg, vbCrLf, vbLf)
+
 If InStr(1, StrMsg, vbLf) = 0 Then
     cptr.tmpused = True
-    cptr.tmp = cptr.tmp & StrMsg
+    #If Debugging = 1 Then
+      SendSvrMsg "Telnet rightmost char: (ASCII " & Asc(Right(StrMsg, 1)) & ", Len " & Len(StrMsg) & ") '" & Right(StrMsg, 1) & "'"
+    #End If
+    If Asc(Right(StrMsg, 1)) = 0 Then
+      #If Debugging = 1 Then
+        SendSvrMsg "Found null as last char"
+      #End If
+      StrMsg = Left(StrMsg, Len(StrMsg) - 1)
+    End If
+    #If Debugging = 1 Then
+      SendSvrMsg "Telnet rightmost char after trim: (ASCII " & Asc(Right(StrMsg, 1)) & ", Len " & Len(StrMsg) & ") '" & Right(StrMsg, 1) & "'"
+    #End If
+    
+    'handle backspace
+    If StrMsg = Chr(8) Then
+      cptr.tmp = Left(cptr.tmp, Len(cptr.tmp) - 1)
+      'don't add this to cptr.tmp, it's backspace ^_^
+    Else
+      cptr.tmp = cptr.tmp & Left(StrMsg, 512) 'no buffer overruns, mommy!
+    End If
     Exit Sub
 End If
 If cptr.tmpused Then
@@ -272,12 +292,12 @@ Public Sub Sox_Error(insox As Long, inerror As Long, inDescription As String, in
 #If Debugging = 1 Then
     SendSvrMsg "Sox_Error called! " & inDescription
 #End If
-Debug.Print inDescription
+'Debug.Print inDescription
 Dim cptr As clsClient, QMsg$, Msg$, y&, x() As clsChanMember, z&
 Set cptr = Users(insox)
 If cptr Is Nothing Then Exit Sub
 With cptr
-    Msg = .Prefix & " QUIT :socket error: " & inDescription
+    Msg = .Prefix & " QUIT :Socket Error: " & inDescription
     For y = 1 To .OnChannels.Count
         x = .OnChannels.Item(y).Member.Values
         For z = LBound(x) To UBound(x)
@@ -290,7 +310,7 @@ With cptr
         Next z
         .OnChannels.Item(y).Member.Remove .Nick
     Next y
-    SendToServer "QUIT :socket error: " & inDescription, .Nick
+    SendToServer "QUIT :Socket Error: " & inDescription, .Nick
     KillStruct .Nick
     .IsKilled = True
 End With

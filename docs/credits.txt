@@ -1,7 +1,7 @@
 			########################
 			#ignitionServer CREDITS#
 			########################
-# $Id: credits.txt,v 1.4 2004/05/28 21:27:38 ziggythehamster Exp $
+# $Id: credits.txt,v 1.5 2004/05/28 21:35:35 ziggythehamster Exp $
 
 	===========++++++++===========++++++++===========
 
@@ -14,7 +14,7 @@ If you are not familiar with the GPL, please read LICENSE.TXT.
 remain intact!)
 Released under the GNU General Public License
 Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-                     Nigel Jones (DigiGuy) <digiguy@ignition-project.com>
+                     Nigel Jones (DigiGuy) <nigel@ignition-project.com>
                      Reid Burke  (AirWalk) <airwalk@ignition-project.com>
 
 ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>

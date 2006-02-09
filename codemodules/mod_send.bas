@@ -13,7 +13,7 @@ Attribute VB_Name = "mod_send"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_send.bas,v 1.4 2004/05/28 21:27:37 ziggythehamster Exp $
+' $Id: mod_send.bas,v 1.5 2004/05/28 21:35:34 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -30,19 +30,19 @@ Attribute VB_Name = "mod_send"
 
 Option Explicit
 #Const Debugging = 0
-Public Sub SendDirect(Index As Long, cmd$)
+Public Sub SendDirect(index As Long, cmd$)
 On Error Resume Next
-With Users(Index)
+With Users(index)
     If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
         .SendQ = .SendQ & cmd
         On Local Error Resume Next
-        ColOutClientMsg.Add .Index, CStr(Index)
+        ColOutClientMsg.Add .index, CStr(index)
     End If
 End With
 End Sub
-Public Sub SendEvent(Index As Long, EventType As String, EventName As String, Args As String)
+Public Sub SendEvent(index As Long, EventType As String, EventName As String, Args As String)
 On Error Resume Next
-With Users(Index)
+With Users(index)
     If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
         'after much thinking i decided that EVENT really does need the server prefix specified
         'it's harder to code for events if the prefix isn't specified.. this makes more logical sense
@@ -53,15 +53,15 @@ With Users(Index)
           .SendQ = .SendQ & SPrefix & " EVENT " & UnixTime & " " & EventType & " " & EventName & vbCrLf
         End If
         On Local Error Resume Next
-        ColOutClientMsg.Add .Index, CStr(Index)
+        ColOutClientMsg.Add .index, CStr(index)
     End If
 End With
 End Sub
-Public Sub SendWsock(Index As Long, cmd, arg$, Optional Prefix As String, Optional CustomMsg As Boolean = False)
+Public Sub SendWsock(index As Long, cmd, arg$, Optional Prefix As String, Optional CustomMsg As Boolean = False)
 On Error Resume Next
 Dim I&, x&, Res$
-If Users(Index) Is Nothing Then Exit Sub
-If Users(Index).IsKilled Then Exit Sub
+If Users(index) Is Nothing Then Exit Sub
+If Users(index).IsKilled Then Exit Sub
 If Len(Prefix) = 0 Then Prefix = SPrefix
 If CustomMsg = True Then
   Res = cmd & vbCrLf
@@ -85,11 +85,11 @@ Else
   I = I + 2
 End If
 Res = Trim$(Res)
-With Users(Index)
+With Users(index)
     If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
         .SendQ = .SendQ & Res
         On Local Error Resume Next
-        ColOutClientMsg.Add .Index, CStr(Index)
+        ColOutClientMsg.Add .index, CStr(index)
     End If
 End With
 End Sub
@@ -109,7 +109,7 @@ If Len(From) > 0 Then
                     If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                         .SendQ = .SendQ & Msg
                         On Local Error Resume Next
-                        ColOutClientMsg.Add .Index, CStr(.Index)
+                        ColOutClientMsg.Add .index, CStr(.index)
                     End If
                 End With
             Else
@@ -124,11 +124,97 @@ Else
                 If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                     .SendQ = .SendQ & Msg
                     On Local Error Resume Next
-                    ColOutClientMsg.Add .Index, CStr(.Index)
+                    ColOutClientMsg.Add .index, CStr(.index)
                 End If
             End With
         Else
             SendToChan = True
+        End If
+    Next I
+End If
+End Function
+Public Function SendToChanIRCX(Chan As clsChannel, Msg As String, From As String) As Boolean
+On Error Resume Next
+Dim I As Long, Val() As clsChanMember
+Msg = Msg & vbCrLf
+ServerTraffic = ServerTraffic + (Chan.Member.Count * Len(Msg))
+'The first checks everytime if the target is the sender, so it executes a *BIT* slower than the other -Dill
+Val = Chan.Member.Values
+If Len(From) > 0 Then
+    For I = LBound(Val) To UBound(Val)
+        If Not StrComp(From, Val(I).Member.Nick) = 0 Then
+            If Val(I).Member.Hops = 0 Then
+                With Val(I).Member
+                    If .IsIRCX Then
+                      If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
+                          .SendQ = .SendQ & Msg
+                          On Local Error Resume Next
+                          ColOutClientMsg.Add .index, CStr(.index)
+                      End If
+                    End If
+                End With
+            Else
+                SendToChanIRCX = True
+            End If
+        End If
+    Next I
+Else
+    For I = LBound(Val) To UBound(Val)
+        If Val(I).Member.Hops = 0 Then
+            With Val(I).Member
+                If .IsIRCX Then
+                  If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
+                      .SendQ = .SendQ & Msg
+                      On Local Error Resume Next
+                      ColOutClientMsg.Add .index, CStr(.index)
+                  End If
+                End If
+            End With
+        Else
+            SendToChanIRCX = True
+        End If
+    Next I
+End If
+End Function
+Public Function SendToChan1459(Chan As clsChannel, Msg As String, From As String) As Boolean
+On Error Resume Next
+Dim I As Long, Val() As clsChanMember
+Msg = Msg & vbCrLf
+ServerTraffic = ServerTraffic + (Chan.Member.Count * Len(Msg))
+'The first checks everytime if the target is the sender, so it executes a *BIT* slower than the other -Dill
+Val = Chan.Member.Values
+If Len(From) > 0 Then
+    For I = LBound(Val) To UBound(Val)
+        If Not StrComp(From, Val(I).Member.Nick) = 0 Then
+            If Val(I).Member.Hops = 0 Then
+                With Val(I).Member
+                    If Not .IsIRCX Then
+                      If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
+                          .SendQ = .SendQ & Msg
+                          On Local Error Resume Next
+                          ColOutClientMsg.Add .index, CStr(.index)
+                      End If
+                    End If
+                End With
+            Else
+                SendToChan1459 = True
+            End If
+        End If
+    Next I
+Else
+    For I = LBound(Val) To UBound(Val)
+        If Val(I).Member.Hops = 0 Then
+            With Val(I).Member
+                If Not .IsIRCX Then
+                  If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
+                      .SendQ = .SendQ & Msg
+                      On Local Error Resume Next
+                      ColOutClientMsg.Add .index, CStr(.index)
+                  End If
+                End If
+            End With
+        Else
+            SendToChan1459 = True
         End If
     Next I
 End If
@@ -149,7 +235,7 @@ If Len(From) > 0 Then
                         If Chan.Member.Item(.Nick).IsOp Or Chan.Member.Item(.Nick).IsOwner Then
                           .SendQ = .SendQ & SPrefix & " " & Raw & " " & .Nick & " " & Msg
                           On Local Error Resume Next
-                          ColOutClientMsg.Add .Index, CStr(.Index)
+                          ColOutClientMsg.Add .index, CStr(.index)
                         End If
                     End If
                 End With
@@ -166,7 +252,7 @@ Else
                     If Chan.Member.Item(.Nick).IsOp Or Chan.Member.Item(.Nick).IsOwner Then
                       .SendQ = .SendQ & SPrefix & " " & Raw & " " & .Nick & " " & Msg
                       On Local Error Resume Next
-                      ColOutClientMsg.Add .Index, CStr(.Index)
+                      ColOutClientMsg.Add .index, CStr(.index)
                     End If
                 End If
             End With
@@ -191,7 +277,7 @@ If Len(From) > 0 Then
                     If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                         .SendQ = .SendQ & SPrefix & " " & Raw & " " & .Nick & " " & Msg
                         On Local Error Resume Next
-                        ColOutClientMsg.Add .Index, CStr(.Index)
+                        ColOutClientMsg.Add .index, CStr(.index)
                     End If
                 End With
             Else
@@ -206,7 +292,7 @@ Else
                 If Not (Len(.SendQ) > YLine(.Class).MaxSendQ And .HasRegistered) Then
                     .SendQ = .SendQ & SPrefix & " " & Raw & " " & .Nick & " " & Msg
                     On Local Error Resume Next
-                    ColOutClientMsg.Add .Index, CStr(.Index)
+                    ColOutClientMsg.Add .index, CStr(.index)
                 End If
             End With
         Else
@@ -221,7 +307,7 @@ If Len(Prefix) = 0 Then Prefix = ServerName
 Val = Servers.Values
 For I = LBound(Val) To UBound(Val)
     If Val(I).Hops = 1 Then
-        SendWsock Val(I).Index, ":" & Prefix & " " & Msg, vbNullString, vbNullString, True
+        SendWsock Val(I).index, ":" & Prefix & " " & Msg, vbNullString, vbNullString, True
     End If
 Next I
 End Sub
@@ -233,13 +319,13 @@ Val = Servers.Values
 For I = LBound(Val) To UBound(Val)
     If Val(I).Hops = 1 Then
         If Not StrComp(Val(I).ServerName, Except, vbTextCompare) = 0 Then
-            SendWsock Val(I).Index, ":" & Prefix & " " & Msg, vbNullString, vbNullString, True
+            SendWsock Val(I).index, ":" & Prefix & " " & Msg, vbNullString, vbNullString, True
         End If
     End If
 Next I
 End Sub
 
-Public Sub SendToOps(Index As Long, Msg As String, Optional Prefix As String)
+Public Sub SendToOps(index As Long, Msg As String, Optional Prefix As String)
 Dim I As Long, Message() As Byte
 If IsMissing(Prefix) Then Prefix = SPrefix
 If AscW(Msg) = 58 Then
@@ -265,7 +351,7 @@ If Len(From) > 0 Then
                         On Local Error Resume Next
                         If Chan.Member.Item(.Nick).IsOwner Then
                           .SendQ = .SendQ & Msg
-                          ColOutClientMsg.Add .Index, CStr(.Index)
+                          ColOutClientMsg.Add .index, CStr(.index)
                         End If
                     End If
                 End With
@@ -282,7 +368,7 @@ Else
                     On Local Error Resume Next
                         If Chan.Member.Item(.Nick).IsOwner Then
                           .SendQ = .SendQ & Msg
-                          ColOutClientMsg.Add .Index, CStr(.Index)
+                          ColOutClientMsg.Add .index, CStr(.index)
                         End If
                 End If
             End With
@@ -308,7 +394,7 @@ If Len(From) > 0 Then
                         On Local Error Resume Next
                         If Chan.Member.Item(.Nick).IsOwner Or Chan.Member.Item(.Nick).IsOp Then
                           .SendQ = .SendQ & Msg
-                          ColOutClientMsg.Add .Index, CStr(.Index)
+                          ColOutClientMsg.Add .index, CStr(.index)
                         End If
                     End If
                 End With
@@ -325,7 +411,7 @@ Else
                     On Local Error Resume Next
                         If Chan.Member.Item(.Nick).IsOwner Or Chan.Member.Item(.Nick).IsOp Then
                           .SendQ = .SendQ & Msg
-                          ColOutClientMsg.Add .Index, CStr(.Index)
+                          ColOutClientMsg.Add .index, CStr(.index)
                         End If
                 End If
             End With

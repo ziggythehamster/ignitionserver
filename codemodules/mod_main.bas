@@ -13,7 +13,7 @@ Attribute VB_Name = "mod_main"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_main.bas,v 1.5 2004/05/28 21:27:37 ziggythehamster Exp $
+' $Id: mod_main.bas,v 1.14 2004/06/06 23:54:03 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -40,6 +40,7 @@ Private Bye As Boolean
 #Const Debugging = 0
 #Const CanDie = 1
 #Const CanRestart = 1
+#Const EnableNonstandard = 0
 
 Public Function CreateGUID() As String
 #If Debugging = 1 Then
@@ -53,8 +54,13 @@ Public Function CreateGUID() As String
 End Function
 
 Public Sub Main()
+Dim F As Long
+F = FreeFile
 If App.PrevInstance = True And AllowMultiple = False Then
-MsgBox "FATAL ERROR IN MODULE ""IGNITIONSERVER"": You can not start multiple instances of ignitionServer - see X:ALLOWMULTIPLE to change this setting"
+'you can't display msgbox'es in an unattended app...
+'perhaps we need to puke it to a logfile or something?
+'MsgBox "FATAL ERROR IN MODULE ""IGNITIONSERVER"": You can not start multiple instances of ignitionServer - see X:ALLOWMULTIPLE to change this setting"
+ErrorMsg "ignitionServer was attempted to be started more than one time. ignitionServer can only be run once unless X:ALLOWMULTIPLE is enabled to allow this."
 End
 End If
 AppVersion = App.Major & "." & App.Minor & "." & App.Revision
@@ -84,6 +90,11 @@ Opers.IgnoreCase = True
 ServerMsg.IgnoreCase = True
 Set Sockets = New clsSox
 Rehash vbNullString
+If ErrorLog = True Then
+  Open App.Path & "\errorlog.txt" For Append As F
+  Print #F, "(" & Now & ") ignitionServer " & AppVersion & " loaded and ready to go."
+  Close #F
+End If
 SPrefix = ":" & ServerName
 Dim NewCptr As clsClient
 Set NewCptr = New clsClient
@@ -144,6 +155,12 @@ KillTimer 0&, hTmrDestroyWhoWas
 'Unhook Excpetion filters -Dill
 Error_Disconnect
 'Unless Quit is set to false we end our program here -Dill
+Dim F As Long
+If ErrorLog = True Then
+  Open App.Path & "\errorlog.txt" For Append As F
+  Print #F, "(" & Now & ") ignitionServer " & AppVersion & " shut down."
+  Close #F
+End If
 If Quit Then End
 End Sub
 
@@ -163,7 +180,10 @@ On Error GoTo KNPErr
 Dim tmpU() As clsClient
 Dim tmpN As Long
 Dim x As Long
+On Error Resume Next
+If GlobUsers.Count = 0 Then Exit Sub
 tmpU() = GlobUsers.Values
+On Error GoTo KNPErr
 For tmpN = LBound(tmpU) To UBound(tmpU)
   'only get mad about the pong if idle for 30+ seconds and not ponged
   'obviously, if you're not idle, and didn't respond to a pong, you
@@ -183,7 +203,7 @@ For tmpN = LBound(tmpU) To UBound(tmpU)
 Next tmpN
 Exit Sub
 KNPErr:
-SendSvrMsg "*** Error in KillNoPongs - " & err.Number & ": " & err.Description
+ErrorMsg "Error " & err.Number & " (" & err.Description & ") in 'KillNoPongs'"
 End Sub
 Public Sub SetNotWaiting(ClassID As Long)
 On Error Resume Next
@@ -202,6 +222,9 @@ On Error GoTo PingError
   Dim tmpY2 As Long
   Dim tmpU() As clsClient
   
+  'If UBound(YLine) <= 1 Then Exit Sub 'possible error fix
+  If GlobUsers.Count = 0 Then Exit Sub 'another error fix
+  
   For tmpY = 2 To UBound(YLine)
     'math:
     'If UnixTime - PingFreq >= PingCounter
@@ -213,12 +236,14 @@ On Error GoTo PingError
       #If Debugging = 1 Then
         SendSvrMsg "*** Pinging... (Class: " & YLine(tmpY).ID & " YClass: " & YLine(tmpY).index & ")"
       #End If
+      On Error Resume Next
       tmpU() = GlobUsers.Values
+      On Error GoTo PingError
       For tmpY2 = LBound(tmpU) To UBound(tmpU)
         #If Debugging = 1 Then
           SendSvrMsg "*** Will Ping: " & tmpU(tmpY2).Nick & " (YClass: " & tmpU(tmpY2).Class & ")"
         #End If
-        If (tmpU(tmpY2).Class = YLine(tmpY).index) And (tmpU(tmpY2).AccessLevel < 4) Then 'don't care about servers -zg
+        If (tmpU(tmpY2).Class = YLine(tmpY).index) And ((tmpU(tmpY2).AccessLevel < 4) And (tmpU(tmpY2).AccessLevel > 1)) Then 'don't care about servers, don't ping unregistered clients
           #If Debugging = 1 Then
             SendSvrMsg "*** Pinging: " & tmpU(tmpY2).Nick & " (YClass: " & tmpU(tmpY2).Class & ")"
           #End If
@@ -231,7 +256,7 @@ On Error GoTo PingError
   Next tmpY
 Exit Sub
 PingError:
-SendSvrMsg "*** Ping Error! The error returned was: " & err.Number & " - " & err.Description
+ErrorMsg "Error " & err.Number & " (" & err.Description & ") in 'DoPings'"
 End Sub
 'The RecvQ processer, main part of the IRC Server -Dill
 Public Sub IRCxCore()
@@ -322,6 +347,7 @@ Do
       cmd = UCase$(CurCmd)
     End If
     cmd = UCase$(cmd)
+    
     Select Case cmd 'Process the command -Dill
         Case "PRIVMSG": Cmds.Privmsg = Cmds.Privmsg + 1: Cmds.PrivmsgBW = Cmds.PrivmsgBW + cmdLen
           If Not cptr.HasRegistered Then
@@ -353,13 +379,11 @@ Do
           Call m_part(cptr, sptr, arglist)
         Case "MODE": Cmds.Mode = Cmds.Mode + 1: Cmds.ModeBW = Cmds.ModeBW + cmdLen
           If Not cptr.HasRegistered Then
+            If UCase(arglist(0)) = "ISIRCX" Then
+              Call m_isircx(cptr, sptr, arglist)
+              GoTo nextmsg
+            End If
             SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
-            GoTo nextmsg
-          End If
-          If UCase(arglist(0)) = "ISIRCX" Then
-            SendWsock cptr.index, SPrefix & " 800 * 1 0 " & AuthPackages & " 512 " & Capabilities, vbNullString, , True
-            cptr.IsIRCX = True
-            SendDirect cptr.index, cptr.Prefix & " MODE " & cptr.Nick & " +x" & vbCrLf
             GoTo nextmsg
           End If
           Call m_mode(cptr, sptr, arglist)
@@ -453,7 +477,7 @@ Do
                     GenerateEvent "USER", "LOGON", .Nick & "!" & .User & "@" & .RealHost, .Nick & "!" & .User & "@" & .RealHost
                     SendWsock .index, SPrefix & " 001 " & .Nick & " :Welcome to the " & IRCNet & " IRC Network " & .Nick & "!" & .User & "@" & .RealHost, vbNullString, , True
                     SendWsock .index, SPrefix & " 002 " & .Nick & " :Your host is " & ServerName & ", running version ignitionServer-" & AppVersion, vbNullString, , True
-                    If ServerLocation <> "" Then
+                    If Len(ServerLocation) <> 0 Then
                       SendWsock .index, SPrefix & " 003 " & .Nick & " :This server was (re)started " & StartUpDate & " and is in " & ServerLocation, vbNullString, , True
                     Else
                       SendWsock .index, SPrefix & " 003 " & .Nick & " :This server was (re)started " & StartUpDate, vbNullString, , True
@@ -466,6 +490,7 @@ Do
                     SendWsock .index, GetLusers(.Nick), vbNullString, , True
                     SendWsock .index, ReadMotd(.Nick), vbNullString, , True
                     .HasRegistered = True
+                    If .IsIRCX Then SendWsock .index, SPrefix & " MODE " & .Nick & " +x", vbNullString, , True
                     'after careful consideration,
                     'i've decided that RealHost should be sent to links
                     'if the link supports MD5 encrpytion, then use it
@@ -481,13 +506,9 @@ Do
             .Timeout = 0
           End With
         Case "ISIRCX": Cmds.Ircx = Cmds.Ircx + 1: Cmds.IrcxBW = Cmds.IrcxBW + cmdLen
-          SendWsock cptr.index, SPrefix & " 800 * 1 0 " & AuthPackages & " 512 " & Capabilities, vbNullString, , True
-          cptr.IsIRCX = True
-          SendDirect cptr.index, cptr.Prefix & " MODE " & cptr.Nick & " +x" & vbCrLf
+          Call m_isircx(cptr, sptr, arglist)
         Case "IRCX": Cmds.Ircx = Cmds.Ircx + 1: Cmds.IrcxBW = Cmds.IrcxBW + cmdLen
-          SendWsock cptr.index, SPrefix & " 800 * 1 0 " & AuthPackages & " 512 " & Capabilities, vbNullString, , True
-          cptr.IsIRCX = True
-          SendDirect cptr.index, cptr.Prefix & " MODE " & cptr.Nick & " +x" & vbCrLf
+          Call m_ircx(cptr, sptr, arglist)
         Case "QUIT": Cmds.Quit = Cmds.Quit + 1: Cmds.QuitBW = Cmds.QuitBW + cmdLen
           Call m_quit(cptr, sptr, arglist)
         Case "VHOST"
@@ -506,18 +527,6 @@ Do
             GoTo nextmsg
           End If
           Call m_invite(cptr, sptr, arglist)
-        Case "SAMODE": Cmds.SAMode = Cmds.SAMode + 1: Cmds.SAModeBW = Cmds.SAModeBW + cmdLen
-          If Not cptr.HasRegistered Then
-            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
-            GoTo nextmsg
-          End If
-          Call m_samode(cptr, sptr, arglist)
-        Case "UMODE": Cmds.UMode = Cmds.UMode + 1: Cmds.UModeBW = Cmds.UModeBW + cmdLen
-          If Not cptr.HasRegistered Then
-            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
-            GoTo nextmsg
-          End If
-          Call m_umode(cptr, sptr, arglist)
         Case "NAMES": Cmds.Names = Cmds.Names + 1: Cmds.NamesBW = Cmds.NamesBW + cmdLen
           If Not cptr.HasRegistered Then
             SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
@@ -569,14 +578,18 @@ Do
             GoTo nextmsg
           End If
           Call m_version(cptr, sptr, arglist)
+        Case "INFO": Cmds.Info = Cmds.Info + 1: Cmds.InfoBW = Cmds.InfoBW + cmdLen
+          If Not cptr.HasRegistered Then
+            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+            GoTo nextmsg
+          End If
+          Call m_info(cptr, sptr, arglist)
         Case "TIME": Cmds.Time = Cmds.Time + 1: Cmds.TimeBW = Cmds.TimeBW + cmdLen
           If Not cptr.HasRegistered Then
             SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
             GoTo nextmsg
           End If
           Call m_time(cptr, sptr, arglist)
-'        Case "INFO": Cmds.Info = Cmds.Info + 1
-'          m_info cptr, sptr, arglist
         Case "STATS": Cmds.Stats = Cmds.Stats + 1: Cmds.StatsBW = Cmds.StatsBW + cmdLen
           If Not cptr.HasRegistered Then
             SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
@@ -627,6 +640,24 @@ Do
             GoTo nextmsg
           End If
             Call m_chghost(cptr, sptr, arglist)
+        Case "FHOST": Cmds.Chghost = Cmds.Chghost + 1: Cmds.ChghostBW = Cmds.ChghostBW + cmdLen
+          If Not cptr.HasRegistered Then
+            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+            GoTo nextmsg
+          End If
+            Call m_chghost(cptr, sptr, arglist)
+        Case "FNICK": Cmds.ChgNick = Cmds.ChgNick + 1: Cmds.ChgNickBW = Cmds.ChgNickBW + cmdLen
+          If Not cptr.HasRegistered Then
+            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+            GoTo nextmsg
+          End If
+          Call m_chgnick(cptr, sptr, arglist)
+        Case "GLINE": Cmds.ChgNick = Cmds.ChgNick + 1: Cmds.ChgNickBW = Cmds.ChgNickBW + cmdLen
+          If Not cptr.HasRegistered Then
+            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+            GoTo nextmsg
+          End If
+          Call m_chgnick(cptr, sptr, arglist)
         Case "CHGNICK": Cmds.ChgNick = Cmds.ChgNick + 1: Cmds.ChgNickBW = Cmds.ChgNickBW + cmdLen
           If Not cptr.HasRegistered Then
             SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
@@ -758,6 +789,8 @@ Do
             Else
                 SendWsock cptr.index, ERR_UNKNOWNCOMMAND & " " & cptr.Nick, TranslateCode(ERR_UNKNOWNCOMMAND, , , cmd)
             End If
+        Case "WALLOPS"
+            Call m_gnotice(cptr, sptr, arglist)
         Case "GNOTICE"
             Call m_gnotice(cptr, sptr, arglist)
 '*****************************
@@ -811,8 +844,30 @@ Do
               GoTo nextmsg
             End If
             Call m_operserv(cptr, sptr, arglist)
+'*** NONSTANDARD COMMANDS
+        #If EnableNonstandard = 1 Then
+        Case "SAMODE": Cmds.SAMode = Cmds.SAMode + 1: Cmds.SAModeBW = Cmds.SAModeBW + cmdLen
+          If Not cptr.HasRegistered Then
+            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+            GoTo nextmsg
+          End If
+          Call m_samode(cptr, sptr, arglist)
+        Case "UMODE": Cmds.UMode = Cmds.UMode + 1: Cmds.UModeBW = Cmds.UModeBW + cmdLen
+          If Not cptr.HasRegistered Then
+            SendWsock cptr.index, ERR_NOTREGISTERED, TranslateCode(ERR_NOTREGISTERED)
+            GoTo nextmsg
+          End If
+          Call m_umode(cptr, sptr, arglist)
+        #End If
+'*** END OF NONSTANDARD COMMANDS
         Case Else
-            SendWsock cptr.index, ERR_UNKNOWNCOMMAND & " " & cptr.Nick, TranslateCode(ERR_UNKNOWNCOMMAND, , , cmd)
+            Dim tmpSN As String
+            If Len(cptr.Nick) = 0 Then
+              tmpSN = "Anonymous"
+            Else
+              tmpSN = cptr.Nick
+            End If
+            SendWsock cptr.index, ERR_UNKNOWNCOMMAND & " " & tmpSN, TranslateCode(ERR_UNKNOWNCOMMAND, , , cmd)
     End Select
 nextmsg:
     Set sptr = Nothing

@@ -13,7 +13,7 @@ Attribute VB_Name = "m_ircx_chan"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: m_ircx_chan.bas,v 1.4 2004/05/28 21:27:37 ziggythehamster Exp $
+' $Id: m_ircx_chan.bas,v 1.7 2004/06/03 00:31:29 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -89,9 +89,17 @@ Else
     End If
     SendWsock cptr.index, "CREATE " & parv(0) & " 0", vbNullString
     SendWsock cptr.index, cptr.Prefix & " JOIN " & parv(0), vbNullString, , True
-    SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " = " & parv(0), ":." & cptr.Nick
+    If cptr.IsIRCX Then
+      SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " = " & parv(0), ":." & cptr.Nick
+    Else
+      'why you'd be non-IRCX and send CREATE... i dunno
+      SendWsock cptr.index, RPL_NAMREPLY & " " & cptr.Nick & " = " & parv(0), ":@" & cptr.Nick
+    End If
     SendWsock cptr.index, SPrefix & " " & RPL_ENDOFNAMES & " " & cptr.Nick & " " & Chan.Name & " :End of /NAMES list.", vbNullString, , True
     SendToServer "JOIN " & Chan.Name, cptr.Nick
+    GenerateEvent "USER", "JOIN", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " " & Chan.Name
+    GenerateEvent "CHANNEL", "CREATE", Chan.Name, Chan.Name & " " & cptr.Nick
+    GenerateEvent "CHANNEL", "JOIN", Chan.Name, Chan.Name & " " & cptr.Nick
   Else
     CurrentInfo = "channel exists"
     SendWsock cptr.index, IRCERR_CHANNELEXIST & " " & cptr.Nick, TranslateCode(IRCERR_CHANNELEXIST, , parv(0))
@@ -106,26 +114,27 @@ Dim A As Integer
 CurParam = 1 '1 would default to the first mode parameter
 ModesArray = Split(ModeString, " ")
 For A = 1 To Len(ModesArray(0))
-  If Chr(cmModerated) = Mid(ModesArray(0), A, 1) Then Chan.IsModerated = True
-  If Chr(cmNoExternalMsg) = Mid(ModesArray(0), A, 1) Then Chan.IsNoExternalMsgs = True
-  If Chr(cmOpTopic) = Mid(ModesArray(0), A, 1) Then Chan.IsTopicOps = True
-  If Chr(cmHidden) = Mid(ModesArray(0), A, 1) Then
+  If Chr(cmModerated) = Mid$(ModesArray(0), A, 1) Then Chan.IsModerated = True
+  If Chr(cmNoExternalMsg) = Mid$(ModesArray(0), A, 1) Then Chan.IsNoExternalMsgs = True
+  If Chr(cmOpTopic) = Mid$(ModesArray(0), A, 1) Then Chan.IsTopicOps = True
+  If Chr(cmHidden) = Mid$(ModesArray(0), A, 1) Then
     Chan.IsHidden = True
     Chan.IsSecret = False
     Chan.IsPrivate = False
   End If
-  If Chr(cmInviteOnly) = Mid(ModesArray(0), A, 1) Then Chan.IsInviteOnly = True
-  If Chr(cmSecret) = Mid(ModesArray(0), A, 1) Then
+  If Chr(cmInviteOnly) = Mid$(ModesArray(0), A, 1) Then Chan.IsInviteOnly = True
+  If Chr(cmPersistant) = Mid$(ModesArray(0), A, 1) And RegChanMode_ModeR Then Chan.IsPersistant = True
+  If Chr(cmSecret) = Mid$(ModesArray(0), A, 1) Then
     Chan.IsSecret = True
     Chan.IsHidden = False
     Chan.IsPrivate = False
   End If
-  If Chr(cmPrivate) = Mid(ModesArray(0), A, 1) Then
+  If Chr(cmPrivate) = Mid$(ModesArray(0), A, 1) Then
     Chan.IsSecret = False
     Chan.IsHidden = False
     Chan.IsPrivate = True
   End If
-  If Chr(cmLimit) = Mid(ModesArray(0), A, 1) Then
+  If Chr(cmLimit) = Mid$(ModesArray(0), A, 1) Then
     If UBound(ModesArray) > 0 And UBound(ModesArray) >= CurParam Then
       'make sure we aren't going out of bounds
       'also adds protection against this kind of malformed create:
@@ -136,7 +145,7 @@ For A = 1 To Len(ModesArray(0))
       CurParam = CurParam + 1
     End If
   End If
-  If Chr(cmKey) = Mid(ModesArray(0), A, 1) Then
+  If Chr(cmKey) = Mid$(ModesArray(0), A, 1) Then
     If UBound(ModesArray) > 0 And UBound(ModesArray) >= CurParam Then
       Chan.Key = CStr(ModesArray(CurParam))
       Chan.Prop_Memberkey = CStr(ModesArray(CurParam))

@@ -13,7 +13,7 @@ Attribute VB_Name = "mod_Oper"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_Oper.bas,v 1.3 2004/05/28 21:27:37 ziggythehamster Exp $
+' $Id: mod_Oper.bas,v 1.5 2004/06/02 22:36:52 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -95,7 +95,7 @@ Dim NewModes$
         If MD5Crypt = True Then
             If modMD5.oMD5.MD5(parv(1)) = RemotePass Then
                 NewModes = add_umodes(cptr, "Z")
-                If NewModes = "" Then Exit Function
+                If Len(NewModes) = 0 Then Exit Function
                 Select Case cptr.Hops
                     Case Is > 0
                         GenerateEvent "USER", "MODECHANGE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & NewModes
@@ -112,7 +112,7 @@ Dim NewModes$
     Else
         If parv(1) = RemotePass Then
             NewModes = add_umodes(cptr, "Z")
-            If NewModes = "" Then Exit Function
+            If Len(NewModes) = 0 Then Exit Function
             Select Case cptr.Hops
                 Case Is > 0
                     GenerateEvent "USER", "MODECHANGE", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " +" & NewModes

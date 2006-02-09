@@ -27,7 +27,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsSox.cls,v 1.4 2004/05/28 21:27:35 ziggythehamster Exp $
+' $Id: clsSox.cls,v 1.6 2004/06/05 04:27:30 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -380,10 +380,12 @@ Private Socks As New Collection
 Private Sub Class_Initialize()
     If apiWSAStartup(&H101, WSADATA) = SOCKET_ERROR Then
         Call MsgBox("WinSock failed to initialize properly - Error#: " & err.LastDllError) 'Creates an 'application instance' and memory space in the WinSock DLL (MUST be cleaned up later)
+        ErrorMsg "Winsock failed to initialize properly (Error #" & err.LastDllError & ")"
     Else
         Let Portal.hWnd = apiCreateWindowEx(0&, "STATIC", "Portal", 0&, 0&, 0&, 0&, 0&, 0&, 0&, App.hInstance, ByVal 0&) 'Create a hidden object to accept our WinSock messages
         If Portal.hWnd = 0 Then
             Call MsgBox("Error: " & err.LastDllError & " on Portal creation.")   'If cleanup failed, does not / cannot raise errors
+            ErrorMsg "Socket layer failed to create a portal (Error #" & err.LastDllError & ")"
         Else
             Let Portal.WndProc = apiSetWindowLong(Portal.hWnd, GWL_WNDPROC, AddressOf WindowProc)
             Let Portal.Sockets = -1 ' Initialize our socket count ... NB - WE HAVE NONE, used primarily to Redim the Sockets Array
@@ -401,8 +403,14 @@ Private Sub Class_Terminate() 'Scaled down version of Terminate code, used purel
     'Correctly replaces/reattaches the origional WindowProc procedure to our 'hidden' handle
     Call apiSetWindowLong(Portal.hWnd, GWL_WNDPROC, Portal.WndProc)
     'This will destroy our hidden object that received all our WinSock API messages
-    If apiDestroyWindow(Portal.hWnd) = 0 Then Call MsgBox("Error#: " & err.LastDllError & " on Portal destruction")  'If cleanup failed, does not / cannot raise errors
-    If apiWSACleanup = SOCKET_ERROR Then Call MsgBox("WinSock failed to terminate properly, memory leak imminent - Error#: " & err.LastDllError)  'If cleanup failed, does not / cannot raise errors
+    If apiDestroyWindow(Portal.hWnd) = 0 Then
+      Call MsgBox("Error#: " & err.LastDllError & " on Portal destruction")  'If cleanup failed, does not / cannot raise errors
+      ErrorMsg "Socket layer failed to destroy the portal (Error #" & err.LastDllError & ")"
+    End If
+    If apiWSACleanup = SOCKET_ERROR Then
+      Call MsgBox("WinSock failed to terminate properly, memory leak imminent - Error#: " & err.LastDllError)  'If cleanup failed, does not / cannot raise errors
+      ErrorMsg "Winsock failed to terminate properly, memory leak imminent (Error #" & err.LastDllError & ")"
+    End If
 End Sub
 
 Private Function Accept(inSocket As Long) As Long 'Returns: New Sox Number -- inSocket is the listening WinSocket ...
@@ -588,7 +596,6 @@ Public Function Connect(Optional RemoteHost As String, Optional RemotePort As In
 End Function
 
 Private Sub GetData(insox As Long) ' Extracts data from the WinSock Recv buffers and places it in our local buffer (data() array)
-'On Error Resume Next
 #If Debugging = 1 Then
     SendSvrMsg "GetData called!"
 #End If
@@ -900,7 +907,7 @@ Private Sub RaiseError(insox As Long, inCode As Long, inProcedure As String, inS
         SendSvrMsg "error..." & inSnipet & " " & inProcedure
     #End If
     Select Case inCode
-        Case WSABASEERR: Call Sox_Error(insox, inCode, "General WinSock subsystem failure", inProcedure, inSnipet) 'Just sounds cool :)))
+        Case WSABASEERR: Call Sox_Error(insox, inCode, "General Winsock subsystem failure", inProcedure, inSnipet) 'Just sounds cool :)))
         Case WSAEINTR: Call Sox_Error(insox, inCode, "Interrupted function call", inProcedure, inSnipet)
         Case WSAEBADF: Call Sox_Error(insox, inCode, "Unknown", inProcedure, inSnipet) ' Unknown
         Case WSAEACCES: Call Sox_Error(insox, inCode, "Permission Denied", inProcedure, inSnipet)
@@ -945,7 +952,7 @@ Private Sub RaiseError(insox As Long, inCode As Long, inProcedure As String, inS
         Case WSAESTALE: Call Sox_Error(insox, inCode, "Stale NFS file handle", inProcedure, inSnipet) ' UnConfirmed Description
         Case WSAEREMOTE: Call Sox_Error(insox, inCode, "Too many levels of remote in path", inProcedure, inSnipet)  ' UnConfirmed Description
         Case WSASYSNOTREADY: Call Sox_Error(insox, inCode, "Network subsystem is unavailable", inProcedure, inSnipet)
-        Case WSAVERNOTSUPPORTED: Call Sox_Error(insox, inCode, "WinSock.DLL version out of range", inProcedure, inSnipet)
+        Case WSAVERNOTSUPPORTED: Call Sox_Error(insox, inCode, "Winsock.DLL version out of range", inProcedure, inSnipet)
         Case WSANOTINITIALISED: Call Sox_Error(insox, inCode, "Successful WSAStartup not yet performed", inProcedure, inSnipet)
         Case WSAEDISCON1: Call Sox_Error(insox, inCode, "Graceful shutdown in progress", inProcedure, inSnipet)
         Case WSAEDISCON2: Call Sox_Error(insox, inCode, "Graceful shutdown in progress", inProcedure, inSnipet)

@@ -13,7 +13,7 @@ Attribute VB_Name = "mod_user"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_user.bas,v 1.5 2004/05/28 21:27:37 ziggythehamster Exp $
+' $Id: mod_user.bas,v 1.17 2004/06/06 22:24:16 airwalklogik Exp $
 '
 '
 'This program is free software.
@@ -40,7 +40,7 @@ Dim I&
 'A'..'}', '_', '-', '0'..'9'
 If IsNumeric(Left$(Nick, 1)) Then Exit Function
 If Left$(Nick, 1) = "-" Then Exit Function
-If StrComp(Nick, "anonymous", vbTextCompare) = 0 Then Exit Function
+If StrComp(LCase(Nick), "anonymous", vbTextCompare) = 0 Then Exit Function
 For I = 1 To Len(Nick)
     If Not IsValidString(Mid$(Nick, I, 1)) Then Exit Function
 Next I
@@ -119,6 +119,10 @@ WhereAmI = "entry"
 Dim pdat$, I&, tempVar$
 If cptr.AccessLevel = 4 Then
     WhereAmI = "server nick"
+    ':Nick NICK Nick2
+    '  -2   -1   0
+    'negative numbers don't count ;)
+    
     If UBound(parv) > 0 Then
         #If Debugging = 1 Then
           SendSvrMsg "server nick - ubound(parv) > 0"
@@ -194,6 +198,8 @@ If cptr.AccessLevel = 4 Then
           SendSvrMsg "server nick - ubound(parv) else [<=0]"
         #End If
         SendToServer_ButOne "NICK " & parv(0), cptr.ServerName, sptr.Nick
+        'this is a raw send
+        'perhaps we should clean this up a bit?
         Dim ByteArr() As Byte, Members() As clsChanMember
         ByteArr = StrConv(sptr.Prefix & " NICK " & parv(0) & vbCrLf, vbFromUnicode)
         Dim RecvArr() As Long: ReDim RecvArr(0)
@@ -221,9 +227,16 @@ If cptr.AccessLevel = 4 Then
 Else
   WhereAmI = "use nick"
   Dim Temp$
+  Dim ShowNick As String
+  If Len(cptr.Nick) = 0 Then
+    ShowNick = "Anonymous"
+  Else
+    ShowNick = cptr.Nick
+  End If
+  
   If Len(parv(0)) = 0 Then  'In case client didn't send a nick along -Dill
     WhereAmI = "no nickname given"
-    SendWsock cptr.index, ERR_NONICKNAMEGIVEN & " " & cptr.Nick, TranslateCode(ERR_NONICKNAMEGIVEN)
+    SendWsock cptr.index, ERR_NONICKNAMEGIVEN & " " & ShowNick, TranslateCode(ERR_NONICKNAMEGIVEN)
     Exit Function
   End If
   If AscW(parv(0)) = 58 Then parv(0) = Mid$(parv(0), 2)
@@ -233,7 +246,7 @@ Else
   If StrComp(cptr.Nick, parv(0)) = 0 Then Exit Function
   WhereAmI = "check nick for illegal characters"
   If do_nick_name(parv(0)) = 0 Then 'in case client send a nick with illegal char's along -Dill
-    SendWsock cptr.index, ERR_ERRONEUSNICKNAME & " " & cptr.Nick, TranslateCode(ERR_ERRONEUSNICKNAME, parv(0))
+    SendWsock cptr.index, ERR_ERRONEUSNICKNAME & " " & ShowNick, TranslateCode(ERR_ERRONEUSNICKNAME, parv(0))
     Exit Function
   End If
   I = GetQLine(parv(0), cptr.AccessLevel)
@@ -244,10 +257,18 @@ Else
     Exit Function
   End If
   If Not GlobUsers(parv(0)) Is Nothing Then  'in case the nickname specified is already in use -Dill
-    SendWsock cptr.index, ERR_NICKNAMEINUSE & " " & cptr.Nick, TranslateCode(ERR_NICKNAMEINUSE, parv(0))
+    SendWsock cptr.index, ERR_NICKNAMEINUSE & " " & ShowNick, TranslateCode(ERR_NICKNAMEINUSE, parv(0))
     Exit Function
   End If
+  WhereAmI = "entering main code"
+  #If Debugging = 1 Then
+    SendSvrMsg "NICK: entering main code"
+  #End If
   If cptr.OnChannels.Count > 0 Then
+    WhereAmI = "check if banned"
+    #If Debugging = 1 Then
+      SendSvrMsg "NICK: main code -> check if banned"
+    #End If
     For m_nick = 1 To cptr.OnChannels.Count 'in case nick is banned on a channel he is currently on -Dill
       If IsBanned(cptr.OnChannels.Item(m_nick), cptr) Then
         SendWsock cptr.index, ERR_BANNICKCHANGE & " " & cptr.OnChannels.Item(m_nick).Name, "Cannot change nickname while banned on channel"
@@ -259,6 +280,11 @@ Else
     'but i wasnt yet able to come up with another one that was working.
     'i have tried an array and then kill dupes off, so each visible client
     'is sent exactly one nick message but that didnt work right... -Dill
+    
+    WhereAmI = "notifying all visible members"
+    #If Debugging = 1 Then
+      SendSvrMsg "NICK: main code -> notifying all visible members"
+    #End If
     
     Dim AllVisible As New Collection
     ReDim RecvArr(1)
@@ -273,31 +299,52 @@ Else
         End If
       Next I
     Next m_nick
+    
+    WhereAmI = "sending nickname stuff"
+    #If Debugging = 1 Then
+      SendSvrMsg "NICK: main code -> sending nickname stuff"
+    #End If
+    
     For I = 1 To AllVisible.Count
       Call SendWsock(AllVisible(I), "NICK", parv(0), ":" & cptr.Nick)
     Next I
-    SendToServer "NICK " & parv(0), cptr.Nick
+    SendToServer "NICK :" & parv(0), cptr.Nick
+  Else
+    If Len(cptr.Nick) > 0 Then
+      WhereAmI = "user on no channels, notify other servers"
+      #If Debugging = 1 Then
+        SendSvrMsg "NICK: main code -> user on no channels, notify other servers"
+      #End If
+      
+      SendToServer "NICK :" & parv(0), cptr.Nick
+    End If
   End If
   'if the user is not currently registering, tell it the new nickname -Dill
+  WhereAmI = "bad password"
   If Len(cptr.Nick) = 0 Then
     If cptr.PassOK = False Then
         m_error cptr, "Closing Link: (Bad Password)"
         Exit Function
     End If
+    WhereAmI = "if you experience problems while connecting..."
     SendWsock cptr.index, "NOTICE AUTH", ":*** If you experience problems while connecting please email the admin (" & mod_list.AdminEmail & ") about it and include the server you tried to connect to (" & ServerName & ")."
     If Len(cptr.User) > 0 Then
       pdat = GetRand
-      SendWsock cptr.index, "NOTICE AUTH", ":*** If you experience problems due to PING timeouts, type '/raw PONG :" & pdat & "' now."
+      WhereAmI = "ping timeouts"
+      SendWsock cptr.index, "NOTICE AUTH", ":*** If you experience problems due to PING timeouts, type '/QUOTE PONG :" & pdat & "' or '/RAW PONG :" & pdat & "' now."
       SendWsock cptr.index, "PING " & pdat, vbNullString, , True
       IrcStat.UnknownConnections = IrcStat.UnknownConnections - 1
     End If
-    If Not CustomNotice = "" Then 'moved so user will always see notice -AW
+    WhereAmI = "custom auth notice"
+    If Not Len(CustomNotice) = 0 Then 'moved so user will always see notice -AW
         SendWsock cptr.index, "NOTICE AUTH", ":*** " & CustomNotice
     End If
   Else
+    WhereAmI = "set nickname"
     pdat = parv(0)
     SendWsock cptr.index, "NICK", pdat, ":" & cptr.Nick
   End If
+  WhereAmI = "assign new nick to database"
   'assign the new nick to the database -Dill
   If Len(cptr.Nick) > 0 Then GlobUsers.Remove cptr.Nick
   GlobUsers.Add parv(0), cptr
@@ -326,7 +373,7 @@ End If
 Exit Function
 
 NickError:
-SendSvrMsg "Error in NICK processing code at " & WhereAmI & ". Error: " & err.Number & " - " & err.Description
+ErrorMsg "Error " & err.Number & " (" & err.Description & ") in 'm_nick' at " & WhereAmI
 End Function
 
 '/*
@@ -481,7 +528,7 @@ End Function
 '** m_who
 '**  parv[0] = sender prefix
 '**  parv[1] = nickname mask list
-'**  parv[2] = additional selection flag, only 'o' for now. - WTF?!?!?! THERE IS NO /WHO o OPTION (DG)
+'**  parv[2] = additional selection flag, only 'o' for now. (/who * o)
 '*/
 
 Public Function m_who(cptr As clsClient, sptr As clsClient, parv$()) As Long
@@ -491,6 +538,7 @@ Public Function m_who(cptr As clsClient, sptr As clsClient, parv$()) As Long
 On Error Resume Next
 Dim I&, x&, lastchan$, Chan As clsChannel, ChanMember As clsClient, ret As Long, Clients() As clsClient, ChM() As clsChanMember, ExtraInfo$
 If cptr.AccessLevel = 4 Then
+'todo: /who from server
 Else
     If Len(parv(0)) = 0 Then  'if no mask is given, complain -Dill
         SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "WHO")
@@ -517,16 +565,21 @@ Else
                     ExtraInfo = "H"
                 End If
                 If ChM(I).IsOwner Then
-                    ExtraInfo = ExtraInfo & "."
-                ElseIf ChM(I).IsOp Then
+                    If cptr.IsIRCX Or cptr.AccessLevel = 4 Then
+                      ExtraInfo = ExtraInfo & "."
+                    Else
+                      ExtraInfo = ExtraInfo & "@"
+                    End If
+                ElseIf ChM(I).IsOp And Not ChM(I).IsOwner Then  '// don't send erroneous chars
                     ExtraInfo = ExtraInfo & "@"
-                ElseIf ChM(I).IsHOp Then
-                    ExtraInfo = ExtraInfo & "%"
-                ElseIf ChM(I).IsVoice Then
+                'ElseIf ChM(I).IsHOp Then '// kill this bugger :D
+                '    ExtraInfo = ExtraInfo & "%"
+                ElseIf ChM(I).IsVoice And Not ChM(I).IsOwner And Not ChM(I).IsOp Then
                     ExtraInfo = ExtraInfo & "+"
                 End If
                 If .IsGlobOperator Or .IsLocOperator Then ExtraInfo = ExtraInfo & "*"
-                SendWsock cptr.index, 352 & " * " & Chan.Name & " " & .User & " " & .Host & " " & ServerName & " " & .Nick & " " & ExtraInfo, ":" & .Hops & " " & .Name
+                If .IsNetAdmin Then ExtraInfo = ExtraInfo & "A"
+                SendWsock cptr.index, 352 & " " & cptr.Nick & " " & Chan.Name & " " & .User & " " & .Host & " " & ServerName & " " & .Nick & " " & ExtraInfo, ":" & .Hops & " " & .Name
                 ExtraInfo = vbNullString
             End With
             ret = ret + 1
@@ -541,7 +594,7 @@ Else
                         Exit Function
                     End If
                 End If
-                If Clients(I).Prefix Like parv(0) Then
+                If UCase(Replace(Clients(I).Prefix, ":", "")) Like UCase(CreateMask(Replace(parv(0), ":", ""))) Then
                     If Clients(I).OnChannels.Count > 0 Then
                         lastchan = Clients(I).OnChannels.Item(Clients(I).OnChannels.Count).Name & " "
                     Else
@@ -553,7 +606,7 @@ Else
                       ExtraInfo = "H"
                     End If
                     If Clients(I).IsGlobOperator Or Clients(I).IsLocOperator Then ExtraInfo = ExtraInfo & "*"
-                    SendWsock cptr.index, 352 & " * " & lastchan & Clients(I).User & " " & Clients(I).Host & " " & ServerName & " " & Clients(I).Nick & " " & ExtraInfo, ":" & Clients(I).Hops & " " & Clients(I).Name
+                    SendWsock cptr.index, "352 " & cptr.Nick & " " & lastchan & Clients(I).User & " " & Clients(I).Host & " " & ServerName & " " & Clients(I).Nick & " " & ExtraInfo, ":" & Clients(I).Hops & " " & Clients(I).Name
                     ret = ret + 1
                 End If
             Next I
@@ -583,7 +636,7 @@ If cptr.AccessLevel = 4 Then
     End If
 Else
   If Len(parv(0)) = 0 Then  'if no nick is given, complain -Dill
-    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "WHOIS")
+    SendWsock cptr.index, ERR_NONICKNAMEGIVEN & " " & cptr.Nick, TranslateCode(ERR_NONICKNAMEGIVEN, , , "WHOIS")
     Exit Function
   End If
   If UBound(parv) = 0 Then
@@ -599,6 +652,7 @@ Else
         For x = LBound(Target) To UBound(Target)
           If Target(x).Prefix Like Umask Then
             Target(x).WhoisAccessLevel = cptr.AccessLevel
+            Target(x).WhoisIRCX = cptr.IsIRCX
             SendWsock cptr.index, Target(x).GetWhois(cptr.Nick), vbNullString, , True
           End If
         Next x
@@ -614,6 +668,7 @@ Else
             SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, A(I))
           Else
             c.WhoisAccessLevel = cptr.AccessLevel
+            c.WhoisIRCX = cptr.IsIRCX
             #If Debugging = 1 Then
               SendSvrMsg "getting whois for " & c.Nick & "; host: " & c.RealHost
             #End If
@@ -637,6 +692,7 @@ Else
             SendWsock c.FromLink.index, "WHOIS " & parv(0), vbNullString, ":" & cptr.Nick
         Else
             c.WhoisAccessLevel = cptr.AccessLevel
+            c.WhoisIRCX = cptr.IsIRCX
             SendWsock cptr.index, c.GetWhois(cptr.Nick), vbNullString, , True
         End If
     End If
@@ -681,16 +737,22 @@ Public Function m_user(cptr As clsClient, sptr As clsClient, parv$()) As Long
 #If Debugging = 1 Then
     SendSvrMsg "USER called! (" & cptr.Nick & ")"
 #End If
+Dim ShowNick As String
+If Len(cptr.Nick) = 0 Then
+  ShowNick = "Anonymous"
+Else
+  ShowNick = cptr.Nick
+End If
   If Len(parv(0)) = 0 Then
-    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "USER")
+    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & ShowNick, TranslateCode(ERR_NEEDMOREPARAMS, , , "USER")
     Exit Function
   End If
   If UBound(parv) = 0 Then
-    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "USER")
+    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & ShowNick, TranslateCode(ERR_NEEDMOREPARAMS, , , "USER")
     Exit Function
   End If
   If Len(cptr.User) <> 0 Then
-    SendWsock cptr.index, ERR_ALREADYREGISTRED & " " & cptr.Nick, TranslateCode(ERR_ALREADYREGISTRED)
+    SendWsock cptr.index, ERR_ALREADYREGISTRED & " " & ShowNick, TranslateCode(ERR_ALREADYREGISTRED)
     Exit Function
   End If
   Dim Ident$, pdat$, I&, x&, z&, allusers() As clsClient
@@ -698,9 +760,13 @@ Public Function m_user(cptr As clsClient, sptr As clsClient, parv$()) As Long
   With cptr
     .User = FilterReserved(parv(0)) 'filter out illegal and legal annoying chars
     If NickLen > 0 Then
-      .User = Left(.User, NickLen)
+      .User = Left$(.User, NickLen)
     End If
-    .Name = parv(3)
+    If UBound(parv) >= 3 Then
+      .Name = parv(3)
+    Else
+      .Name = ""
+    End If
     If DoKLine(cptr) Then
         cptr.IsKilled = True
         cptr.SendQ = vbNullString
@@ -723,12 +789,13 @@ Public Function m_user(cptr As clsClient, sptr As clsClient, parv$()) As Long
         SendToServer "QUIT :AutoKilled: Server Misconfigured [see ircx.conf]", .Nick
         SendWsock .index, "KILL " & .Nick, ":AutoKilled: Server Misconfigured [see ircx.conf]", .Prefix
         m_error cptr, "Closing Link: (AutoKilled: Server Misconfigured [see ircx.conf])"
+        ErrorMsg "The server is misconfigured. Please see ircx.conf."
         .IsKilled = True
         KillStruct .Nick
         Exit Function
     End If
     If OfflineMode = True Then
-        If OfflineMessage = "" Then
+        If Len(OfflineMessage) = 0 Then
             For x = 1 To .OnChannels.Count
                 SendToChan .OnChannels.Item(x), .Prefix & " AutoKilled: Server In Offline Mode", vbNullString
             Next x
@@ -760,11 +827,11 @@ Public Function m_user(cptr As clsClient, sptr As clsClient, parv$()) As Long
   Else
   With cptr
   For x = 1 To .OnChannels.Count
-    SendToChan .OnChannels.Item(x), .Prefix & " AutoKilled: Improper Ident - Please Change to a Alphanumeric Combination.", vbNullString
+    SendToChan .OnChannels.Item(x), .Prefix & " AutoKilled: Illegal username -- change to an alphanumeric username.", vbNullString
     Next x
-    SendToServer "QUIT :AutoKilled: Improper Ident - Please Change to a Alphanumeric Combination.", .Nick
-    SendWsock .index, "KILL " & .Nick, ":AutoKilled: Improper Ident - Please Change to a Alphanumeric Combination.", .Prefix
-    m_error cptr, "Closing Link: (AutoKilled: Improper Ident - Please Change to a Alphanumeric Combination.)"
+    SendToServer "QUIT :AutoKilled: Illegal username -- change to an alphanumeric username.", .Nick
+    SendWsock .index, "KILL " & .Nick, ":AutoKilled: Illegal username -- change to an alphanumeric username.", .Prefix
+    m_error cptr, "Closing Link: (AutoKilled: Illegal username -- change to an alphanumeric username.)"
     .IsKilled = True
     KillStruct .Nick
     Exit Function
@@ -1047,12 +1114,46 @@ Public Function m_pass(cptr As clsClient, sptr As clsClient, parv$()) As Long
 #If Debugging = 1 Then
     SendSvrMsg "PASS called! (" & cptr.Nick & ")"
 #End If
+Dim ShowNick As String
+If Len(cptr.Nick) = 0 Then
+  ShowNick = "Anonymous"
+Else
+  ShowNick = cptr.Nick
+End If
+
 If Len(parv(0)) = 0 Then
-    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "PASS")
+    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & ShowNick, TranslateCode(ERR_NEEDMOREPARAMS, , , "PASS")
     Exit Function
 End If
 If cptr.PassOK = True Then m_pass = 1: Exit Function
 
+'for password-protected servers,
+'and the link matches the protected I: line,
+'links will need to have a special I:
+'line for themselves, otherwise
+'they'll have two different passwords
+'which is a Bad Thing™
+
+If Len(Trim(ILine(cptr.IIndex).Pass)) <> 0 Then
+  Dim tmpPass As String
+  If MD5Crypt = True Then
+     tmpPass = oMD5.MD5(parv(0))
+  Else
+     tmpPass = parv(0)
+  End If
+  
+  If StrComp(tmpPass, ILine(cptr.IIndex).Pass) = 0 Then
+    m_pass = 1
+    cptr.PassOK = True
+    Exit Function
+  Else
+    m_pass = -1
+    cptr.PassOK = False
+    Exit Function
+  End If
+End If
+
+'servers
 If Not cptr.LLined Then
     If DoLLine(cptr) Then
         If StrComp(parv(0), ILine(cptr.IIndex).Pass) = 0 Then
@@ -1210,7 +1311,7 @@ Public Function m_whowas(cptr As clsClient, sptr As clsClient, parv$()) As Long
     SendSvrMsg "WHOWAS called! (" & cptr.Nick & ")"
 #End If
 If Len(parv(0)) = 0 Then
-    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "WHOWAS")
+    SendWsock cptr.index, ERR_NONICKNAMEGIVEN & " " & cptr.Nick, TranslateCode(ERR_NONICKNAMEGIVEN, , , "WHOWAS")
     Exit Function
 End If
 Dim ww As typWhoWas, User$(), I&
@@ -1274,464 +1375,4 @@ If UBound(parv) < 1 Then
 End If
 Call DoVLine(cptr, parv(0), parv(1))
 End Function
-Public Function m_chghost(cptr As clsClient, sptr As clsClient, parv$()) As Long
-'parv[0] = Nick
-'parv[1] = New Host
-If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
-    SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
-    Exit Function
-End If
-If UBound(parv) <> 1 Then
-  SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "CHGHOST")
-  Exit Function
-End If
-If Len(parv(1)) = 0 Then
-  SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "CHGHOST")
-  Exit Function
-End If
-Dim User As clsClient
-Set User = GlobUsers(parv(0))
-If User Is Nothing Then
-  SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, parv(0))
-  Exit Function
-End If
-User.Host = parv(1)
-SendSvrMsg "*** " & cptr.Nick & " changed the hostname of " & User.Nick & " to " & parv(1)
-SendWsock User.index, "NOTICE", ":" & cptr.Nick & " changed your hostname to " & parv(1), SPrefix
-End Function
-Public Function m_chgnick(cptr As clsClient, sptr As clsClient, parv$()) As Long
-'parv[0] = Nick
-'parv[1] = New nick
-If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
-    SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
-    Exit Function
-End If
-If UBound(parv) <> 1 Then
-  SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "CHGNICK")
-  Exit Function
-End If
-If Len(parv(1)) = 0 Then
-  SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "CHGNICK")
-  Exit Function
-End If
-If Not GlobUsers(parv(1)) Is Nothing Then  'in case the nickname specified is already in use -Dill
-  SendWsock cptr.index, "NOTICE", ":*** Nickname " & parv(1) & " is in use! Cannot change nickname.", SPrefix
-  Exit Function
-End If
-Dim User As clsClient
-Set User = GlobUsers(parv(0))
-If User Is Nothing Then
-  SendWsock cptr.index, ERR_NOSUCHNICK, cptr.Nick & " " & TranslateCode(ERR_NOSUCHNICK, parv(0))
-  Exit Function
-End If
-
-
-Dim tmpNick As String
-Dim tmpPrefix As String
-Dim ByteArr() As Byte, Members() As clsChanMember
-tmpNick = User.Nick
-tmpPrefix = User.Prefix
-User.Nick = parv(1)
-SendSvrMsg "*** " & cptr.Nick & " changed the nickname of " & tmpNick & " to " & parv(1)
-'now to do the standard nick change -z
-Dim AllVisible As New Collection
-Dim NickX As Integer
-Dim I As Integer
-ReDim RecvArr(1)
-'notify channels -z
-For NickX = 1 To User.OnChannels.Count
-  Members = User.OnChannels.Item(NickX).Member.Values
-  For I = LBound(Members) To UBound(Members)
-    If Members(I).Member.Hops = 0 Then
-      If Not Members(I).Member Is User Then
-        On Local Error Resume Next
-        AllVisible.Add Members(I).Member.index, CStr(Members(I).Member.index)
-      End If
-    End If
-  Next I
-Next NickX
-For I = 1 To AllVisible.Count
-  'send notificaiton -z
-  Call SendWsock(AllVisible(I), "NICK", parv(1), tmpPrefix)
-Next I
-SendToServer "NICK :" & parv(1), tmpNick
-SendWsock User.index, "NICK", parv(1), tmpPrefix
-
-Dim tempVar As String
-'assign the new nick to the database -Dill
-If Len(User.Nick) > 0 Then GlobUsers.Remove tmpNick
-GlobUsers.Add parv(1), User
-tempVar = tmpNick
-User.Nick = parv(1)
-GenerateEvent "USER", "NICKCHANGE", Replace(tmpPrefix, ":", ""), Replace(tmpPrefix, ":", "") & " " & cptr.Nick
-User.Prefix = ":" & User.Nick & "!" & User.User & "@" & User.Host
-Dim WasOwner As Boolean, WasOp As Boolean, WasHOp As Boolean, WasVoice As Boolean
-Dim tmpData As Integer
-For NickX = 1 To User.OnChannels.Count
-     With User.OnChannels.Item(NickX).Member
-       WasOwner = .Item(tempVar).IsOwner
-       WasOp = .Item(tempVar).IsOp
-       WasHOp = .Item(tempVar).IsHOp
-       WasVoice = .Item(tempVar).IsVoice
-       tmpData = 0
-       If WasOwner Then tmpData = 6
-       If WasOp Then tmpData = 4 'WTF is this bit for? Any Ideas Ziggy? - DG
-                              'looks like a temp variable for the user level - Ziggy
-       If WasVoice Then tmpData = tmpData + 1
-       .Remove tempVar
-       .Add CLng(tmpData), User
-     End With
-Next NickX
-End Function
-Public Function m_passcrypt(cptr As clsClient, sptr As clsClient, parv$()) As Long
-'parv[0] = CryptType
-'parv[1] = PassToBeCrypted
-Dim Pass As String
-If UCase(parv(0)) = "MD5" Then
-    Pass = oMD5.MD5(parv(1))
-    SendWsock cptr.index, "NOTICE " & cptr.Nick, ":Encrypted " & parv(1) & " to MD5 as " & Pass, SPrefix
-Else
-    SendWsock cptr.index, "NOTICE " & cptr.Nick, ":Valid Options: MD5", SPrefix
-End If
-End Function
-Public Function m_samode(cptr As clsClient, sptr As clsClient, parv$()) As Long
-If Len(parv(0)) = 0 Then
-    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "SAMODE")
-    Exit Function
-End If
-If UBound(parv) < 1 Then
-    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "SAMODE")
-    Exit Function
-End If
-If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
-    SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
-    Exit Function
-End If
-Dim I&, ops$, Inc&, SetMode As Boolean, Chan As clsChannel, CurMode&, ChM As clsChanMember
-Dim NewModes$, Param$
-Set Chan = Channels(parv(0))
-If Chan Is Nothing Then
-    SendWsock cptr.index, ERR_NOSUCHCHANNEL & " " & cptr.Nick, TranslateCode(ERR_NOSUCHCHANNEL, , parv(0))
-    Exit Function
-End If
-If UBound(parv) > 1 Then Inc = 1
-For I = 1 To Len(parv(1))
-    CurMode = AscW(Mid$(parv(1), I, 1))
-    Select Case CurMode
-        Case modeAdd
-            SetMode = True
-            NewModes = NewModes & "+"
-        Case modeRemove
-            SetMode = False
-            NewModes = NewModes & "-"
-        Case cmOwner
-            Inc = Inc + 1
-            Select Case SetMode
-                Case True
-                    Set ChM = Chan.Member.Item(parv(Inc))
-                    If Not ChM Is Nothing Then
-                        If Not ChM.IsOwner Then
-                            NewModes = NewModes & "q"
-                            Param = Param & parv(Inc) & " "
-                            ChM.IsOwner = True
-                        End If
-                    Else
-                        SendWsock cptr.index, ERR_USERNOTINCHANNEL & " " & cptr.Nick, TranslateCode(ERR_USERNOTINCHANNEL, parv(Inc), Chan.Name)
-                    End If
-                Case False
-                    Set ChM = Chan.Member.Item(parv(Inc))
-                    If Not ChM Is Nothing Then
-                        If ChM.IsOwner Then
-                            NewModes = NewModes & "q"
-                            Param = Param & parv(Inc) & " "
-                            ChM.IsOwner = False
-                        End If
-                    Else
-                        SendWsock cptr.index, ERR_USERNOTINCHANNEL & " " & cptr.Nick, TranslateCode(ERR_USERNOTINCHANNEL, parv(Inc), Chan.Name)
-                    End If
-            End Select
-        Case cmOp
-            Inc = Inc + 1
-            Select Case SetMode
-                Case True
-                    Set ChM = Chan.Member.Item(parv(Inc))
-                    If Not ChM Is Nothing Then
-                        If Not ChM.IsOp Then
-                            NewModes = NewModes & "o"
-                            Param = Param & parv(Inc) & " "
-                            ChM.IsOp = True
-                        End If
-                    Else
-                        SendWsock cptr.index, ERR_USERNOTINCHANNEL & " " & cptr.Nick, TranslateCode(ERR_USERNOTINCHANNEL, parv(Inc), Chan.Name)
-                    End If
-                Case False
-                    Set ChM = Chan.Member.Item(parv(Inc))
-                    If Not ChM Is Nothing Then
-                        If ChM.IsOp Then
-                            NewModes = NewModes & "o"
-                            Param = Param & parv(Inc) & " "
-                            ChM.IsOp = False
-                        End If
-                    Else
-                        SendWsock cptr.index, ERR_USERNOTINCHANNEL & " " & cptr.Nick, TranslateCode(ERR_USERNOTINCHANNEL, parv(Inc), Chan.Name)
-                    End If
-            End Select
-        'Case cmHOp
-        '    Inc = Inc + 1
-        '    Select Case SetMode
-        '        Case True
-        '            Set ChM = Chan.Member.Item(parv(Inc))
-        '            If Not ChM Is Nothing Then
-        '                If Not ChM.IsHOp Then
-        '                    NewModes = NewModes & "H"
-        '                    Param = Param & parv(Inc) & " "
-        '                    ChM.IsHOp = True
-        '                End If
-        '            Else
-        '                SendWsock cptr.index, ERR_USERNOTINCHANNEL & " " & cptr.Nick, TranslateCode(ERR_USERNOTINCHANNEL, parv(Inc), Chan.Name)
-        '            End If
-        '        Case False
-        '            Set ChM = Chan.Member.Item(parv(Inc))
-        '            If Not ChM Is Nothing Then
-        '                If ChM.IsHOp Then
-        '                    NewModes = NewModes & "H"
-        '                    Param = Param & parv(Inc) & " "
-        '                    ChM.IsHOp = False
-        '                End If
-        '            Else
-        '                SendWsock cptr.index, ERR_USERNOTINCHANNEL & " " & cptr.Nick, TranslateCode(ERR_USERNOTINCHANNEL, parv(Inc), Chan.Name)
-        '            End If
-        '    End Select
-        Case cmVoice
-            Inc = Inc + 1
-            Select Case SetMode
-                Case True
-                    Set ChM = Chan.Member.Item(parv(Inc))
-                    If Not ChM Is Nothing Then
-                        If Not ChM.IsVoice Then
-                            NewModes = NewModes & "v"
-                            Param = Param & parv(Inc) & " "
-                            ChM.IsVoice = True
-                        End If
-                    Else
-                        SendWsock cptr.index, ERR_USERNOTINCHANNEL & " " & cptr.Nick, TranslateCode(ERR_USERNOTINCHANNEL, parv(Inc), Chan.Name)
-                    End If
-                Case False
-                    Set ChM = Chan.Member.Item(parv(Inc))
-                    If Not ChM Is Nothing Then
-                        If ChM.IsVoice Then
-                            NewModes = NewModes & "v"
-                            Param = Param & parv(Inc) & " "
-                            ChM.IsVoice = False
-                        End If
-                    Else
-                        SendWsock cptr.index, ERR_USERNOTINCHANNEL & " " & cptr.Nick, TranslateCode(ERR_USERNOTINCHANNEL, parv(Inc), Chan.Name)
-                    End If
-            End Select
-        Case cmBan
-            Inc = Inc + 1
-            Select Case SetMode
-                Case True
-                    NewModes = NewModes & "b"
-                    Param = Param & parv(Inc) & " "
-                    Chan.Bans.Add parv(Inc), cptr.Nick, UnixTime, parv(Inc)
-                Case False
-                    NewModes = NewModes & "b"
-                    Param = Param & parv(Inc) & " "
-                    Chan.Bans.Remove parv(Inc)
-            End Select
-        Case cmKey
-            Inc = Inc + 1
-            Select Case SetMode
-                Case True
-                    If Len(Chan.Key) = 0 Then
-                        NewModes = NewModes & "k"
-                        Param = Param & parv(Inc) & " "
-                        Chan.Key = parv(Inc)
-                    Else
-                        SendWsock cptr.index, ERR_KEYSET & " " & cptr.Nick, TranslateCode(ERR_KEYSET, , , Chan.Name)
-                    End If
-                Case False
-                    If Len(Chan.Key) > 0 Then
-                        If Chan.Key = parv(Inc) Then
-                            NewModes = NewModes & "k"
-                            Param = Param & parv(Inc) & " "
-                            Chan.Key = vbNullString
-                        End If
-                    End If
-            End Select
-        Case cmLimit
-            Select Case SetMode
-                Case True
-                    Inc = Inc + 1
-                    Chan.Limit = parv(Inc)
-                    NewModes = NewModes & "l"
-                    Param = Param & parv(Inc) & " "
-                Case False
-                    Chan.Limit = 0
-                    NewModes = NewModes & "l"
-            End Select
-        Case cmInviteOnly
-            Select Case SetMode
-                Case True
-                    If Not Chan.IsInviteOnly Then
-                        Chan.IsInviteOnly = True
-                        NewModes = NewModes & "i"
-                    End If
-                Case False
-                    If Chan.IsInviteOnly Then
-                        Chan.IsInviteOnly = False
-                        NewModes = NewModes & "i"
-                    End If
-            End Select
-        Case cmOpTopic
-            Select Case SetMode
-                Case True
-                    If Not Chan.IsTopicOps Then
-                        Chan.IsTopicOps = True
-                        NewModes = NewModes & "t"
-                    End If
-                Case False
-                    If Chan.IsTopicOps Then
-                        Chan.IsTopicOps = False
-                        NewModes = NewModes & "t"
-                    End If
-            End Select
-        Case cmModerated
-            Select Case SetMode
-                Case True
-                    If Not Chan.IsModerated Then
-                        Chan.IsModerated = True
-                        NewModes = NewModes & "m"
-                    End If
-                Case False
-                    If Chan.IsModerated Then
-                        Chan.IsModerated = False
-                        NewModes = NewModes & "m"
-                    End If
-            End Select
-        Case cmNoExternalMsg
-            Select Case SetMode
-                Case True
-                    If Not Chan.IsNoExternalMsgs Then
-                        Chan.IsNoExternalMsgs = True
-                        NewModes = NewModes & "n"
-                    End If
-                Case False
-                    If Chan.IsNoExternalMsgs Then
-                        Chan.IsNoExternalMsgs = False
-                        NewModes = NewModes & "n"
-                    End If
-            End Select
-        Case cmSecret
-            Select Case SetMode
-                Case True
-                    If Not Chan.IsSecret Then
-                        Chan.IsSecret = True
-                        NewModes = NewModes & "s"
-                    End If
-                Case False
-                    If Chan.IsSecret Then
-                        Chan.IsSecret = False
-                        NewModes = NewModes & "s"
-                    End If
-            End Select
-        Case cmPrivate
-            Select Case SetMode
-                Case True
-                    If Not Chan.IsPrivate Then
-                        Chan.IsPrivate = True
-                        NewModes = NewModes & "p"
-                    End If
-                Case False
-                    If Chan.IsPrivate Then
-                        Chan.IsPrivate = False
-                        NewModes = NewModes & "p"
-                    End If
-            End Select
-        Case cmOperOnly
-        If cptr.IsGlobOperator Or cptr.IsNetAdmin Then
-            Select Case SetMode
-                Case True
-                    If Not Chan.IsOperOnly Then
-                        Chan.IsOperOnly = True
-                        NewModes = NewModes & "O"
-                    End If
-                Case False
-                    If Chan.IsOperOnly Then
-                        Chan.IsOperOnly = False
-                        NewModes = NewModes & "O"
-                    End If
-            End Select
-        Else
-            SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
-        End If
-    End Select
-Next I
-If Len(NewModes) <= 1 Then Exit Function
-Param = RTrim$(Param)
-SendToChan Chan, cptr.Prefix & " MODE " & Chan.Name & " " & NewModes & " " & Param, vbNullString
-SendToServer "MODE " & NewModes & " " & Param, cptr.Nick
-End Function
-
-Public Function m_umode(cptr As clsClient, sptr As clsClient, parv$()) As Long
-If Len(parv(0)) = 0 Then
-    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "UMODE")
-    Exit Function
-End If
-If UBound(parv) < 1 Then
-    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "UMODE")
-    Exit Function
-End If
-If Not (cptr.IsLocOperator Or cptr.IsGlobOperator) Then
-    SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
-    Exit Function
-End If
-Dim User As clsClient, NewModes$
-Set User = GlobUsers(parv(0))
-If User Is Nothing Then
-    SendWsock cptr.index, ERR_NOSUCHNICK & " " & cptr.Nick, TranslateCode(ERR_NOSUCHNICK, , parv(0))
-    Exit Function
-End If
-Dim FiltModes As String
-'oOsixkreRDCcKBbAEZ
-
-'this bit is to prevent malicious use
-'of this command -- nobody should
-'be able to set these modes on themselves!
-FiltModes = parv(1)
-FiltModes = Replace(FiltModes, "R", "") 'disallow restart
-FiltModes = Replace(FiltModes, "D", "") 'disallow die
-FiltModes = Replace(FiltModes, "O", "") 'disallow globop
-FiltModes = Replace(FiltModes, "o", "") 'disallow locop
-FiltModes = Replace(FiltModes, "k", "") 'disallow lockills
-FiltModes = Replace(FiltModes, "K", "") 'disallow globkills
-FiltModes = Replace(FiltModes, "e", "") 'disallow rehash
-FiltModes = Replace(FiltModes, "C", "") 'disallow globconnects
-FiltModes = Replace(FiltModes, "c", "") 'disallow locconnects
-FiltModes = Replace(FiltModes, "B", "") 'disallow /unkline
-FiltModes = Replace(FiltModes, "b", "") 'disallow /kline
-FiltModes = Replace(FiltModes, "N", "") 'disallow netadmin
-FiltModes = Replace(FiltModes, "E", "") 'disallow /add
-FiltModes = Replace(FiltModes, "Z", "") 'disallow remadm
-FiltModes = Replace(FiltModes, "S", "") 'disallow service
-FiltModes = Replace(FiltModes, "P", "") 'disallow protect
-FiltModes = Replace(FiltModes, "p", "") 'disallow lower protect
-
-NewModes = add_umodes(User, FiltModes)
-'nobody, anyone, ever should be allowed
-'to give themselves or anyone else any
-'oper flag
-
-If NewModes = "" Then Exit Function
-Select Case User.Hops
-    Case Is > 0
-        GenerateEvent "USER", "MODECHANGE", Replace(User.Prefix, ":", ""), Replace(User.Prefix, ":", "") & " +" & NewModes
-        SendWsock User.FromLink.index, "MODE " & User.Nick, "+" & Replace(NewModes, "+", ""), cptr.Prefix
-    Case Else
-        GenerateEvent "USER", "MODECHANGE", Replace(User.Prefix, ":", ""), Replace(User.Prefix, ":", "") & " +" & NewModes
-        SendWsock User.index, "MODE " & User.Nick, "+" & Replace(NewModes, "+", ""), cptr.Prefix
-End Select
-End Function
-
 

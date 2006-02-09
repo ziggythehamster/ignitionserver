@@ -13,7 +13,7 @@ Attribute VB_Name = "modConf"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: modConf.bas,v 1.5 2004/05/28 21:27:37 ziggythehamster Exp $
+' $Id: modConf.bas,v 1.9 2004/06/05 04:27:30 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -41,20 +41,78 @@ Public OLine() As OLines
 Public LLine() As LLines
 'Public CLine() as CLines - Coming Soon! - DG
 Public VLine() As VLines
-
+Public Function Macros(x As String) As String
+Dim m As String
+m = Replace(x, "<$COLON$>", ":")
+m = Replace(m, "<$NET$>", IRCNet)
+Macros = m
+End Function
 Public Sub Rehash(Flag As String)
 Dim Line() As String, Char As String, Temp As String, FF As Integer: FF = FreeFile
 Select Case UCase(Flag)
     Case vbNullString
+        'Restore to Default
+        'there's a bunch of stuff here, in case someone removes a line or two
+        'I realize that this also permits a blank ircx.conf, but who will be
+        'that stupid?
         ReDim ILine(1)
         ReDim YLine(1)
         ReDim ZLine(1)
         ReDim KLine(1)
         ReDim QLine(1)
         ReDim OLine(1)
-        ReDim LLine(1) ': ReDim CLine(1) - This is coming soon! -DG
+        ReDim LLine(1)
         ReDim VLine(1)
         ReDim PLine(1)
+        'clear server M: line crap, and stuff that basically describes the server
+        ServerName = ""
+        IRCNet = ""
+        ServerDescription = ""
+        Admin = ""
+        AdminLocation = ""
+        AdminEmail = ""
+        DiePass = ""
+        RestartPass = ""
+        ServerLocation = ""
+        'registered channel mode
+        RegChanMode_Always = True
+        RegChanMode_Never = False
+        RegChanMode_ModeR = False
+        HostMask = ""
+        'dns masking
+        MaskDNS = False
+        MaskDNSMD5 = False
+        MaskDNSHOST = False
+        'die/offline
+        Die = True
+        OfflineMode = False
+        OfflineMessage = ""
+        'encryption
+        Crypt = False
+        MD5Crypt = False
+        'highprot
+        HighProtAsq = False
+        HighProtAso = False
+        HighProtAsv = False
+        HighProtAsn = True
+        'lowprot
+        LowProtAsq = False
+        LowProtAso = False
+        LowProtAsv = False
+        LowProtAsn = True
+        'allow multiple
+        AllowMultiple = False
+        'ircx stuff
+        ShowGag = False
+        BounceGagMsg = True
+        IRCXM_Trans = True
+        IRCXM_Both = False
+        IRCXM_Strict = False
+        'error log
+        ErrorLog = True
+        
+        'and the grand finale...
+        'process ircx.conf
         If Dir(App.Path & "\ircx.conf") <> vbNullString Then
           Open App.Path & "\ircx.conf" For Input As FF
           Do While Not EOF(FF)
@@ -65,16 +123,16 @@ Select Case UCase(Flag)
               Case "#"    'a comment, must be ignored -Dill
               Case "M"    'Servername, server description, main server port, main server ip -Dill
                 Line = Split(Replace(Temp, "*", vbNullString), ":")
-                ServerName = Line(0)
-                IRCNet = Line(1)
+                ServerName = Macros(Line(0))
+                IRCNet = Macros(Line(1))
                 Sockets.Listen "", CInt(Line(3))
-                ServerDescription = Line(2)
+                ServerDescription = Macros(Line(2))
                 Ports = Ports + 1
               Case "A"    'Admin info -Dill
                 Line = Split(Temp, ":")
-                AdminLocation = Line(0)
-                Admin = Line(1)
-                AdminEmail = Line(2)
+                AdminLocation = Macros(Line(0))
+                Admin = Macros(Line(1))
+                AdminEmail = Macros(Line(2))
               Case "Y"    'Connection classes -Dill
                 Line = Split(Temp, ":")
                 ReDim Preserve YLine(UBound(YLine) + 1)
@@ -123,14 +181,14 @@ Select Case UCase(Flag)
                 ReDim Preserve KLine(UBound(KLine) + 1)
                 With KLine(UBound(KLine))
                     .Host = Line(0)
-                    .Reason = Line(1)
+                    .Reason = Macros(Line(1))
                     .User = Line(2)
                 End With
               Case "Q"    'Nickname quarantines -Dill
                 Line = Split(Temp, ":")
                 ReDim Preserve QLine(UBound(QLine) + 1)
                 With QLine(UBound(QLine))
-                    .Reason = Line(1)
+                    .Reason = Macros(Line(1))
                     .Nick = Line(2)
                 End With
               Case "Z"    'Connection filters -Dill
@@ -138,7 +196,7 @@ Select Case UCase(Flag)
                 ReDim Preserve ZLine(UBound(ZLine) + 1)
                 With ZLine(UBound(ZLine))
                     .IP = Line(0)
-                    .Reason = Line(1)
+                    .Reason = Macros(Line(1))
                 End With
               Case "P"    'Additional listening ports -Dill
                 Line = Split(Replace(Temp, "*", vbNullString), ":")
@@ -204,9 +262,9 @@ Select Case UCase(Flag)
                         OfflineMode = False
                     End If
                 ElseIf UCase(Section) = "OFFLINEMESSAGE" Then
-                    OfflineMessage = Line(1)
+                    OfflineMessage = Macros(Line(1))
                 ElseIf UCase(Section) = "CNOTICE" Then
-                    CustomNotice = Line(1)
+                    CustomNotice = Macros(Line(1))
                 ElseIf UCase(Section) = "MASKDNS" Then
                     If Line(1) = "0" Then
                       MaskDNS = False
@@ -222,11 +280,13 @@ Select Case UCase(Flag)
                       MaskDNSHOST = True
                     Else
                       MaskDNS = False
+                      MaskDNSMD5 = False
+                      MaskDNSHOST = False
                     End If
                 ElseIf UCase(Section) = "HOSTMASK" Then
                     HostMask = Line(1)
                 ElseIf UCase(Section) = "SERVERLOCATION" Then
-                    ServerLocation = Line(1)
+                    ServerLocation = Macros(Line(1))
                 ElseIf UCase(Section) = "CRYPT" Then
                     If Line(1) = "0" Or UCase(Line(1)) = "OFF" Then
                         Crypt = False
@@ -302,8 +362,60 @@ Select Case UCase(Flag)
                     ShowGag = False
                     BounceGagMsg = True
                   End If
+                ElseIf UCase(Section) = "IRCXMETHOD" Then
+                  If Line(1) = "0" Then
+                    IRCXM_Trans = True
+                    IRCXM_Strict = False
+                    IRCXM_Both = False
+                  ElseIf Line(1) = "1" Then
+                    IRCXM_Strict = True
+                    IRCXM_Trans = False
+                    IRCXM_Both = False
+                  ElseIf Line(1) = "2" Then
+                    IRCXM_Both = True
+                    IRCXM_Trans = False
+                    IRCXM_Strict = False
+                  Else
+                    IRCXM_Trans = True
+                    IRCXM_Both = False
+                    IRCXM_Strict = False
+                  End If
+                ElseIf UCase(Section) = "REGCHANMODE" Then
+                  If Line(1) = "0" Then
+                    'always open
+                    RegChanMode_Always = True
+                    RegChanMode_Never = False
+                    RegChanMode_ModeR = False
+                  ElseIf Line(1) = "1" Then
+                    'never open
+                    RegChanMode_Always = False
+                    RegChanMode_Never = True
+                    RegChanMode_ModeR = False
+                  ElseIf Line(1) = "2" Then
+                    'only if +R
+                    RegChanMode_Always = False
+                    RegChanMode_Never = False
+                    RegChanMode_ModeR = True
+                  Else
+                    'unknown
+                    RegChanMode_Always = True
+                    RegChanMode_Never = False
+                    RegChanMode_ModeR = False
+                  End If
                 ElseIf UCase(Section) = "REMOTEPASS" Then
                   RemotePass = Line(1)
+                ElseIf UCase(Section) = "ERRORLOG" Then
+                  If Line(1) = "0" Then
+                    ErrorLog = False
+                  ElseIf Line(1) = "1" Then
+                    ErrorLog = True
+                  ElseIf UCase(Line(1)) = "OFF" Then
+                    ErrorLog = False
+                  ElseIf UCase(Line(1)) = "ON" Then
+                    ErrorLog = True
+                  Else
+                    ErrorLog = True
+                  End If
                 ElseIf UCase(Section) = "SVSNICK" Then
                     If UCase(Line(1)) = "NICKSERV" Then
                         SVSN_NickServ = Line(2)
@@ -315,7 +427,7 @@ Select Case UCase(Flag)
             End Select
           Loop
         Else
-          SendSvrMsg "ircx.conf file is missing - quitting"
+          ErrorMsg "ircx.conf is missing. The server will now shut down."
           Terminate
         End If
         Close FF
@@ -328,7 +440,10 @@ Select Case UCase(Flag)
                 If Len(Users(tmp).Prefix) = 1 Then
                     Set Users(tmp) = Nothing
                     x = x + 1
-                    Debug.Print x
+                    #If Debugging = 1 Then
+                      SendSvrMsg "Garbage Collect: " & x
+                    #End If
+                    'Debug.Print x
                 End If
             End If
         Next tmp
@@ -364,7 +479,7 @@ AddKLine = True
 Exit Function
 AKLError:
 AddKLine = False
-SendSvrMsg "*** AddKLine Error: " & err.Number & " - " & err.Description
+ErrorMsg "Error " & err.Number & " (" & err.Description & ") in 'AddKLine'"
 End Function
 
 Public Function DoILine(cptr As clsClient) As Boolean
@@ -416,7 +531,7 @@ Public Function DoZLine(index As Long, IP As String) As Boolean
 Dim I As Long, buf() As Byte
 For I = 2 To UBound(ZLine)
     If IP Like ZLine(I).IP Then
-        buf = StrConv("ERROR :Closing Link: 'Z: Lined' " & ZLine(I).Reason & vbCrLf, vbFromUnicode)
+        buf = StrConv("ERROR :Closing Link: Z: Lined" & ZLine(I).Reason & vbCrLf, vbFromUnicode)
         Call Send(Sockets.SocketHandle(index), buf(0), UBound(buf) + 1, 0&)
         DoZLine = True
         Exit Function

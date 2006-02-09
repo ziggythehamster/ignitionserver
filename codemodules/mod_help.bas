@@ -13,7 +13,7 @@ Attribute VB_Name = "mod_help"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_help.bas,v 1.5 2004/05/28 21:27:37 ziggythehamster Exp $
+' $Id: mod_help.bas,v 1.6 2004/05/28 21:35:34 ziggythehamster Exp $
 '
 '
 'This program is free software.

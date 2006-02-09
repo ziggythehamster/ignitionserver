@@ -27,7 +27,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsUserHashTable.cls,v 1.4 2004/05/28 21:27:35 ziggythehamster Exp $
+' $Id: clsUserHashTable.cls,v 1.5 2004/05/28 21:35:34 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -199,31 +199,7 @@ End Sub
 Property Get Count() As Long
     Count = m_Count
 End Property
-'
-'' the array of all keys
-'' (VB5 users: convert return type to Variant)
-'Property Get Keys() As clsChannel()
-'    Dim i As Long, ndx As Long
-'    Dim n As Long
-'    ReDim res(0 To m_Count - 1) As clsChannel
-'
-'    For i = 0 To m_HashSize - 1
-'        ' take the pointer from the hash table
-'        ndx = hashTbl(i)
-'        ' walk the slottable() array
-'        Do While ndx
-'            Set res(n) = slotTable(ndx).Key
-'            n = n + 1
-'            ndx = slotTable(ndx).nextItem
-'        Loop
-'    Next
-'
-'    ' assign to the result
-'    Keys = res()
-'End Property
 
-' the array of all values
-' (VB5 users: convert return type to Variant)
 Property Get Values() As clsClient()
     Dim I As Long, ndx As Long
     Dim n As Long

@@ -3,10 +3,10 @@
 ###############################
 #
 # Zg = Ziggy(ziggy@ignition-project.com)
-# DG = DigiGuy(digiguy@ignition-project.com)
+# DG = DigiGuy(nigel@ignition-project.com)
 # AW = Airwalk(airwalk@ignition-project.com)
 #
-# $Id: changelog.txt,v 1.5 2004/05/28 21:27:34 ziggythehamster Exp $
+# $Id: changelog.txt,v 1.36 2004/06/06 23:54:03 ziggythehamster Exp $
 #
 ### Project Start ###
 #
@@ -249,3 +249,105 @@ DG - [31-Mar] - Tagging...
 #
 ### RELEASE - 0.2.3 - BETA RC3 ###
 #
+DG - [31-Mar] - Post Release stuff.
+Zg - [1-Apr] - Added some documentation to the ircx.conf file (just realized that we don't have help anywhere for it other than what we had in the parameter definitions)
+Zg - [1-Apr] - When creating a room in a non-IRCX client, you show as a +o (per the IRCX draft)
+Zg - [2-Apr] - Non-IRCX clients now get /names in RFC1459 format (per IRCX draft)
+Zg - [2-Apr] - Non-IRCX clients now get /who #Channel in RFC1459 format (per IRCX draft)
+Zg - [2-Apr] - Fixed possible bug with /who reply -- no longer sending erroneous @/+'s (.@ if +qo/+qov, for example)
+Zg - [2-Apr] - /whois fixed for non-IRCX clients (IRCX draft, again :))
+Zg - [2-Apr] - Attempted fixing the issue with /who'ing (should work now)
+Zg - [2-Apr] - Did we ever add OnPart? I think it was pending a rewrite of the /part code...
+Zg - [2-Apr] - OnPart is now operational!
+Zg - [2-Apr] - Fixed bug with parting multiple channels
+Zg - [2-Apr] - Made OnJoin more conformant with IRCX (It was :#Chan PRIVMSG #Chan, and it shouldn't have been)
+Zg - [2-Apr] - Idea for regged channels: in m_part, check if IsRegistered, if true, don't remove the channel if members = 0 (to be implemented later today or tomorrow probably)
+DG - [3-Apr] - Cleaned up mod_list.bas
+DG - [4-Apr] - Just testing some stuff.
+DG - [4-Apr] - Ok my test fucked up as I was in Linux at the time and Linux have different line break styles when I went back into windows to upload the mod_list.bas update the changelog was all messed up.
+DG - [4-Apr] - Prop'ed svn:eol-style This should solve the problem
+DG - [4-Apr] - ChangeLog Update
+Zg - [6-Apr] - Did some optimizing of mod_channel (mainly access-related)
+Zg - [6-Apr] - Added EVENT CHANNEL framework
+Zg - [6-Apr] - Optimized EVENT code significantly
+Zg - [7-Apr] - Commented-out default P: lines -- people without the 192.168.0.1 adapter can't use the server, and it also makes the configuration harder for normal lusers. Also, if 6668 is in use, it causes more problems. Simply put, it's easier this way. If they want more ports, they can add more ports :)
+Zg - [9-Apr] - do_nick_name now checks for any capitalization of Anonymous.
+Zg - [9-Apr] - Illegal nicknames can no longer be set with /chgnick
+Zg - [9-Apr] - Whoops. Didn't save changelog before committing...
+Zg - [9-Apr] - CHANNEL.CREATE added.
+Zg - [9-Apr] - /create now generates a USER.JOIN event
+Zg - [9-Apr] - If /create is used by a non-IRCX client, it will show them as a host/op.
+Zg - [9-Apr] - Fixed redundancy with m_topic -- parv(1) was already getting truncated and then we go and attempt to truncate it again...
+Zg - [9-Apr] - Fixed bug with TOPIC and PROP TOPIC not correlating
+Zg - [9-Apr] - TopicLen is now enforced when a user uses PROP TOPIC
+Zg - [9-Apr] - PROP MEMBERKEY isn't going to be like IRCX defines -- it's settable by any host/owner and readable by all members (like +k is)
+Zg - [9-Apr] - Added functionality for PROP MEMBERKEY
+Zg - [9-Apr] - Optimized some of m_prop
+Zg - [9-Apr] - MODE +k and PROP MEMBERKEY now properly correlate
+Zg - [9-Apr] - IRCX clients get the IRCX-specific method (PROP TOPIC for example); 1459 clients get the 1459 method. Note: MODE +k gets sent to IRCX clients both ways because of how the MODE code is (probably should remove the IRCX sending bit, but then IRCX clients that are solely IRCX won't get the password)
+Zg - [9-Apr] - In light of the outrageous number of bad programmers out there, I added a new switch: X:IRCXMETHOD:0|1. Method of sending IRCX-related stuff. 0 = both get 1459 1 = split up.. 1459 clients get 1459; IRCX gets IRCX. 2 = send both
+Zg - [10-Apr] - Added CHANNEL.JOIN event
+Zg - [10-Apr] - Added new macro system. This allows for generic text and stuff to be simplified. Only a few fields, like the ones that allow freeform text, are parsed.
+Zg - [10-Apr] - Added <$COLON$> macro. Allows you to put a : somewhere in your text. 
+Zg - [10-Apr] - Added <$NET$> macro. Allows you to insert your IRC network name somewhere.
+Zg - [10-Apr] - clsUserHashTable: Removed commented out sub
+Zg - [10-Apr] - Added IRCX drafts to Docs/
+DG - [08-May] - SVN is coming back, also my email has changed to nigel@ignition-project.com future commits will show this.
+DG - [08-May] - Appended wrong date to last commit (opps)... 
+DG - [08-May] - Testing Post-Commit events again.
+#COMMENT - Zg - DigiGuy left the project
+Zg - [29-May] - Changed build identifier to -cvs instead of -SVN
+Zg - [29-May] - Added patch that I suggested on the mailing list.
+Zg - [29-May] - Fixed bug #959882
+Zg - [29-May] - Fixed bug #962843
+Zg - [29-May] - Added /gline, /fnick, and /fhost as aliases to /chgnick and /chghost (/gline may or may not be removed -- depends on whether or not I add a G: line) (satisfies task #94222)
+Zg - [29-May] - Added more help to ircx.conf. Surely this will eliminate stupid config questions asked by stupid people ^^,
+Zg - [29-May] - Fixed bug #908810 (MSChat 2.5 OnJoin crash)
+Zg - [29-May] - Attempted fixing the uptime counter thing. Maybe it'll work properly with huge uptimes.
+Zg - [30-May] - Updated readme.txt.
+Zg - [30-May] - Fixed bug #962870 (sloppy code in IRCXMode)
+Zg - [30-May] - Added code to Rehash that resets everything to null or otherwise default. This way, if you remove a line or comment it out, it will recognize it and act accordingly. The code is rather large and simplistic, but still probably could be simplified...
+Zg - [30-May] - Completed task #99625 (persistant channels)
+Zg - [30-May] - Added X:REGCHANMODE that picks how registered channels behave. 0 = all +r chans are always open, 1 = no +r chans are always open, 2 = only +R chans are always open
+Zg - [30-May] - Also added +R chan mode, which can only be set by local and global operators
+Zg - [30-May] - Corrected /stats m (added missing commands, put others in alphabetical order)
+Zg - [30-May] - Fixed bug #962992 (event misfiring)
+Zg - [30-May] - Probably fixed bug #959874 (uptime messing up)
+Zg - [30-May] - Fixed bug #962932 (timezone being wrong)
+Zg - [30-May] - Fixed bug #963274 (backwards compatibility)
+Zg - [31-May] - Cleaned up IRCX stuff (ISIRCX functions properly now, and now MSChat 2.5 and any other proper IRCX client can connect)
+Zg - [31-May] - Fixed bug #963281 (querying IRCX)
+Zg - [1-Jun] - Fixed bug #963357 (/who is messed up)
+Zg - [1-Jun] - Added some stuff to readme.txt
+Zg - [1-Jun] - Other stuff I don't remember
+AW - [1-Jun] - Corrected LIST output for params null and *, null missing '+' character
+Zg - [2-Jun] - Added + to a couple other circumstances that Reid forgot.
+Zg - [2-Jun] - Fixed some bugs, commented some code, added some bug info to the nick code (in case an error occurs, we have a more accurate pointer for where the error is happening)
+Zg - [2-Jun] - Changed the PING timeout thing to say /RAW PONG :number or /QUOTE PONG :number -- some clients don't support one or the other.
+Zg - [2-Jun] - Fixed bug #963364 (nick change not propragrated)
+Zg - [2-Jun] - Fixed bug #964793 (passwords not working for clients)
+Zg - [2-Jun] - Fixed bug #959878 (I: line passwords aren't encrypted)
+Zg - [2-Jun] - Documented some more in ircx.conf.
+Zg - [2-Jun] - Added +R to GetModes
+Zg - [2-Jun] - Corrected GetModesX
+Zg - [2-Jun] - Fixed bug #959879 (only net admins can use +Pp as regular modes; rest are oper flags)
+Zg - [2-Jun] - Fixed bug #959876 (modes coming from links aren't formatted properly)
+Zg - [2-Jun] - Optimized a bunch of code. Probably not noticable unless the load is heavy.
+Zg - [2-Jun] - Organized the code a little. Added a few modules (nonstandard, extracommands) to facilitate this. This could also let us do some customizable builds.
+Zg - [3-Jun] - Fixed bug #965341 (access time doesn't look like it's counting down)
+Zg - [3-Jun] - Corrected a change that makes the previous commit fail to compile
+Zg - [3-Jun] - Fixed bug #962956 (mode +b doesn't work)
+Zg - [3-Jun] - Added code that makes mIRC's weird rename ban work
+Zg - [4-Jun] - Completed task #99516 (shorthand access add)
+Zg - [4-Jun] - Fixed bug where an access list would come back with a negative number (i.e. if the entry was infinite [0])
+Zg - [5-Jun] - Fixed bug #966253 (before-registration replies)
+Zg - [5-Jun] - Completed task #99911 (error log)
+Zg - [5-Jun] - Fixed bug #966249 (telnet doesn't work)
+Zg - [5-Jun] - Fixed bug with USER that would make it not PING you if you don't send all the params.
+Zg - [5-Jun] - Fixed another uptime bug (it would output times like this: 771 days 23:05:44)
+Zg - [5-Jun] - Added /INFO. Contains a little bit of history on ignitionServer.
+Zg - [6-Jun] - Worked on release notes
+Zg - [6-Jun] - Prepared ircx.conf for release
+Zg - [6-Jun] - Fixed bug #967784 (users setting modes on themselves need Nick!ID@Host)
+AW - [6-Jun] - Fixed bug #967793 (Whois, whowas returning wrong error for no params)
+Zg - [6-Jun] - Fixed the bug that would make exceptionally huge error logs

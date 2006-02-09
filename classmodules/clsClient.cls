@@ -27,7 +27,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsClient.cls,v 1.5 2004/05/28 21:27:35 ziggythehamster Exp $
+' $Id: clsClient.cls,v 1.7 2004/06/02 22:36:51 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -74,6 +74,7 @@ Public WaitingForPong As Boolean 'set by ping sub
 
 Public RealHost As String 'Thanks to DG for pointing this out
 Public WhoisAccessLevel As Integer 'AccessLevel of user asking for /whois
+Public WhoisIRCX As Boolean 'state of IRCX of the user asking for /whois
 
 'Substituted Modes as String with Booleans
 'as Booleans are 2 bytes only, and strings are 10 bytes (+stringlen*2), even if not used (memory usage that is)
@@ -134,7 +135,24 @@ For I = 1 To OnChannels.Count
   End If
 Next I
 End Function
-
+Public Function GetOnChans1459() As String
+Dim Chan As clsChannel, x&
+Dim I&
+For I = 1 To OnChannels.Count
+    With OnChannels.Item(I).Member.Item(Nick)
+        If .IsOwner Then
+            GetOnChans1459 = GetOnChans1459 & "@" & OnChannels.Item(I).Name & " "
+        ElseIf .IsOp Then
+            GetOnChans1459 = GetOnChans1459 & "@" & OnChannels.Item(I).Name & " "
+        ElseIf .IsVoice Then
+            GetOnChans1459 = GetOnChans1459 & "+" & OnChannels.Item(I).Name & " "
+        Else
+            GetOnChans1459 = GetOnChans1459 & OnChannels.Item(I).Name & " "
+        End If
+    End With
+Next I
+GetOnChans1459 = Trim$(GetOnChans1459)
+End Function
 Public Function GetOnChans() As String
 Dim Chan As clsChannel, x&
 Dim I&
@@ -160,7 +178,7 @@ Public Function GetWhois(Nickname$) As String
 GetWhois = SPrefix & " " & RPL_WHOISUSER & " " & Nickname & " " & Nick & " " & User & " " & Host & " * :" & Name & vbCrLf
 If WhoisAccessLevel >= 3 Or Nickname = Nick Then
   Dim tmpIP As String
-  If IP <> "" Then
+  If Len(IP) <> 0 Then
     tmpIP = IP
   Else
     tmpIP = "unknown"
@@ -171,7 +189,13 @@ If IsRegistered Then GetWhois = GetWhois & SPrefix & " 307 " & Nickname & " " & 
 If IsNetAdmin Then '-zg [this was rearranged because of the presence of the 308 raw]
   GetWhois = GetWhois & SPrefix & " 308 " & Nickname & " " & Nick & " :is a network administrator" & vbCrLf '-zg
 End If
-If OnChannels.Count > 0 Then GetWhois = GetWhois & SPrefix & " 319 " & Nickname & " " & Nick & " :" & GetOnChans & vbCrLf
+If OnChannels.Count > 0 Then
+  If WhoisIRCX Then
+    GetWhois = GetWhois & SPrefix & " 319 " & Nickname & " " & Nick & " :" & GetOnChans & vbCrLf
+  Else
+    GetWhois = GetWhois & SPrefix & " 319 " & Nickname & " " & Nick & " :" & GetOnChans1459 & vbCrLf
+  End If
+End If
 If Len(AwayMsg) > 0 Then GetWhois = GetWhois & SPrefix & " 301 " & Nickname & " " & Nick & " :" & AwayMsg & vbCrLf
 GetWhois = GetWhois & SPrefix & " 312 " & Nickname & " " & Nick & " " & ServerName & " :" & ServerDescription & vbCrLf
 If IsGlobOperator And IsLocOperator Then

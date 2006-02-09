@@ -1,0 +1,1800 @@
+INTERNET-DRAFT                                             Kent Cedola
+File: <draft-pfenning-irc-extensions-00.txt>     Microsoft Corporation
+31 January 1997                                        Thomas Pfenning
+                                                 Microsoft Corporation
+
+
+
+
+        Extensions to the Internet Relay Chat Protocol (IRCX)
+
+
+
+1.  Status of this Memo
+
+This document is an Internet-Draft.  Internet-Drafts are working docu-
+ments of the Internet Engineering Task Force (IETF),  its  areas,  and
+its  working groups.  Note that other groups may also distribute work-
+ing documents as Internet-Drafts.
+
+Internet-Drafts are draft documents valid for a maximum of six  months
+and  may  be updated, replaced, or obsoleted by other documents at any
+time.  It is inappropriate to use Internet-Drafts as  reference  mate-
+rial or to cite them other than as ``work in progress.''
+
+To  learn  the  current status of any Internet-Draft, please check the
+``1id-abstracts.txt'' listing contained in the Internet-Drafts  Shadow
+Directories   on   ds.internic.net   (US  East  Coast),  nic.nordu.net
+(Europe), ftp.isi.edu (US West Coast), or munnari.oz.au (Pacific Rim).
+
+The  distribution  of  this memo is unlimited.  It is filed as <draft-
+pfenning-irc-extensions-00.txt>, and  expires July  31,  1997.   Please
+send comments to the authors.
+
+
+2.  Abstract
+
+This document describes extensions to the Internet Relay chat protocol
+defined in RFC 1459[1]. The added functionality includes optional user
+authentication for multiple security providers, support for UNICODE[2]
+characters, multilayer security, a  unified  property  mechanism,  and
+support  for  tagged  data  messages.  Chat server implementations can
+optionally support channel or server services with full  control  over
+all  messages  and  events.  These  services communicate with the core
+server over an extended IRC connection.
+
+All changes to the IRC protocol are designed in a  way  that  existing
+clients  will continue to work against servers implementing the exten-
+sions. Support for the extended protocol can be queried by clients  to
+take  advantage  of the added functionality or to conform to the basic
+protocol as defined in RFC 1459.
+
+
+
+
+
+
+
+Cedola & Pfenning                                             [Page 1]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+3.  Modified UTF7 Encoding of UNICODE characters
+
+Allowing UNICODE characters for all user visible strings introduces  a
+set  of  compatibility problems if the protocol must be backwards com-
+patible. While UTF7 encoding[1] maintains readability for  pure  ASCII
+strings,  the BASE64 encoding of extended characters can contain char-
+acters which have a special meaning to the parser. In order to provide
+backwards  compatibility  with  exisiting IRC clients and to allow new
+client to use a subset of UNICODE features on existing IRC  server  we
+introduce  an  additional postprocessing step on the result of an UTF7
+translation.
+
+The quoting character for the postprocessing step is ''. All  mappings
+are listed in the table below.
+
+
+                +------------------------------------+
+                |Table 1 - Character Quoting in UTF7 |
+                +----------------+-------------------+
+                |      \b        |  for " " blank    |
+                |      \c        |  for ","          |
+                |      \\        |  for "\"          |
+                |      \r        |  for CR           |
+                |      \n        |  for LF           |
+                +----------------+-------------------+
+
+This mechanism is a first proposal and subject to change if we dicover
+a more general solution to this problem. Since a similar  problem  was
+discovered  in  the context of the IMAP protocol[3] it might be worth-
+while to define a new safe encoding of  UNICODE  which  translates  to
+alphanumeric  characters only.  It seems, that every special character
+has a special meaning in one or the other protocol.
+
+
+4.  Terms and Definitions
+
+Throughout the document we will use certain terms which are defined in
+this section.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Cedola & Pfenning                                             [Page 2]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+ +------------------------------------------------------------------+
+ |                  Table 2 - Definition of Terms                   |
+ +---------------+--------------------------------------------------+
+ | Chat Domain   |  A Chat Domain is comprised of one or more net-  |
+ |               |  works linked together.                          |
+ | Chat Network  |  Chat Network  is  comprised  of  one  or  more  |
+ |               |  servers linked together.                        |
+ | Server        |  A server is a single machine.                   |
+ | Channel       |  A  channel (sometimes called a room or confer-  |
+ |               |  ence) is  conversation  between  one  or  more  |
+ |               |  users.                                          |
+ | Member        |  A member is a user that is part of a conversa-  |
+ |               |  tion in a channel.                              |
+ | User          |  A user is a client that makes a connection  to  |
+ |               |  the server.                                     |
+ | Objects       |  An  object  is  a  general  term for channels,  |
+ |               |  users,  members  (users  in  a  channel),  and  |
+ |               |  servers.  The type of object can be determined  |
+ |               |  from the first character of the object's name.  |
+ +---------------+--------------------------------------------------+
+
+
+4.1.  User Access Levels
+
+Each  client  falls into one of eight level that define the ability to
+perform operations.  Some levels are determined on the context of  the
+operation to be performed.
+
+
+ +------------------------------------------------------------------+
+ |              Table 3 - Definition of Client Levels               |
+ +---------------------+--------------------------------------------+
+ | Chat Administrator  |  A  Chat Administrator has full access to  |
+ |                     |  all aspect of the server.                 |
+ | Chat Service        |  A Chat Service is defined  for  external  |
+ |                     |  application to provide extended services  |
+ |                     |  to the chat network.  Also refered to as  |
+ |                     |  bots.                                     |
+ | A Chat Manager      |  A  Chat Manager is a senior sysop access  |
+ |                     |  level that is permitted a wider range of  |
+ |                     |  opertions than a Chat Sysop.              |
+ | A Chat Sysop        |  A  Chat  Sysop is a user that is ability  |
+ |                     |  to oversee and control the chat network.  |
+ | A Chat Owner        |  A  Chat  Owner  is  a owner of a channel  |
+ |                     |  that has the ability to  manage  channel  |
+ |                     |  hosts.                                    |
+ | A Chat Host         |  A  Chat  Host  is  a member of a channel  |
+ |                     |  with the ability to  manage  a  channel.  |
+ |                     |  Also refered to as a channel operator.    |
+ | A Chat Member       |  An Chat Member is a member of a channel.  |
+ | A Chat User         |  An Chat User is a  client  connected  to  |
+ |                     |  the server.                               |
+ +---------------------+--------------------------------------------+
+
+
+
+
+Cedola & Pfenning                                             [Page 3]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+4.2.  Prefixes
+
+Each  object  contains  a  unique  prefix  that identifies the type of
+object.  By tagging UNICODE objects with a special prefix a client can
+easily  decide whether to use standard ASCII or UNICODE when sending a
+message to a user or channel.
+
+
++-----------------------------------------------------------------------
++
+|                     Table 4 - Object identifiers
+|
++---------+-------------------------------------------------------------
++
+| #       |  The '#' prefix identifies a standard IRC2 global channel.
+|
+| &       |  The '&' prefix identifies a standard IRC2 local channel.
+|
+| +       |  The '+' prefix identifies an extended channel name  which
+|
+|         |  consist of a modified UTF7 encoded Unicode string.
+|
+| A to }  |  The  'A'  through  '}'  prefix identifies a standard IRC2
+|
+|         |  nick name.
+|
+| %       |  The '%' prefix identifies  an  extended  IRCX  nick  name
+|
+|         |  which  consist  of  a  modified Unicode string.  Just '%'
+|
+|         |  represents the local client connection.
+|
+| 0       |  The '0' prefix identifies an internal  object  identifier
+|
+|         |  (OID).  The OID consists of the '0' prefix and 8 hexadec-
+|
+|         |  imal characters.
+|
+| $       |  The '$' prefix identifies a server on the  network.  Just
+|
+|         |  '$'  represents  the local server the client is connected
+|
+|         |  to.
+|
++---------+-------------------------------------------------------------
++
+
+
+5.  Channels
+
+Channels support four mutually exclusive states of visibility; public,
+private, hidden and secret.  The visibility of a channel effects which
+modes and properties are available to a client.  Each mode/property is
+followed  by  a table that consists of a matrix of the channel's visi-
+bility state and each type of client.  R/W is for  Read/Write  access,
+R/O for Read Only access, "-" for no access (can't be queried) and N/A
+for does not apply. These access rights are listed for  the  different
+adminstrative levels.
+
+
+5.1.  Modes
+
+Each channel object contains a number of binary mode settings that can
+be queried and optionally updated via the IRC2 MODE  and/or  the  IRCX
+MODEX  command.   The  IRC2  mode, if available, is presented with the
++<Letter> format after the name of the mode.
+
+
+5.1.1.  PUBLIC (IRC2 default)
+
+The channel is public and all information about  the  channel  (except
+for  text/data  messages)  can  be queried by non-members.  The PUBLIC
+mode is mutually exclusive with the PRIVATE, HIDDEN and SECRET  modes.
+
+
+
+Cedola & Pfenning                                             [Page 4]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+5.1.2.  PRIVATE (IRC2 +P)
+
+The  channel is private and only the name and number of members can be
+queried by non-members. The PRIVATE mode is  mutually  exclusive  with
+the PUBLIC, HIDDEN and SECRET modes.
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Private  R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/O    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+5.1.3.  HIDDEN
+
+The  channel is secret and can not by located by any query. The SECRET
+mode is mutually exclusive with the PUBLIC, PRIVATE, and HIDDEN modes.
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+5.1.4.  SECRET (IRC2 +S)
+
+The  channel is secret and can not by located by any query. The SECRET
+mode is mutually exclusive with the PUBLIC, PRIVATE, and HIDDEN modes.
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+5.1.5.   MODERATED  (IRC2  +M)  The MODERATED mode changes the default
+speaker setting for new members to off.
+
+
+
+
+
+
+
+
+Cedola & Pfenning                                             [Page 5]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+5.1.6.  NOEXTERN (IRC2 +N)
+
+The NOEXTERN mode blocks messages from non-members to the channel.
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+5.1.7.  TOPICOP (IRC2 +T)
+
+The TOPICOP mode only permits channel hosts the ability to change  the
+channel topic property.
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+5.1.8.  INVITE (IRC2 +I)
+
+The INVITE mode only permits invited users to enter the channel.
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/N    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+5.1.9.  KNOCK
+
+The KNOCK extended mode causes a KNOCK message to be sent to all chan-
+nel hosts if an uninvited user attempts to join an invite  only  chan-
+nel.   Useful  for clients that wish to use custom access control of a
+channel and will automatically issue an invite to a  select  group  of
+users.
+
+
+
+
+
+
+Cedola & Pfenning                                             [Page 6]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+5.1.10.   NODATA  The  NODATA  channel mode will disable DATA messages
+from being sent to a channel.
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+5.1.11.  NOWHISPER
+
+The NOWHISPER channel mode will disable WHISPER  messages  from  being
+sent to a channel.
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+5.1.12.  REGISTERED
+
+The channel has been registered via a chat service.
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+5.1.13.  SERVICE
+
+A service is monitoring/controlling the channel.
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+
+
+Cedola & Pfenning                                             [Page 7]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+5.2.  Extended Flags
+
+Each  channel  object  contains a number of binary flags that are only
+settable by the chat server and will not change during the  life  span
+of the channel.
+
+
+5.2.1.  PERSISTENT
+
+The channel has been defined by the chat administrator as a persistent
+channel.
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+
+5.3.  Properties
+
+Each channel object contains  a  number  of  properties  that  can  be
+queried and optionally updated via the IRCX PROP command.
+
+5.3.1.  OID (R/O)
+
+The  OID  channel  property  is the internal object identifier for the
+channel.  The OID can be optionally used in place of the  full  string
+name  of  a channel as a short cut.  If the OID is "0", then this fea-
+ture is not supported on the server.
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+5.3.2.  NAME (R/O)
+
+The NAME channel property is the name of the channel.
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+
+
+
+
+Cedola & Pfenning                                             [Page 8]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+5.3.3.  KEYWORD The KEYWORD channel property is the  keyword  required
+to  enter  the  channel.   The KEYWORD property can only be queried by
+members of the channel and sysops.  The KEYWORD property can  only  be
+updated by channel hosts and sysops.
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+5.3.4.  HOSTKEY
+
+The  HOSTKEY  channel  property  is the host keyword that will provide
+host (channel op) access when entering the channel. The HOSTKEY  prop-
+erty  can  only  be  queried  by channel hosts and sysops. The HOSTKEY
+property can only be updated by channel hosts and sysops.
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+5.3.5.  TOPIC
+
+The TOPIC channel property is the current topic of the  channel.   The
+TOPIC  property  can be queried by the channel members and sysops, and
+users can query outside the channel if is public or hidden.  The TOPIC
+property can only be updated by hosts, sysops, and members if the TOP-
+ICOP channel mode is NOT set.
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+5.3.6.  PICS
+
+The PICS channel property is the current PICS rating of  the  channel.
+The  PICS  property  can be queried by the channel members and sysops,
+and users can query outside the channel if is public, private or  hid-
+den.  The PICS property can only be updated by owners and sysops.
+
+
+
+
+
+
+
+Cedola & Pfenning                                             [Page 9]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+          Admin  Service  Manager  Sysop  Owner  Host  Member  User
+  Public   R/W     R/W      R/W     R/W    R/W    R/W    RO     RO
+  Private  N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Hidden   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+  Secret   N/A     N/A      N/A     N/A    N/A    N/A    N/A    N/A
+
+
+
+6.  IRCX Server Messages
+
+This  section summarizes all extended messages which can be send unso-
+licited from the server.
+
+
+6.1.  EVENT (new IRCX message)
+
+Notification to the client of an event.
+
+Syntax 1: EVENT CHANNEL <time-stamp> CREATE <user>
+
+Syntax 2: EVENT CHANNEL <time-stamp> DELETE <user>
+
+Syntax 3: EVENT CHANNEL <time-stamp> KILL <user> :<reason>
+
+Syntax 4: EVENT MEMBER <time-stamp> JOIN <user>
+
+Syntax 5: EVENT MEMBER <time-stamp> PART <user> :<reason>
+
+Syntax 6: EVENT MEMBER <time-stamp> KICK <user> :<reason>
+
+Syntax 7: EVENT USER <time-stamp> REGISTER <user> <local-ip/port>
+                     <remote-ip/port> <access>
+
+Syntax 8: EVENT USER <time-stamp> QUIT <user> :<reason>
+
+Syntax 9: EVENT USER <time-stamp> KILL <user> :<reason>
+
+6.1.1.  Parameters
+
+<time-stamp> The number of seconds elapsed since midnight  (00:00:00),
+January  1, 1970, coordinated universal time when the event occured on
+the server.
+
+<user>   The   user's   nick,   userid,    host    and    server    in
+nick!user@host$server format that triggered the event.
+
+<reason>  {same as for REDIRECT}
+
+<local-ip:port>  The  local  server  IP address and port number of the
+<user>.
+
+<remote-ip:port> The remote client IP address and port number  of  the
+<user>.
+
+
+
+
+Cedola & Pfenning                                            [Page 10]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+6.1.2.  Remarks
+
+The  EVENT  command  is to use to define the events that the client is
+interested in.
+
+
+
+6.2.  REDIRECT (new IRCX message)
+
+Informs the client to connect to another server.
+
+Syntax: REDIRECT <server-list> :<reason>
+
+6.2.1.  Parameters
+
+<server-list> The server list is a comma seperated list  of  host:port
+pairs.  Thos can be specified either as a FQDN or by the IP address in
+quuad dotted notation.
+
+<reason> The redirect reason is  an  implementation  dependent  string
+which  can optionally be displayed at the client. If the string starts
+with a '%' character is is handled as modified UTF7 according to  sec-
+tion 4.
+
+6.2.2.  Remarks
+
+The  REDIRECT  message can be sent to the client at anytime to request
+the client to disconnect and reconnect to another server specified  in
+the list.   The REDIRECT message is generally sent when a server is to
+be shutdown.
+
+
+6.2.3.  Example
+
+
+     Server: REDIRECT chat.corp.net:6667,134.9.3.3:6667 :Server full.
+
+
+
+7.  IRCX Client Messages
+
+All messages sent from the client to an IRCX server can optionally  be
+tagged  with  a message prefix. This implies that the client has veri-
+fied, that the server it is talking to supports the extended IRC  pro-
+tocol. A tag is a string enclosed in square brackets. Only the charac-
+ters [a-z,A-Z,0-9] are valid in a tag. The string can contain a  mini-
+mum  of  1  and  a  maxminum  of  16 charcters. An empty string is not
+allowed.
+
+All replies from the server to a client message prefixed  with  a  tag
+will  have the same tag prepended. This feature allows the matching of
+replies to multiple outstandig messages and easy dispatch of  messages
+to  multithreaded clients.  The tag will not be sent to other clients.
+Tagged data messages can be used for indicating a certain  payload  to
+
+
+
+Cedola & Pfenning                                            [Page 11]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+other clients.
+
+
+Syntax [alphanumeric string] <IRCX-message>
+
+Parameters
+
+<IRCX-message>  This argument is any valid client message according to
+the IRC or IRCX specification.
+
+
+7.1.  AUTH Command (new IRCX command)
+
+Authenticate the client using an SASL[4] authentication mechanism. The
+details  of  the  authentication  mechanisms is specified in a profile
+that should be registered with the IANA.
+
+Syntax 1: AUTH <name> <seq>: [<parameter>]
+
+Syntax 2 (from server to client only): AUTH <name> OK <ident> <uid>
+
+7.1.1.  Parameters
+
+<name>  The name of the SASL mechanism to use for authentication.  The
+specific SASL mechanisms supported are implementation dependent.
+
+<seq>   The sequence is a value of 'I' or 'S'. The 'I' value is speci-
+fied for the initial AUTH message and 'S'  for  all  subsequence  AUTH
+messages.
+
+<parameter>   This  is optional data send as an argument with the AUTH
+messages.  The content is depends on the autentication mechanism being
+used.
+
+<ident>   The  ident  is the userid@domain of the authenticated client
+account. It is returned on the final response from  the  server  (Syn-
+tax2) when authentication is successful.
+
+<uid>   The  uid  is  the  internal  object identifier assigned to the
+client connection. If not supported by the server  then  '0'  must  be
+returned.
+
+
+7.1.2.  Results:
+
+
+
+
+
+
+
+
+
+
+
+
+
+Cedola & Pfenning                                            [Page 12]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+  AUTH message
+  IRCERR_ALREADYAUTHENTICATED
+  IRCERR_ALREADYREGISTERED
+  IRCERR_AUTHENTICATIONFAILED
+  IRCERR_AUTHENTICATIONSUSPENDED
+  IRCERR_BADCOMMAND
+  IRCERR_BADPREFIX
+  IRCERR_NEEDMOREPARAMS
+  IRCERR_UNKNOWNPACKAGE
+
+
+7.1.3.  Remarks:
+
+If the server is known to support IRCX with specific SASL mechanism(s)
+then the first message must be the AUTH command (if authentication  is
+to  be  used).   If  the  server  state  is  unknown, send the message
+"ISIRCX\r\nPING\r\n" and non IRCX servers will return the  PONG  reply
+without the IRCX message (or an error message and then the PONG), IRCX
+servers will return the IRCRPL_IRCX message (see IRCX command for more
+info) and then the PONG reply.
+
+The server will send the syntax 2 form when the authentication process
+is complete or a numeric error reply.
+
+7.1.4.  Example:
+
+     Client: AUTH NTLM I: <-quoted blob data>
+     Server: AUTH NTLM S: <-quoted blob data>
+     Client: AUTH NTLM S: <-quoted blob data>
+     Server: AUTH NTLM * userid@domain 03FA4534C
+
+
+
+
+7.2.  EVENT (new IRCX command)
+
+Add/Change/Delete event logging to the client connection.
+
+
+Syntax 1: EVENT [ADD | DEL] <event> [<mask>]
+
+Syntax 2: EVENT LIST [<event>]
+
+7.2.1.  Parameters
+
+<event>  Type of event, CHANNEL, MEMBER and USER.
+
+<mask>  Option mask for apply a selection critical per event.
+
+
+7.2.2.  Results
+
+
+
+
+
+
+Cedola & Pfenning                                            [Page 13]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+  IRCRPL_EVENTADD
+  IRCRPL_EVENTDELETE
+  IRCRPL_EVENTLIST
+  IRCRPL_EVENTEND
+  IRCERR_NEEDMOREPARAMS
+  IRCERR_BADFUNCTION
+  IRCERR_EVENTDUP
+  IRCERR_EVENTMIS
+  IRCERR_NOSUCHEVENT
+  IRCERR_TOOMANYEVENTS
+
+
+
+7.2.3.  Events
+
+See the EVENT section for IRCX Server Messages for more detail of gen-
+erated events.
+
+7.2.4.  Remarks
+
+The  EVENT command is a sysop only function to select which events the
+client is interested in.
+
+7.2.5.  Examples
+
+Add channel events
+
+
+     Client: EVENT ADD CHANNEL
+     Server: 801 CHANNEL *!*@*$*
+
+
+Add list event with no active events returned
+
+
+     Client: EVENT LIST
+     Server: 803 CHANNEL *!*@*$*
+             804 * :End of events.
+
+
+
+
+7.3.  DATA (new IRCX command)
+
+Send a data message to an user,  channel or member(s) in a channel. If
+a  client  does  not  understand a particular tag name, the message is
+discarded.
+
+Syntax 1: DATA <object> <tag> :<message>
+
+Syntax 2: DATA <channel> <nick-list> <tag> :<message>
+
+
+
+
+
+
+Cedola & Pfenning                                            [Page 14]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+7.3.1.  Parameters
+
+<object>  The name of channel or user.
+
+<channel>  The name of a channel.
+
+<tag>  Client defined tag  following  the  same  restrictions  as  the
+string in message prefixes, that is 1-16 alphanumeric characters.
+
+<nick-list>  A list of one or more user nicks.
+
+7.3.2.  Results
+
+
+  DATA message
+  IRCERR_NEEDMOREPARAMS
+  IRCERR_NORECIPIENT
+  IRCERR_NOTEXTTOSEND
+  IRCERR_NOTONCHANNEL
+  IRCERR_CANNOTSENDTOCHANNEL
+  IRCERR_TOOMANYTARGETS
+  IRCERR_NOSUCHNICK
+  IRCERR_NOSUCHCHANNEL
+  IRCERR_NODATA
+
+
+7.3.3.  Remarks
+
+The DATA message is designed to send a tagged data message that can be
+used by clients to interact with other.  The server does not  validate
+the  tag or message information and totally dependent on the client to
+support.  A recommendation of tag is included in the appendixes.
+
+The DATA message can be disabled to a channel, member or user by  set-
+ting the MODEX <object> +NODATA flag.
+
+7.3.4.  Examples
+
+A  client  send out a data message with the URL tag. The server reacts
+by sending the message to all users in the channel.
+
+     Client:   DATA #MyChannel URL :\www.site.com
+     Server:   DATA #MyChannel URL :\www.site.com
+
+
+This example shows a tyocail scenario for a mutliplayer game  or  dun-
+geon by specifiyng a an additional user list.
+
+     Client: DATA #MyChannel Nick1,Nick2 POS :34,23
+     Server: DATA #MyChannel Nick1 POS :34,23        (to Nick1)
+             DATA #MyChannel Nick2 POS :34,23        (to Nick2)
+
+
+
+
+
+
+Cedola & Pfenning                                            [Page 15]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+7.3.5.  Data Tags
+
+The  following  is  a list of recommend tags to be in the DATA message
+between clients. This list is subject to change based  on  more  feed-
+back. There should be a central registration point for new tags.
+
+RTF: The data message contains RTF formatted text.
+
+URL:  A  standard Internet URL pointer. The client can optionally load
+the URL address provided.
+
+VERSION: Request for the client type and version information.
+
+
+
+7.4.  IRCX (new IRCX command)
+
+Enables IRCX mode and displays IRCX status.
+
+Syntax: IRCX
+
+7.4.1.  Parameters
+
+None.
+
+7.4.2.  Results
+
+
+  IRCRPL_IRCX
+
+
+7.4.3.  Remarks
+
+Before a client is registered with  a  non-IRCX  server,  sending  the
+ISIRCX  command will result in no response from the server.  Recommend
+sending the ISIRCX command followed by the PING command, and if a PONG
+is just returned then the server doesn't support IRCX.
+
+7.4.4.  Example
+
+
+     Client: IRCX
+     Server: :<host> 800 <nick> 1 0 NTLM,DPA,ANON *
+://http:chat.mysite.net
+
+
+
+
+7.5.  ISIRCX (new IRCX command)
+
+Queries if the server supports the Extended IRC2 protocol (RCX).
+
+Syntax: ISIRCX
+
+
+
+
+
+Cedola & Pfenning                                            [Page 16]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+7.5.1.  Results
+
+
+  IRCRPL_IRCX
+
+
+7.5.2.  Remarks
+
+Before  a  client  is  registered  with a non-IRCX server, sending the
+ISIRCX command will result in no response from the server.   Recommend
+sending the ISIRCX command followed by the PING command, and if a PONG
+is just returned then the server doesn't support IRCX.
+
+7.5.3.  Example
+
+
+     Client: ISIRCX
+     Server: :<host> 800<nick> 1 0 NTLM,DPA,ANON *
+://http:chat.mysite.net
+
+
+
+
+7.6.  LIST (extension to IRC2 command)
+
+List channels with extended filters.
+
+Syntax 1: LIST [channel-list]
+
+Syntax 2: LIST [query-list] [query-list ...]
+
+7.6.1.  Parameters
+
+<query-list>  One or more <query-terms>
+
+<query-term> This parameter allows the specification of  certain  fil-
+ters for the search operation.
+
+
+ +------------------------------------------------------------------+
+ |            Table 5 - Search filters for LIST command             |
+ +---------+--------------------------------------------------------+
+ |  <#     |  Select channels with less than # members              |
+ |  >#     |  Select channels with more than # members              |
+ |  C<#    |  Select channels created less than # minutes ago       |
+ |  C>#    |  Select channels created greater than # minutes ago    |
+ |  T<#    |  Select  channels  with  a  topic changed less than #  |
+ |         |  minutes ago                                           |
+ |  T>#    |  Select channels with a topic changed greater than  #  |
+ |         |  minutes ago                                           |
+ +---------+--------------------------------------------------------+
+
+
+
+
+
+
+
+Cedola & Pfenning                                            [Page 17]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+7.6.2.  Results
+
+
+Same as defined in RFC 1459.
+
+
+7.6.3.  Remarks
+
+The  LIST  extension was first implemented for the Undernet version of
+the standard IRC2 server.
+
+
+
+7.7.  MODE (extension to IRC2 command)
+
+Enumerates, adds or changes modes of a channel or user.
+
+
+Syntax 1: MODE <nick>
+
+Syntax 2: MODE <nick> {+ | - } { o }
+
+7.7.1.  Parameters
+
+<nick>  The nick name of a user.
+
+7.7.2.  Results
+
+
+  MODE message
+  IRCERR_NOPRIVILEGES
+
+
+7.7.3.  Remarks
+
+Client that have authenticated as a sysop can enable or disable  their
+sysop access via the +/- o mode parameter.
+
+7.7.4.  Example
+
+
+     Client:   MODE MyNick -o
+     Server:   MODE MyNick -o
+
+
+
+
+7.8.  MODEX (new IRCX command)
+
+Enumerates, adds or changes extended modes of a channel or user.
+
+Syntax 1: MODEX <object>
+
+Syntax 2: MODEX <object> {+ | -} <modex> [...]
+
+
+
+Cedola & Pfenning                                            [Page 18]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+7.8.1.  Parameters
+
+<object>  The name of a user, channel, member or server.
+
+<modex>   An extended mode (see MODEX under the specific object type).
+
+7.8.2.  Results
+
+
+  MODEX message
+  IRCRPL_MODELIST
+  IRCRPL_MODELIST2
+  IRCRPL_MODEEND
+  IRCRPL_BADMODE
+  IRCERR_NOPRIVILEGES
+  IRCERR_CHANOPRIVSNEEDED
+  IRCERR_CHANOWNPRIVSNEEDED
+
+
+7.8.3.  Remarks
+
+The MODEX command is a replacement to the standard IRC2 MODE  command,
+but  unlike  the  single character letter used by MODE, MODEX supports
+named mode settings.  The MODEX command only  effects  binary  (on  or
+off) modes of an object.
+
+To  issue a MODEX command on a channel member, the <object> field con-
+sists of the channel name, followed by a comma and then  the  nick  of
+the member.  For example, "MODEX #MyChannel,Nick" to list the modes of
+the user Nick member information in the channel #MyChannel.
+
+The IRCRPL_MODELIST (805) message contains the channel modes  settable
+by client connections, the IRCRPL_MODELIST2 (806) message contains the
+channel flags that are only settable by the server or a chat  service.
+
+If an error occurs, no modes are updated.
+
+7.8.4.  Examples
+
+
+     Client: MODEX #MyChannel
+     Server: 805 #MyChannel PUBLIC TOPICOP NOEXTERN
+             806 #MyChannel PERSISTENT
+             807 #MyChannel :End of modes
+
+
+Longer transaction with query and setting of particular modes.
+
+
+
+
+
+
+
+
+
+
+Cedola & Pfenning                                            [Page 19]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+     Client:   MODEX #MyChannel
+     Server:   805 #MyChannel PUBLIC TOPICOP NOEXTERN
+             807 #MyChannel :End of modes
+
+     Client: MODEX #MyChannel +PRIVATE -TOPICOP +NODATA +NOWHISPER
+     Server: MODEX #MyChannel +PRIVATE +NOEXTERN +NODATA +NOWHISPER
+
+     Client: MODEX #MyChannel
+     Server: 805 #MyChannel PRIVATE NOEXTERN NODATA NOWHISPER
+             807 #MyChannel :End of modes
+
+
+
+
+7.9.  NOTICE (extension to IRC2 command)
+
+Send a notice to a channel or user.
+
+Syntax 1: NOTICE <channel|nick> :<message>
+
+Syntax 2: NOTICE <channel> <nick-list> :<message>
+
+7.9.1.  Results
+
+Same as defined in RFC 1459.
+
+
+
+
+
+7.10.
+  PRIVMSG (extension to IRC2 command)
+
+Send a message to a channel or user.
+
+Syntax 1: PRIVMSG <channel|nick> :<message>
+
+Sybtax 2: PRIVMSG <channel> <nick-list> :<message>
+
+7.10.1.  Results
+
+Same as defined in RFC 1459.
+
+
+
+7.11.  PROP (new IRCX command)
+
+Add/Changes/Deletes a channel data property.
+
+
+Syntax 1: PROP <channel>
+
+Syntax 2: PROP <channel> *
+
+
+
+
+Cedola & Pfenning                                            [Page 20]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+Syntax 3: PROP <channel> <property>[,<property>]
+
+Syntax 4: PROP <channel> <property> :<data>
+
+7.11.1.  Results
+
+
+  PROP message
+  IRCRPL_PROPLIST
+  IRCRPL_PROPEND
+  IRCRPL_PROPVALUE
+  IRCERR_BADPROPERTY
+  IRCERR_NOPRIVILEGES
+  IRCERR_CHANOPRIVSNEEDED
+  IRCERR_CHANOWNPRIVSNEEDED
+
+
+7.11.2.  Remarks
+
+The  PROP  command  provides  a new method for manipulating string and
+number properties of server, user, channel and member objects based of
+a  label name.  Members of channels are defined by specifying the name
+of the member's channel, a comma delimited,  followed  by  the  user's
+nick.
+
+7.11.3.  Examples
+
+
+     Client:   PROP #MyChannel
+     Server:   808 #MyChannel TOPIC HOSTKEY PICS
+             809 #MyChannel :End of properties
+
+
+     Client:   PROP #MyChannel TOPIC
+     Server:   810 #MyChannel TOPIC :This is the topic of my channel
+     Client:   PROP #MyChannel TOPIC :Change my channel topic to
+something
+     Server:   PROP #MyChannel TOPIC :Change my channel topic to
+something
+
+
+
+
+7.12.  WHISPER (new IRCX command)
+
+Whisper to member(s) in a channel.
+
+Syntax: WHISPER <channel> <nick-list> :<message>
+
+7.12.1.  Results
+
+
+
+
+
+
+
+
+
+Cedola & Pfenning                                            [Page 21]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+  WHISPER message
+  IRCERR_NEEDMOREPARAMS
+  IRCERR_NORECIPIENT
+  IRCERR_NOTEXTTOSEND
+  IRCERR_NOTONCHANNEL
+  IRCERR_CANNOTSENDTOCHANNEL
+  IRCERR_TOOMANYTARGETS
+  IRCERR_NOSUCHNICK
+  IRCERR_NOSUCHCHANNEL
+
+
+7.12.2.  Remarks
+
+The  purpose  of the WHISPER command is to whisper to one or more mem-
+bers in a channel within the context of that  channel.   IRCX  clients
+must  display  the  WHISPER message within the context (window) of the
+channel specified.
+
+
+
+8.  IRCX Command Responses
+
+The new extended IRCX numeric replies follow the  same  convention  as
+with IRC with a specific range for command responses and another range
+for error results.  The IRCX command responses are in  the  ranage  of
+800  to 899 and 900 to 999 for the error results.  The prefix field is
+optional if the host generating the error is the same as the host  the
+client is connected to.
+
+
+8.1.  Command Replies
+
+
+800 - IRCRPL_IRCX <state>
+
+     <version> <package-list> <option-list> :<admin url>
+
+The  response  to  the IRCX command.  The <state> indicates if the has
+IRCX mode enabled (0 for disabled, 1 for enabled).  The  <version>  is
+the  version  of  the IRCX protocol starting at 0.  The <package-list>
+contains a list of authentication packages supported  by  the  server.
+The  package  name of "ANON" is reserved to indicate anonymous connec-
+tions are permitted.  The <option-list> contains  a  list  of  options
+supported  by  the server; theses are implementation dependent.  If no
+options are available, the '*' character should be used.  The  <admin-
+url> field contains an administrator defined URL.
+
+
+801 - IRCRPL_EVENTADD
+
+     <event> <mask>
+
+The  acknowledgment  response  to  the EVENT ADD command.  The <event>
+contains the name of the event added.  The  <mask>  is  the  selection
+
+
+
+Cedola & Pfenning                                            [Page 22]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+mask.   If no mask was provided in the EVENT command, then the default
+mask of *!*@*$* is used.
+
+
+802 - IRCRPL_EVENTDEL
+
+     <event> <mask>
+
+The acknowledgment response to the EVENT  DEL  command.   The  <event>
+contains  the  name of the event deleted.  The <mask> is the selection
+mask.  If no mask was provided in the EVENT command, then the  default
+mask of *!*@*$* is used.
+
+
+803 - IRCRPL_EVENTLIST
+
+     <event> <mask>
+
+Response  to  the EVENT LIST <event> message to display a list of cur-
+rent events the client is interested in.
+
+
+804 - IRCRPL_EVENTEND
+
+     :End of events
+
+Response to the EVENT LIST <event> message to indicate the end of  the
+event list.
+
+
+805 - IRCRPL_MODELIST
+
+     <object> <mode-list>
+
+Response to the MODEX command of extended modes.
+
+
+806 - IRCRPL_MODELIST2
+
+     <object> <mode-list>
+
+Response  to  the MODEX command of extended flags that are only set by
+the server.
+
+
+807 - IRCRPL_MODEEND
+
+     <object> :End of modes
+
+Last message in an extended mode list.
+
+
+808 - IRCRPL_PROPLIST
+
+
+
+
+Cedola & Pfenning                                            [Page 23]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+     <object> <property-list>
+
+Response to the PROP command to list properties of an object.   Multi-
+ple IRCRPL_PROPLIST messages can be generated per list.
+
+
+809 - IRCRPL_PROPEND
+
+     <object> :End of properties
+
+Last message in a property list.
+
+
+810 - IRCRPL_PROPVALUE
+
+     <object> <property> :<value>
+
+Response to a PROP query of a specific property.
+
+
+
+8.2.  IRCX Error Replies.
+
+
+900 - IRCERR_BADCOMMAND
+
+     <command> :Bad command
+
+In response to an incorrectly formatted command.
+
+
+901 - IRCERR_BADPREFIX
+
+     <command> :Bad command prefix specified
+
+A message prefix is not supported for this command.
+
+
+902 - IRCERR_BADTAG
+
+     <channel> <property> :Bad property specified
+
+The message tag is incorrect.
+
+
+903 - IRCERR_ALREADYAUTHENTICATED
+
+     <package> :Already authentication
+
+The client has already authenticated with the server.
+
+
+904 - IRCERR_AUTHENTICATIONFAILED
+
+
+
+
+Cedola & Pfenning                                            [Page 24]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+     <package> :Authentication failed
+
+The  authentication failed due to a bad userid/password or server/net-
+work failure.
+
+
+905 - IRCERR_AUTHENTICATIONSUSPENDED
+
+     <package> :Authentication suspended for this IP
+
+Authentication has been temporary disabled due to too many authentica-
+tion failures from this IP.
+
+
+906 - IRCERR_UNKNOWNPACKAGE
+
+     <package> :Unsupported authentication package
+
+The  authentication  package  specified  is  not  known to the server.
+ISIRCX command will return a list of  supported  authentication  pack-
+ages.
+
+
+907 - IRCERR_EVENTDUP
+
+     <event> <mask> :Duplicate event entry
+
+
+908 - IRCERR_EVENTMIS
+
+     <event> <mask> :Unknown event entry
+
+
+909 - IRCERR_NOSUCHEVENT
+
+     <event> :No such event type
+
+
+910 - IRCERR_TOOMANYEVENTS
+
+     <event> :Too many events specifed
+
+
+911 - IRCERR_UNKNOWNFUNCTION
+
+     <command> :Unknown function
+
+A unknown command function was specified.
+
+
+912 - IRCERR_UNKNOWNMODE
+
+     <mode> :Unknown mode
+
+
+
+
+Cedola & Pfenning                                            [Page 25]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+913 - IRCERR_UNKNOWNPROPERTY
+
+     <property> :Unknown property
+
+
+914 - IRCERR_NODATA
+
+     <object> :Does not permit data messages
+
+
+915 - IRCERR_NODATA
+
+     <object> :Does not permit data messages
+
+
+916 - IRCERR_NOREMOTE
+
+     <object> :Does not permit whispers
+
+
+917 - IRCERR_NOWHISPER
+
+     <object> :Does not permit whispers
+
+
+918 - IRCERR_RESTRICTED
+
+     <command> :Restricted by the administrator
+
+The  command/function/operation was not executed due to an administra-
+tor restriction on this client connection.
+
+
+919 - IRCERR_SECURITY
+
+     <command> :Security failure
+
+The command/function/operation is  not  permited  for  this  level  of
+client due to security.
+
+
+999 - IRCERR_INTERNALERROR
+
+     :Internal error code <error-code>
+
+Internal error generated that doesn't map to a valid IRCX error reply.
+The error code is implementation dependent.
+
+
+
+9.  Security Considerations
+
+Security issues are discussed in the authentication section.
+
+
+
+
+Cedola & Pfenning                                            [Page 26]
+
+
+
+
+
+INTERNET-DRAFT                                         31 January 1997
+
+
+The IRCX command returns a set of authentication mechanisms  supported
+by  the server. This method is open to a  middle man attack whereby an
+attacker modifies the list of returned authentication method and  only
+offer a cleartext password transaction. In order to avoid this type of
+attack only authentication methods with a challenge response mechanism
+should be used whenever security is a concern.
+
+Since all administration commands for IRC and IRCX are send in cleart-
+ext a stream layer  encryption  mechanism  like  SSL[5]  or  IPSEC  is
+required  to protect the integrity and confidentiality of the transac-
+tions.  The mechanisms for establishing these connection  are  outside
+the scope of this document.
+
+10.  References
+
+[1] "Internet Relay Chat Protocol", Network Working Group RFC 1459, J.
+Oikarinen, D. Reed, May 1993
+
+[2] The Unicode Consortium, "The Unicode Standard Version 2.0",  Addi-
+son Wesley Developers Press, July 1996
+
+[3]  "INTERNET MESSAGE ACCESS PROTOCOL - VERSION 4rev1", Network Work-
+ing Group RFC 2060, M. Crispin, December 1996
+
+[4]  "Simple  Authentication  and  Security  Layer  (SASL)",  Work  in
+Progress, draft-myers-auth-sasl-07.txt, J. Myers, December 1996
+
+[5]  "The SSL Protocol Version 3.0", Work in Progress, draft-ietf-tls-
+ssl-version3-00.txt, Alan O. Freier, Philip Karlton, Paul  C.  Kocher,
+November 1996
+
+
+11.  Authors' Addresses
+
+Kent Cedola
+Microsoft Corporation
+One Microsoft Way
+Redmond, WA 98052
+
+EMail: kentce@microsoft.com
+
+Thomas Pfenning
+Microsoft Corporation
+One Microsoft Way
+Redmond, WA 98052
+
+EMail: thomaspf@microsoft.com
+
+
+
+
+
+
+
+
+
+
+Cedola & Pfenning                                            [Page 27]
+
+
+

@@ -13,7 +13,7 @@ Attribute VB_Name = "RecvQ"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: RecvQ.bas,v 1.4 2004/05/28 21:27:36 ziggythehamster Exp $
+' $Id: RecvQ.bas,v 1.5 2004/05/28 21:35:34 ziggythehamster Exp $
 '
 '
 'This program is free software.

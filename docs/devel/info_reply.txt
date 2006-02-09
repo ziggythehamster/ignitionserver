@@ -1,0 +1,31 @@
+       10|       20|       30|       40|       50|       60|       70|       80|
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+
+ignitionServer --
+Based on pureIRCd, written by Ben Affleck, Dennis Fisch,
+Johnny aka Pern, and Eric Dickman. Aside from the network core
+being the same, most of the code has been improved or tweaked.
+The entire IRCX core is completely from scratch.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License as
+published by the Free Software Foundation; either version 2, or
+(at your option) any later version.
+
+ignitionServer is actively developed by mainly one person, 
+Keith Gable <ziggy@ignition-project.com>, but there have been
+a few other contributors, namely Reid Burke <airwalk@airwalklogik.com>
+and Nigel Jones <njonez@ihug.co.nz>. In fact, without Reid and
+Nigel's help, ignitionServer would definitely not be as practical
+as it is.
+
+ignitionServer updates, releases, help, and information can be
+received at our website, http://www.ignition-project.com/. If you
+want to report a bug, please report it on our SourceForge bug
+tracker: http://sourceforge.net/tracker/?group_id=96071&atid=613526
+
+Additional credits can be found in credits.txt in the docs directory.
+
+Birth Date: <build_date>
+Version: <version>
+Online Since: <startup date>

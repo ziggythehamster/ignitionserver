@@ -13,7 +13,7 @@ Attribute VB_Name = "mod_list"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_list.bas,v 1.5 2004/05/28 21:27:37 ziggythehamster Exp $
+' $Id: mod_list.bas,v 1.17 2004/06/06 21:48:11 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -36,7 +36,7 @@ Option Explicit
 Public Const MaxTrafficRate As Long = 100
 
 '-=BUILD DATE=-
-Public Const BuildDate As String = "20040331"
+Public Const BuildDate As String = "20040607"
 
 #Const Debugging = 0
 
@@ -94,9 +94,19 @@ Public MaxWhoLen As Long
 Public MaxListLen As Long
 Public MaxMsgsInQueue As Long
 
+'registered channel mode
+Public RegChanMode_Always As Boolean
+Public RegChanMode_Never As Boolean
+Public RegChanMode_ModeR As Boolean
+
 'SVSNicks
 Public SVSN_NickServ As String
 Public SVSN_ChanServ As String
+
+'IRCX Method
+Public IRCXM_Trans As Boolean
+Public IRCXM_Strict As Boolean
+Public IRCXM_Both As Boolean
 
 'GagModes
 Public ShowGag As Boolean
@@ -133,6 +143,9 @@ Public Die As Boolean
 
 'Remote Access Pass(To get special features
 Public RemotePass
+
+'Enable Error Log
+Public ErrorLog As Boolean
 
 'Offline Mode
 Public OfflineMode As Boolean
@@ -671,7 +684,6 @@ Public Const RPL_ENDOFHASH As Long = 701
 
 'Chan Modes (ASCII values of the mode char's for faster processing)
 Public Const cmBan As Long = 98
-'Public Const cmHOp As Long = 82 'I'm gonna change this soon.
 Public Const cmOp As Long = 111
 Public Const cmOwner As Long = 113
 Public Const cmVoice As Long = 118
@@ -686,6 +698,7 @@ Public Const cmLimit As Long = 108
 Public Const cmKey As Long = 107
 Public Const cmRegistered As Long = 114
 Public Const cmOperOnly As Long = 79
+Public Const cmPersistant As Long = 82
 
 
 '+/- Mode Operators
@@ -696,37 +709,43 @@ Public Const modeRemove As Long = 45
 'Now in alphabetical order - Ziggy
 'Added missing modes
 Public Const UserModes As String = "bcdeikoprsxzBCDEKNOPRSZ"
-Public Const ChanModes As String = "abdehiklmnopqrstuvwxzOR"
+Public Const ChanModes As String = "bhiklmnopqrstvOR"
 'for the 005 reply
-Public Const ChanModesX As String = "b,k,l,abdehiklmnopqrstuvwxzOR"
+Public Const ChanModesX As String = "b,k,l,himnopqrstvOR"
 
 'Authentication Packages/IRCX stuff
 Public Const AuthPackages As String = "ANON"
 Public Const Capabilities As String = "*"
 
 'User Modes (ASCII values of the mode char's for faster processing)
-Public Const umServerMsg As Long = 115  '+s / recieves servermessages
-Public Const umLocOper As Long = 111    '+o / Local IRC Operator, flags included: eckbB (used to be rhgwlckbBnuf)
+
+'Upper Case
+
+Public Const umCanUnKline As Long = 66  '+B / Can /unkline user
+Public Const umGlobRouting As Long = 67 '+C / access to global /connect's and /squit's
+Public Const umCanDie As Long = 68      '+D / access to /die server
+Public Const umCanAdd As Long = 69      '+E / can use /add
+Public Const umGlobKills As Long = 75   '+K / access to global /kill's
+Public Const umNetAdmin As Long = 78    '+N / is Net Admin
 Public Const umGlobOper As Long = 79    '+O / Global IRC Operator, flags included: oRDCKN
-Public Const umInvisible As Long = 105  '+i / invisible, only visible to those who know the exact nick
-Public Const umIRCX As Long = 120       '+x / IRCX user
+Public Const umProtected As Long = 80   '+P / protected operator, can't be deopped or kicked from a channel
+Public Const umCanRestart As Long = 82  '+R / access to /restart server
+Public Const umService As Long = 83     '+S / is a service
+Public Const umRemoteAdmin As Long = 90 '+Z / is a Remote Administrator (Is logged in via /remoteadm login)
+
+'Lower Case
+
+Public Const umCanKline As Long = 98    '+b / Can /kline user
+Public Const umLocRouting As Long = 99  '+c / access to local /connect's and /squit's
 Public Const umHostCloak As Long = 100  '+d / gets his host cloaked
 Public Const umCanRehash As Long = 101  '+e / access to /rehash server
-Public Const umCanRestart As Long = 82  '+R / access to /restart server
-Public Const umCanDie As Long = 68      '+D / access to /die server
-Public Const umLocRouting As Long = 99  '+c / access to local /connect's and /squit's
-Public Const umGlobRouting As Long = 67 '+C / access to global /connect's and /squit's
+Public Const umInvisible As Long = 105  '+i / invisible, only visible to those who know the exact nick
 Public Const umLocKills As Long = 107   '+k / access to local /kill's
-Public Const umGlobKills As Long = 75   '+K / access to global /kill's
-Public Const umCanKline As Long = 98    '+b / Can /kline user
-Public Const umCanUnKline As Long = 66  '+B / Can /unkline user
-Public Const umRegistered As Long = 114 '+r / has a registered nick
-Public Const umService As Long = 83     '+S / is a service
+Public Const umLocOper As Long = 111    '+o / Local IRC Operator, flags included: eckbB (used to be rhgwlckbBnuf)
 Public Const umLProtected As Long = 112 '+p / Lower level protected oper - same as P except it has a different 'strength'
-Public Const umProtected As Long = 80   '+P / protected operator, can't be deopped or kicked from a channel
-Public Const umNetAdmin As Long = 78    '+N / is Net Admin
-Public Const umCanAdd As Long = 69      '+E / can use /add
-Public Const umRemoteAdmin As Long = 90 '+Z / is a Remote Administrator (Is logged in via /remoteadm login)
+Public Const umRegistered As Long = 114 '+r / has a registered nick
+Public Const umServerMsg As Long = 115  '+s / recieves servermessages
+Public Const umIRCX As Long = 120       '+x / IRCX user
 Public Const umGagged As Long = 122     '+z / is gagged (cannot PRIVMSG or NOTICE)
 
 Public Function TranslateCode$(Code&, Optional Nick$, Optional Chan$, Optional cmd$)

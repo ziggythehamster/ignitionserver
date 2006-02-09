@@ -1,87 +1,76 @@
-		RELEASE NOTES FOR IGNITIONSERVER RELEASE: 0.2.3
-# $Id: releasenotes.txt,v 1.4 2004/05/28 21:27:39 ziggythehamster Exp $
+		RELEASE NOTES FOR IGNITIONSERVER RELEASE: 0.3.1
+# $Id: releasenotes.txt,v 1.10 2004/06/06 23:54:04 ziggythehamster Exp $
 
 
 Changes:
-DG - [13-Mar] - Copyright Update.
-DG - [13-Mar] - Changed ReadMes a tiny bit.
-DG - [13-Mar] - Version Update.
-Zg - [13-Mar] - Began work on pings
-Zg - [13-Mar] - Ping? Pong! Hell yes!
-Zg - [13-Mar] - PING is sent DIRECTLY out the socket -- SendQ's and RecvQ's have absolutely no effect on the sending of pings (i.e. pings are of the highest priority)
-Zg - [14-Mar] - PING/PONG works right now.. sort of... users who ponged are getting disconnected for some reason. Committing first, just in case I need to go back for some reason.
-Zg - [14-Mar] - m_error is not properly clearing the socket crap -- the /raw close bug still exists :'(
-Zg - [14-Mar] - PING/PONG appears to be completely operational! Woo hoo :D
-Zg - [14-Mar] - Added N to list of modes in the signon
-AW - [14-Mar] - Fixed custom auth notice not showing up when you get "Nickname in use"
-Zg - [14-Mar] - Fixed possible bug with pings/pongs
-Zg - [14-Mar] - Added filter for bad idents
-Zg - [14-Mar] - Clarified the X:DIE: message -- it now says to see ircx.conf
-Zg - [15-Mar] - Fixed /kline bug
-Zg - [15-Mar] - If a remote server sets a mode on a user that is local to the current server, the local user sees the mode get set
-Zg - [15-Mar] - For some reason, I can't add +S to clsClient (Public IsService As Boolean)
-Zg - [16-Mar] - Raw 307 added - "is a registered nick"
-Zg - [16-Mar] - Fixed bug that added an extra : before the nick during a nick change that got sent to another server (::Ziggy NICK ZiggyTest was the behavior experienced)
-Zg - [17-Mar] - Made +N do something -- if you are a netadmin, your /whois will say so. However, you still are equal to every other oper.
-Zg - [17-Mar] - Filtered +S from m_umode to prevent IRC operators maliciously making themselves a service when I add that mode
-Zg - [17-Mar] - I think I'm going to add +z/gag later today... stay tuned :P
-Zg - [19-Mar] - Added gag/+z
-Zg - [19-Mar] - Added GagModes, since not everyone wants to follow the IRCX draft when talking about gags.. 0=IRCX 1=Nice 2=IRCX-Notice
-Zg - [19-Mar] - Opers can now view modes of other users -- slightly pointless, but possibly useful if you're looking for an oper that can restart because you've messed something up...
-Zg - [19-Mar] - Added a few modes that were missing from GetModes
-Zg - [19-Mar] - Corrected small misunderstanding in GetWhois -- if you are +N, you get your own reply for it (according to Jeepster's numeric.hlp).. 308
-Zg - [20-Mar] - Fixed issue with making yourself +P as an oper
-Zg - [20-Mar] - Fixed typo in ircx.conf
-Zg - [21-Mar] - Attempted fixing the "Max connections reached for this IP" error (seems to be fixed)
-Zg - [21-Mar] - Added /mdie -- a command for the monitor. Includes several security functions so it can't be used maliciously. First, it makes sure that the number specified matches the number in monitor.id and that the user is connecting from localhost.
-Zg - [21-Mar] - If you are connecting from localhost/127.0.0.1 and X:DIE:1 is set, the server will rehash when you connect. This functionality exists so you don't have to control-alt-delete to restart the server.
-Zg - [23-Mar] - Added code to process access entries for a channel (needed on /access, /mode, and /join)
-Zg - [23-Mar] - Processing of Access Entries code has been set aside for the time being. I'll work on it some more tomorrow when I've had some sleep.
-Zg - [24-Mar] - Began debugging the CycleAccess code; it works somewhat
-Zg - [24-Mar] - Added code to help prevent /access problems
-Zg - [24-Mar] - Access durations are now working! However, I failed to plan for this properly when I thought up the idea, and now the duration doesn't decrease every 60 seconds :$ This is a "feature", if you will, and can wait
-Zg - [24-Mar] - Repaired slight problem with debugging strings in mod_channel
-Zg - [24-Mar] - Fixed bug with attempting to add access outside a channel
-Zg - [24-Mar] - Fixed bug with access list editing and the thing that removes entries after a specified period of time (the access duration code)
-DG - [27-Mar] - Someone at LH deleted our account... dam them so we lost SVN
-DG - [28-Mar] - SVN Back up, SVN Rev count reset to 0 and also bug tracker back to Bug 0 (Not reinstalled yet)
-DG - [30-Mar] - Messed with the GPL stuff a tiny bit (Just out of fun...)
-Zg - [30-Mar] - Added line to prevent possible exploitation of /mdie if they had read access to monitor.id and could somehow connect via localhost.
-Zg - [30-Mar] - Worked on preliminary release notes
-DG - [30-Mar] - Some tidyups of Ziggy's Coding, More to come.
-DG - [30-Mar] - Added +p (Lower Protect)
-DG - [30-Mar] - Added X:HIGHPROT & X:LOWPROT to define the mode given on join.
-DG - [30-Mar] - Added some stuff in README
-DG - [30-Mar] - Ziggy messed up ReleaseNotes for 0.2.3 (IDIOT) - Ziggy: next time leave them for me to do...
-DG - [30-Mar] - Readme Updates
-DG - [31-Mar] - Release Notes in
-DG - [31-Mar] - Updated Version
-DG - [31-Mar] - Tagging...
+PING timeout message now suggests /RAW PONG :number or /QUOTE PONG :number
+ircx.conf now has more help in it!
+Optimized large portions of the code
+Some nonstandard code is disabled (you have to rebuild iS to enable it).
+/create generates a USER.JOIN event
+/rehash now has fallback defaults, in case you really screw up configuring it
+Added some missing commands to /stats m
+Put /stats m in alphabetical order
+Cleaned up IRCX stuff (MODE ISIRCX/ISIRCX/IRCX)
 
 New Features include:
-Pings -- set in Y: lines
-+z/gag -- also see new X:GAGMODE
-Remote servers can now set +r/registered on a user
-Reply 307 - is a registered nick
-/mdie -- command for the new monitor to stop the server
-Access Durations (small issue: the time returned in ACCESS #Channel LIST doesn't count down -- however, the access clock IS ticking)
-+p as well as +P for protection.
+Full RFC 1459 client support
+Better support for events
+OnPart support
+Persistant channels
+Macros: <$COLON$> and <$NET$>
+X:IRCXMETHOD - set how to send IRCX raws
+X:REGCHANMODE - how registered channels are handled
+Nearly all the properties are implemented now
+Channel mode +R (persistant channel); can only be set by IRC operators while RegChanMode = 2
+Microsoft Chat 2.5 now connects properly! (Comics don't work; they rely on DATA/REQUEST/REPLY)
+mIRC's edit ban works properly
+Added /INFO -- it has some information on ignitionServer
 
 Bug Fixes:
 
-
-NOTE: The bug database was wiped so we can't provide bug numbers
-
-Custom auth notice doesn't show up if you get a nickname collision
-If a remote server sets a mode on a local user, the local user doesn't see the change
-Nick changes get an extra : added to the prefix when sent to remote servers (expected :Ziggy NICK Ziggy2, got ::Ziggy NICK Ziggy2)
-Error while making yourself +P as an oper (race condition)
-"Max connections reached for this IP address" (needs testing)
-mod_channel can not build if you set Debugging to 1
-Subscript out of range and other similar errors when attempting to edit access without being in the channel
+Bug #  | Bug Name
+---------------------
+       | /who bug involving erroneous modes
+       | Bug with parting multiple channels
+       | do_nick_name didn't check for any capitalization of Anonymous
+       | Illegal nicknames can be set with /chgnick
+       | Redundancy with m_topic
+       | TOPIC and PROP TOPIC don't correlate
+       | MODE +k and PROP MEMBERKEY don't correlate
+959882 | Problems while kicking self
+962843 | Broken top-level events
+908810 | Microsoft Chat 2.5 onjoin crash
+962870 | Sloppy IRCXMETHOD code
+962992 | USER.LOGOFF misfiring
+959874 | Uptime (/stats u) is wrong
+962932 | Wrong timezone
+963274 | Backwards-compatibility
+963281 | Querying IRCX
+963357 | /who is wrong
+       | /list output is wrong
+963364 | Nickname change not propragrated
+964793 | Connection passwords don't work
+959878 | I: line passwords aren't encrypted
+959879 | +Pp are oper flags to everybody but netadmins
+959876 | Modes coming from links aren't formatted properly
+965341 | Access duration doesn't appear to count down (it does)
+       | (related to #965341) Infinite durations are returned negative
+962956 | Mode +b doesn't work
+966253 | Pre-registration replies
+966249 | Telnet doesn't work
+       | USER caused an error if the wrong parameters were sent
+       | Another uptime bug
+967784 | Users setting modes on themselves need User!ID@Host
+967793 | WHOIS/WHOWAS returning wrong error for no parameters
+       | Fixed the bug that would make HUGE error logs
 
 Comments:
+Many, many bugs were fixed. We suggest everybody upgrades to 0.3.1 as soon
+as possible. ignitionServer 0.3.1 also has many more features and RFC1459
+clients are now properly supported (they weren't in previous versions). The
+installer is also refined, and there are no longer any seperate 9x/NT builds.
+New icons, too.
 
-Thrid BETA RC Release (hopefully the last)
-
-With in 24 hours before the probable release date the Site, SVN and Bugs were deleted by our hosts so we are happy to be back to normal and having a release(even if it's 2-4 days late)
+The updated monitor will hopefully be in 0.3.2, for those of you waiting for
+it. Services is also coming soon.

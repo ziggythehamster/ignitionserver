@@ -13,7 +13,7 @@ Attribute VB_Name = "mod_serv"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_serv.bas,v 1.5 2004/05/28 21:27:37 ziggythehamster Exp $
+' $Id: mod_serv.bas,v 1.12 2004/06/06 02:45:43 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -91,6 +91,129 @@ Else
         SendWsock sptr.FromLink.index, "VERSION", ":" & sptr.ServerName, ":" & cptr.Nick
     End If
 End If
+End Function
+Public Function m_info(cptr As clsClient, sptr As clsClient, parv$()) As Long
+#If Debugging = 1 Then
+    SendSvrMsg "*** Notice -- INFO called! (" & cptr.Nick & ")"
+#End If
+If cptr.AccessLevel = 4 Then
+    Dim Target As clsClient
+    Set Target = Servers(parv(0))
+    If Target.ServerName = ServerName Then
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":ignitionServer --"
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":Based on pureIRCd, written by Ben Affleck, Dennis Fisch,"
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":Johnny aka Pern, and Eric Dickman. Aside from the network core"
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":being the same, most of the code has been improved or tweaked."
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":The entire IRCX core is completely from scratch."
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ": "
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":This program is free software; you can redistribute it and/or"
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":modify it under the terms of the GNU General Public License as"
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":published by the Free Software Foundation; either version 2, or"
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":(at your option) any later version."
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ": "
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":ignitionServer is actively developed by mainly one person,"
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":Keith Gable <ziggy@ignition-project.com>, but there have been"
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":a few other contributors, namely Reid Burke <airwalk@airwalklogik.com>"
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":and Nigel Jones <njonez@ihug.co.nz>. In fact, without Reid and"
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":Nigel's help, ignitionServer would definitely not be as practical"
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":as it is."
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ": "
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":ignitionServer updates, releases, help, and information can be"
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":received at our website, http://www.ignition-project.com/. If you"
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":want to report a bug, please report it on our SourceForge bug"
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":tracker: http://sourceforge.net/tracker/?group_id=96071&atid=613526"
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ": "
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":Additional credits can be found in credits.txt in the docs directory."
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ": "
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":Version: " & AppVersion & "." & BuildDate
+        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":On-line Since: " & StartUpDate
+        SendWsock cptr.index, RPL_ENDOFINFO & " " & sptr.Nick, ":End of /INFO list."
+    Else
+        SendWsock Target.FromLink.index, "INFO", ":" & Target.ServerName, ":" & sptr.Nick
+    End If
+Else
+    If Len(parv(0)) = 0 Then
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":ignitionServer --"
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":Based on pureIRCd, written by Ben Affleck, Dennis Fisch,"
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":Johnny aka Pern, and Eric Dickman. Aside from the network core"
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":being the same, most of the code has been improved or tweaked."
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":The entire IRCX core is completely from scratch."
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ": "
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":This program is free software; you can redistribute it and/or"
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":modify it under the terms of the GNU General Public License as"
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":published by the Free Software Foundation; either version 2, or"
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":(at your option) any later version."
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ": "
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":ignitionServer is actively developed by mainly one person,"
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":Keith Gable <ziggy@ignition-project.com>, but there have been"
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":a few other contributors, namely Reid Burke <airwalk@airwalklogik.com>"
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":and Nigel Jones <njonez@ihug.co.nz>. In fact, without Reid and"
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":Nigel's help, ignitionServer would definitely not be as practical"
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":as it is."
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ": "
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":ignitionServer updates, releases, help, and information can be"
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":received at our website, http://www.ignition-project.com/. If you"
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":want to report a bug, please report it on our SourceForge bug"
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":tracker: http://sourceforge.net/tracker/?group_id=96071&atid=613526"
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ": "
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":Additional credits can be found in credits.txt in the docs directory."
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ": "
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":Version: " & AppVersion & "." & BuildDate
+        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":On-line Since: " & StartUpDate
+        SendWsock cptr.index, RPL_ENDOFINFO & " " & cptr.Nick, ":End of /INFO list."
+    Else
+        Set sptr = GetServer(parv(0))
+        If sptr Is Nothing Then
+          SendWsock cptr.index, ERR_NOSUCHSERVER, cptr.Nick & " " & TranslateCode(ERR_NOSUCHSERVER, parv(0))
+          Exit Function
+        End If
+        SendWsock sptr.FromLink.index, "INFO", ":" & sptr.ServerName, ":" & cptr.Nick
+    End If
+End If
+End Function
+Public Function m_isircx(cptr As clsClient, sptr As clsClient, parv$()) As Long
+#If Debugging = 1 Then
+    SendSvrMsg "*** Notice -- ISIRCX called! (" & cptr.Nick & ")"
+#End If
+Dim SomeNick As String
+Dim IRCXState As Long
+
+If Len(cptr.Nick) = 0 Then
+  SomeNick = "Anonymous"
+Else
+  SomeNick = cptr.Nick
+End If
+
+If cptr.IsIRCX Then
+  IRCXState = 1
+Else
+  IRCXState = 0
+End If
+
+'/mode isircx and /isircx only return if the server supports IRCX or not
+'it does not enable it, but if IRCX is already enabled, it's supposed to tell you
+
+SendWsock cptr.index, SPrefix & " 800 " & SomeNick & " " & IRCXState & " 0 " & AuthPackages & " 512 " & Capabilities, vbNullString, , True
+End Function
+Public Function m_ircx(cptr As clsClient, sptr As clsClient, parv$()) As Long
+#If Debugging = 1 Then
+    SendSvrMsg "*** Notice -- IRCX called! (" & cptr.Nick & ")"
+#End If
+Dim SomeNick As String
+Dim IRCXState As Long
+
+If Len(cptr.Nick) = 0 Then
+  SomeNick = "Anonymous"
+Else
+  SomeNick = cptr.Nick
+End If
+
+'/ircx enables IRCX
+'so this will always return 1 (on)
+
+SendWsock cptr.index, SPrefix & " 800 " & SomeNick & " 1 0 " & AuthPackages & " 512 " & Capabilities, vbNullString, , True
+cptr.IsIRCX = True
+If cptr.HasRegistered Then SendDirect cptr.index, cptr.Prefix & " MODE " & cptr.Nick & " +x" & vbCrLf
 End Function
 
 '/*
@@ -348,8 +471,8 @@ If Not cptr.HasRegistered Then
                         Membrs = Membrs & "." & ChM(y).Member.Nick & " "
                     ElseIf ChM(y).IsOp Then
                         Membrs = Membrs & "@" & ChM(y).Member.Nick & " "
-                    ElseIf ChM(y).IsHOp Then
-                        Membrs = Membrs & "%" & ChM(y).Member.Nick & " "
+                    'ElseIf ChM(y).IsHOp Then
+                    '    Membrs = Membrs & "%" & ChM(y).Member.Nick & " "
                     ElseIf ChM(y).IsVoice Then
                         Membrs = Membrs & "+" & ChM(y).Member.Nick & " "
                     Else
@@ -425,7 +548,7 @@ End Function
 '**  parv$()[1] = servername
 '*/
 'Public Function m_info(cptr As clsClient, sptr As clsClient, parv$()) As Long
-'
+'TODO: Credits, Debug statuses, etc
 'End Function
 
 '/*
@@ -706,14 +829,14 @@ If cptr.AccessLevel = 4 Then
     Dim Target As clsClient
     Set Target = Servers(parv(0))
     If Target.ServerName = ServerName Then
-        SendWsock cptr.index, RPL_TIME & " " & sptr.Nick, ":" & Date & " -- " & Time$ & " -0100"
+        SendWsock cptr.index, RPL_TIME & " " & sptr.Nick, ":" & Date & " -- " & Time$ & " " & GetZone
     Else
         SendWsock Target.FromLink.index, "TIME", Target.ServerName, ":" & sptr.Nick
     End If
 Else
     'maybe a different format would be better, this should be correct too though -Dill
     If Len(parv(0)) = 0 Then
-        SendWsock cptr.index, RPL_TIME & " " & cptr.Nick, ":" & Date & " -- " & Time$ & " -0100"
+        SendWsock cptr.index, RPL_TIME & " " & cptr.Nick, ":" & Date & " -- " & Time$ & " " & GetZone
     Else
         Set sptr = GetServer(parv(0))
         If sptr Is Nothing Then
@@ -848,46 +971,6 @@ Else
         End If
         SendWsock sptr.FromLink.index, "MOTD", ":" & sptr.ServerName, ":" & cptr.Nick
     End If
-End If
-End Function
-Public Function m_mdie(cptr As clsClient, sptr As clsClient, parv$()) As Long
-#If Debugging = 1 Then
-SendSvrMsg "*** Notice -- MDIE called! (" & cptr.Nick & ")"
-#End If
-On Error Resume Next
-If Len(parv(0)) = 0 Then
-    SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "MDIE")
-    Exit Function
-End If
-If cptr.IP <> "127.0.0.1" Then
-  SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
-  Exit Function
-End If
-Dim ID As Long
-Dim F As Long
-F = FreeFile
-If Dir(App.Path & "\monitor.id") = vbNullString Then
-  SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
-  Exit Function
-End If
-Open App.Path & "\monitor.id" For Input As #F
-Input #F, ID
-Close #F
-
-If parv(0) = ID Then
-    Dim I As Long   'close all connection properly -Dill
-    For I = 1 To UBound(Users)
-        If Not Users(I) Is Nothing Then
-            SendWsock I, "NOTICE " & Users(I).Nick, SPrefix & " is quitting."
-            Sockets.CloseIt I
-            m_error Users(I), "Closing Link: (" & ServerName & " is quitting)"
-        End If
-    Next I
-    Kill App.Path & "\monitor.id" '// prevent exploitation if it ever occurs -zg
-    Terminate
-Else
-    SendWsock cptr.index, ERR_NOPRIVILEGES & " " & cptr.Nick, TranslateCode(ERR_NOPRIVILEGES)
-    Exit Function
 End If
 End Function
 #If CanDie = 1 Then
@@ -1073,7 +1156,7 @@ e = "done"
 Exit Function
 
 KLineError:
-SendSvrMsg "*** KLine Error (at " & e & ") " & err.Number & " - " & err.Description
+ErrorMsg "Error " & err.Number & " (" & err.Description & ") in 'm_kline' at " & e
 End Function
 
 Public Function m_unkline(cptr As clsClient, sptr As clsClient, parv$()) As Long
@@ -1114,11 +1197,11 @@ If Recv(0) Is Nothing Then Exit Function
 For I = LBound(Recv) To UBound(Recv)
   If Recv(I).Events.Count > 0 Then
     For A = 1 To Recv(I).Events.Count
-      If (Recv(I).Events(A).Mask Like Mask) And (UCase(Recv(I).Events(A).EventType) = UCase(EventType)) And ((UCase(Recv(I).Events(A).EventName) = UCase(EventName)) Or (Recv(I).Events(A).EventName = "")) Then
+      If (Recv(I).Events(A).Mask Like Mask) And (UCase(Recv(I).Events(A).EventType) = UCase(EventType)) And ((UCase(Recv(I).Events(A).EventName) = UCase(EventName)) Or (Len(Recv(I).Events(A).EventName) = 0)) Then
         'can get this event
         'here we make sure that the user wildcarded it
         'or if the user is asking for a specific name
-        If Recv(I).Events.Item(A).EventName = "" Then
+        If Len(Recv(I).Events.Item(A).EventName) = 0 Then
           'no event name at all -- assume wildcard
           SendEvent Recv(I).index, EventType, EventName, Args
           GoTo nextItem
@@ -1176,10 +1259,14 @@ Else
         EventName = Split(tmpFullEvent, ".")(1)
       Else
         EventType = parv(1)
-        EventName = ""
+        EventName = vbNullString
       End If
       tL = "set mask"
-      Mask = CreateMask(parv(2))
+      If UCase(EventType) <> "CHANNEL" Then
+        Mask = CreateMask(parv(2))
+      Else
+        Mask = parv(2)
+      End If
     ElseIf UBound(parv) = 1 And UCase(parv(0)) <> "LIST" Then
       'ADD SOMETHING (assume mask is *!*@*)
       tL = "determine event type (2 params not list)"
@@ -1194,7 +1281,11 @@ Else
         EventName = ""
       End If
       tL = "set mask"
-      Mask = "*!*@*"
+      If UCase(EventType) <> "CHANNEL" Then
+        Mask = "*!*@*"
+      Else
+        Mask = "#*"
+      End If
     ElseIf UBound(parv) = 1 And UCase(parv(0)) = "LIST" Then
       tL = "determine event type (2 params, list)"
       If InStr(1, parv(1), ".") Then
@@ -1230,14 +1321,14 @@ Else
             '2) EventType = event type trying to be added
             '3) Mask = the same
             'if all 3 are met, event is a dupe
-            If ((cptr.Events.Item(A).EventName = EventName) Or (cptr.Events.Item(A).EventName = "")) And cptr.Events.Item(A).EventType = EventType And cptr.Events.Item(A).Mask = Mask Then
+            If ((cptr.Events.Item(A).EventName = EventName) Or (Len(cptr.Events.Item(A).EventName) = 0)) And cptr.Events.Item(A).EventType = EventType And cptr.Events.Item(A).Mask = Mask Then
               SendWsock cptr.index, "918 " & cptr.Nick, TranslateCode(IRCERR_EVENTDUP, EventType, Mask)
             End If
           Next A
         End If
         If UCase(EventType) = "SOCKET" Then
           tL = "add event socket"
-          If EventName = "" Then
+          If Len(EventName) = 0 Then
             'note: mask does not apply here
             tL = "add event socket->all events"
             cptr.Events.Add "SOCKET", "*!*@*", "OPEN"
@@ -1261,9 +1352,47 @@ Else
             tL = "invalid event name"
             SendWsock cptr.index, "902 " & cptr.Nick, TranslateCode(IRCERR_BADFUNCTION, UCase(parv(1)))
           End If
+        ElseIf UCase(EventType) = "CHANNEL" Then
+          If Len(EventName) = 0 Then
+            tL = "add event channel->all"
+            cptr.Events.Add "CHANNEL", Mask, "CREATE"
+            cptr.Events.Add "CHANNEL", Mask, "TOPICCHANGE"
+            cptr.Events.Add "CHANNEL", Mask, "MODECHANGE"
+            cptr.Events.Add "CHANNEL", Mask, "JOIN"
+            cptr.Events.Add "CHANNEL", Mask, "PART"
+            cptr.Events.Add "CHANNEL", Mask, "CLOSE"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase(parv(1)), Mask)
+          ElseIf UCase(EventName) = "CREATE" Then
+            tL = "add event channel->create"
+            cptr.Events.Add "CHANNEL", Mask, "CREATE"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase(parv(1)), Mask)
+          ElseIf UCase(EventName) = "TOPICCHANGE" Then
+            tL = "add event channel->topicchange"
+            cptr.Events.Add "CHANNEL", Mask, "TOPICCHANGE"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase(parv(1)), Mask)
+          ElseIf UCase(EventName) = "MODECHANGE" Then
+            tL = "add event channel->modechange"
+            cptr.Events.Add "CHANNEL", Mask, "MODECHANGE"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase(parv(1)), Mask)
+          ElseIf UCase(EventName) = "JOIN" Then
+            tL = "add event channel->join"
+            cptr.Events.Add "CHANNEL", Mask, "JOIN"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase(parv(1)), Mask)
+          ElseIf UCase(EventName) = "PART" Then
+            tL = "add event channel->part"
+            cptr.Events.Add "CHANNEL", Mask, "PART"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase(parv(1)), Mask)
+          ElseIf UCase(EventName) = "CLOSE" Then
+            tL = "add event channel->close"
+            cptr.Events.Add "CHANNEL", Mask, "CLOSE"
+            SendWsock cptr.index, "806", TranslateCode(IRCRPL_EVENTADD, cptr.Nick, UCase(parv(1)), Mask)
+          Else
+            'send error
+            tL = "CHANNEL -> invalid event name"
+            SendWsock cptr.index, "902 " & cptr.Nick, TranslateCode(IRCERR_BADFUNCTION, UCase(parv(1)))
+          End If
         ElseIf UCase(EventType) = "USER" Then
-          If EventName = "" Then
-            'note: mask does not apply here
+          If Len(EventName) = 0 Then
             tL = "add event user->all"
             cptr.Events.Add "USER", Mask, "LOGON"
             cptr.Events.Add "USER", Mask, "LOGOFF"
@@ -1320,7 +1449,7 @@ Else
         If cptr.Events.Count > 0 Then
           For A = 1 To cptr.Events.Count
             'if it exists, process and exit
-            If ((cptr.Events.Item(A).EventName = EventName) Or (EventName = "")) And UCase(cptr.Events.Item(A).EventType) = UCase(EventType) And (cptr.Events.Item(A).Mask Like Mask) Then
+            If ((cptr.Events.Item(A).EventName = EventName) Or (Len(EventName) = 0)) And UCase(cptr.Events.Item(A).EventType) = UCase(EventType) And (cptr.Events.Item(A).Mask Like Mask) Then
               'it does exist
               cptr.Events.Remove A
               SendWsock cptr.index, "807", TranslateCode(IRCRPL_EVENTDEL, cptr.Nick, UCase(parv(1)), Mask)
@@ -1335,8 +1464,8 @@ Else
         SendWsock cptr.index, "808 " & cptr.Nick, TranslateCode(IRCRPL_EVENTSTART)
         If cptr.Events.Count > 0 Then
           For A = 1 To cptr.Events.Count
-            If EventType <> "" Then
-              If EventName <> "" Then
+            If Len(EventType) <> 0 Then
+              If Len(EventName) <> 0 Then
                 'if there's an event name (there will be), and eventtype and such was specified
                 If (UCase(EventType) = UCase(cptr.Events.Item(A).EventType)) And (UCase(EventName) = UCase(cptr.Events.Item(A).EventName)) Then
                   SendWsock cptr.index, "809 " & cptr.Nick, UCase(cptr.Events.Item(A).EventType) & "." & UCase(cptr.Events.Item(A).EventName) & " " & cptr.Events.Item(A).Mask
@@ -1359,6 +1488,5 @@ End If
 Exit Function
 
 EventError:
-SendSvrMsg "*** Error in m_event: Error " & err.Number & " - " & err.Description & " AT: " & tL
-SendSvrMsg "*** parv[0]: " & parv(0) & " | parv[1]: " & parv(1) & " | parv[2]: " & parv(2)
+ErrorMsg "Error " & err.Number & " (" & err.Description & ") in 'm_event' at " & tL
 End Function

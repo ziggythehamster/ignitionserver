@@ -13,7 +13,7 @@ Attribute VB_Name = "mod_NativeFunctions"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_NativeFunctions.bas,v 1.5 2004/05/28 21:27:37 ziggythehamster Exp $
+' $Id: mod_NativeFunctions.bas,v 1.10 2004/06/06 02:45:43 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -39,7 +39,7 @@ Seconds = InSeconds Mod 60
 mins = (InSeconds \ 60) Mod 60
 Hours = ((InSeconds \ 60) \ 60) Mod 24
 Days = ((InSeconds \ 60) \ 60) \ 24
-Duration = Days & " days " & Format$(Hours, "00") & ":" & Format$(mins, "00") & ":" & Format$(Seconds, "00")
+Duration = Abs(Days) & " days " & Format$(Abs(Hours), "00") & ":" & Format$(Abs(mins), "00") & ":" & Format$(Abs(Seconds), "00")
 End Function
 
 'This is Bahamut style LUSERS instead of unreal style which sends a notice for "highest user count" -Dill
@@ -135,16 +135,20 @@ Select Case Flag
         End If
     'Send current uptime -Dill
     Case "u"
-        GetStats = GetStats & SPrefix & " " & RPL_STATSUPTIME & " " & Nick & " :" & Duration((GetTickCount - StartUp) \ 1000) & vbCrLf
+        GetStats = GetStats & SPrefix & " " & RPL_STATSUPTIME & " " & Nick & " :" & Duration(Abs(UnixTime - StartUpUt)) & vbCrLf
         GetStats = GetStats & SPrefix & " " & RPL_STATSCONN & " " & Nick & " :Connection count since last (re)start: " & IrcStat.Connections & vbCrLf
     'send command inbound bandwidth and usage -Dill
     Case "m"
+        If Cmds.Access > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :ACCESS " & Cmds.Access & " " & Cmds.AccessBW & vbCrLf
         If Cmds.Add > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :ADD " & Cmds.Add & " " & Cmds.AddBW & vbCrLf
         If Cmds.Admin > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :ADMIN " & Cmds.Admin & vbCrLf
         If Cmds.Akill > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :AKILL " & Cmds.Akill & " " & Cmds.AkillBW & vbCrLf
         If Cmds.Auth > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :AUTH " & Cmds.Auth & " " & Cmds.AuthBW & vbCrLf
         If Cmds.Away > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :AWAY " & Cmds.Away & " " & Cmds.AwayBW & vbCrLf
+        If Cmds.ChanPass > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :CHANPASS " & Cmds.ChanPass & " " & Cmds.ChanPassBW & vbCrLf
         If Cmds.ChanServ > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :CHANSERV " & Cmds.ChanServ & " " & Cmds.ChanServBW & vbCrLf
+        If Cmds.Chghost > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :CHGHOST " & Cmds.Chghost & " " & Cmds.ChghostBW & vbCrLf
+        If Cmds.ChgNick > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :CHGNICK " & Cmds.ChgNick & " " & Cmds.ChgNickBW & vbCrLf
         If Cmds.Close > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :CLOSE " & Cmds.Close & " " & Cmds.CloseBW & vbCrLf
         If Cmds.Connect > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :CONNECT " & Cmds.Connect & " " & Cmds.ConnectBW & vbCrLf
         If Cmds.Create > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :CREATE " & Cmds.Create & " " & Cmds.CreateBW & vbCrLf
@@ -153,7 +157,6 @@ Select Case Flag
         If Cmds.Info > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :INFO " & Cmds.Info & " " & Cmds.InfoBW & vbCrLf
         If Cmds.Invite > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :INVITE " & Cmds.Invite & " " & Cmds.InviteBW & vbCrLf
         If Cmds.Help > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :IRCXHELP " & Cmds.Help & " " & Cmds.HelpBW & vbCrLf
-        If Cmds.PassCrypt > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :PASSCRYPT " & Cmds.PassCrypt & " " & Cmds.PassCryptBW & vbCrLf
         If Cmds.Ircx > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :IRCX " & Cmds.Ircx & " " & Cmds.IrcxBW & vbCrLf
         If Cmds.Ison > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :ISON " & Cmds.Ison & " " & Cmds.IsonBW & vbCrLf
         If Cmds.Join > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :JOIN " & Cmds.Join & " " & Cmds.JoinBW & vbCrLf
@@ -175,10 +178,11 @@ Select Case Flag
         If Cmds.Oper > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :OPER " & Cmds.Oper & " " & Cmds.OperBW & vbCrLf
         If Cmds.OperServ > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :OPERSERV " & Cmds.OperServ & " " & Cmds.OperServBW & vbCrLf
         If Cmds.Part > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :PART " & Cmds.Part & " " & Cmds.PartBW & vbCrLf
+        If Cmds.Pass > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :PASS " & Cmds.Pass & " " & Cmds.PassBW & vbCrLf
+        If Cmds.PassCrypt > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :PASSCRYPT " & Cmds.PassCrypt & " " & Cmds.PassCryptBW & vbCrLf
         If Cmds.Ping > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :PING " & Cmds.Ping & " " & Cmds.PingBW & vbCrLf
         If Cmds.Pong > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :PONG " & Cmds.Pong & " " & Cmds.PongBW & vbCrLf
         If Cmds.Privmsg > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :PRIVMSG " & Cmds.Privmsg & " " & Cmds.PrivmsgBW & vbCrLf
-        If Cmds.ChanPass > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :CHANPASS " & Cmds.ChanPass & " " & Cmds.ChanPassBW & vbCrLf
         If Cmds.Prop > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :PROP " & Cmds.Prop & " " & Cmds.PropBW & vbCrLf
         If Cmds.Quit > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :QUIT " & Cmds.Quit & " " & Cmds.QuitBW & vbCrLf
         If Cmds.Rehash > 0 Then GetStats = GetStats & SPrefix & " 212 " & Nick & " :REHASH " & Cmds.Rehash & " " & Cmds.RehashBW & vbCrLf
@@ -207,6 +211,26 @@ Public Sub SendSvrMsg(Msg As String, Optional Glob As Boolean = False, Optional 
 #If Debugging = 1 Then
     CreateObject("Scripting.FileSystemObject").OpenTextFile(App.Path & "\ircx.log", 8, True).WriteLine Msg
 #End If
+If ServerMsg.Count = 0 Then Exit Sub
+If Len(Origin) = 0 Then Origin = ServerName
+On Error Resume Next
+Dim I As Long, Recv() As clsClient
+Recv = ServerMsg.Values
+If Recv(0) Is Nothing Then Exit Sub
+For I = LBound(Recv) To UBound(Recv)
+    SendWsock Recv(I).index, "NOTICE " & Recv(I).Nick, ":" & Msg, ":" & Origin
+Next I
+If Glob Then SendToServer "GNOTICE :" & Msg, Origin
+End Sub
+Public Sub ErrorMsg(Msg As String, Optional Glob As Boolean = False, Optional Origin As String)
+If ErrorLog = False Then Exit Sub
+
+Dim F As Long
+F = FreeFile
+Open App.Path & "\errorlog.txt" For Append As F
+Print #1, "[" & Now & "] " & Msg
+Close #F
+
 If ServerMsg.Count = 0 Then Exit Sub
 If Len(Origin) = 0 Then Origin = ServerName
 On Error Resume Next
