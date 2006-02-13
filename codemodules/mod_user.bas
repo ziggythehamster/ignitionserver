@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_user"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_user.bas,v 1.49 2004/10/01 05:04:29 ziggythehamster Exp $
+' $Id: mod_user.bas,v 1.58 2004/12/04 23:19:58 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -358,6 +358,9 @@ Else
     If Len(ILine(cptr.IIndex).Pass) > 0 Then
       If cptr.PassOK = False Then
           m_error cptr, "Closing Link: (Bad Password)"
+          #If Debugging = 1 Then
+            SendSvrMsg "m_nick : bad password (vfy against '" & ILine(cptr.IIndex).Pass & "' iidx " & cptr.IIndex
+          #End If
           KillStruct cptr.Nick, , False, cptr.IP
           Exit Function
       End If
@@ -470,6 +473,11 @@ If cptr.AccessLevel = 4 Then
                   SendToServer_ButOne cmd & " " & Chan.Name & " :" & parv(1), cptr.ServerName, sptr.Nick
               End If
             End If
+            If Len(cmd) = 6 And LogChannels = True Then 'notice
+              LogChannel Chan.Name, "-" & sptr.Nick & "- " & parv(1)
+            ElseIf Len(cmd) = 7 And LogChannels = True Then 'privmsg
+              LogChannel Chan.Name, "<" & sptr.Nick & "> " & parv(1)
+            End If
         Else
             Set Recp = GlobUsers(CStr(i))
             If Recp Is Nothing Then
@@ -482,6 +490,14 @@ If cptr.AccessLevel = 4 Then
             Else
                 'the user is an local user
                 SendWsock Recp.index, cmd & " " & Recp.Nick, ":" & parv(1), sptr.Prefix
+            End If
+            If Len(cmd) = 6 And LogUsers = True Then 'notice
+              'if one user says it, both users get it logged
+              LogUser sptr.Nick, "-" & sptr.Nick & "- " & parv(1)
+              LogUser Recp.Nick, "-" & sptr.Nick & "- " & parv(1)
+            ElseIf Len(cmd) = 7 And LogUsers = True Then 'privmsg
+              LogUser sptr.Nick, "<" & sptr.Nick & "> " & parv(1)
+              LogUser Recp.Nick, "<" & sptr.Nick & "> " & parv(1)
             End If
         End If
 NextCmd:
@@ -552,14 +568,29 @@ Else
               End If
             Else
               'not auditorium
+              #If Debugging = 1 Then
+                SendSvrMsg "*** not auditorium, send2chan"
+              #End If
               If SendToChan(Chan, cptr.Prefix & cmd & .Name & " :" & parv(1), cptr.Nick) Then
                   SendToServer Trim$(cmd) & " " & .Name & " :" & parv(1), cptr.Nick
-              End If
+              #If Debugging = 1 Then
+              Else
+                SendSvrMsg "*** send2chan returned false"
+              #End If
+              End If '</send2chan>
             End If
            
         End With
         'reset idle time
         cptr.Idle = UnixTime
+        #If Debugging = 1 Then
+          SendSvrMsg "*** processing, len(cmd)=" & Len(cmd)
+        #End If
+        If Len(cmd) = 8 And LogChannels = True Then 'notice
+          LogChannel Chan.Name, "-" & cptr.Nick & "- " & parv(1)
+        ElseIf Len(cmd) = 9 And LogChannels = True Then 'privmsg
+          LogChannel Chan.Name, "<" & cptr.Nick & "> " & parv(1)
+        End If
       Else
         'user message -Dill
         If InStr(1, i, "*") <> 0 Then
@@ -600,6 +631,14 @@ Else
         End If
         'reset idle time
         cptr.Idle = UnixTime
+        If Len(cmd) = 8 And LogUsers = True Then 'notice
+          'if one user says it, both users get it logged
+          LogUser sptr.Nick, "-" & cptr.Nick & "- " & parv(1)
+          LogUser cptr.Nick, "-" & cptr.Nick & "- " & parv(1)
+        ElseIf Len(cmd) = 9 And LogUsers = True Then 'privmsg
+          LogUser sptr.Nick, "<" & cptr.Nick & "> " & parv(1)
+          LogUser cptr.Nick, "<" & cptr.Nick & "> " & parv(1)
+        End If
       End If
 nextmsg:
     Next
@@ -751,6 +790,7 @@ SkipUserInChannel:
                         GoTo SkipUser
                       End If
                     End If
+                    If Len(lastchan) = 0 Then lastchan = "* "
                     SendWsock cptr.index, "352 " & cptr.Nick & " " & lastchan & Clients(i).User & " " & Clients(i).Host & " " & ServerName & " " & Clients(i).Nick & " " & ExtraInfo, ":" & Clients(i).Hops & " " & Clients(i).Name
                     ret = ret + 1
 SkipUser:

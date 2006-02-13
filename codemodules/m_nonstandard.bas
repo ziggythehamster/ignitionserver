@@ -14,7 +14,7 @@ Attribute VB_Name = "m_nonstandard"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: m_nonstandard.bas,v 1.7 2004/09/04 23:46:29 ziggythehamster Exp $
+' $Id: m_nonstandard.bas,v 1.9 2004/12/04 21:43:10 ziggythehamster Exp $
 '
 '
 'This program is free software.

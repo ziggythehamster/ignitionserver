@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<ignitionserver>
+<ignitionserver xmlns="http://www.ignition-project.com/xmlns/ignitionserver/1.0">
 <!--
 ignitionServer 0.3.4 Server Configuration
 =========================================
@@ -69,8 +69,6 @@ or else your server will say it's misconfigured!
       port: port on the adapter to bind to. must not be already bound to, by ignitionServer or another process
       options (optional): comma-delimted list of options for the port. no options are currently supported, however we plan on supporting
                the following options:
-               auth - require IRCX authentication on this port
-               auth="AuthType;AuthType;AuthType" - require IRCX authentication, and only allow the authentication methods specified in quotes (seperated by a semicolon)
                ssl - use SSL encryption on this port
                serveronly - clients will be killed if they attempt to register as a client and not a server
                motd="file.motd" - specify a special MOTD for this port
@@ -109,6 +107,8 @@ or else your server will say it's misconfigured!
                  Currently, the only supported password encryption is MD5 (casing does not matter).
       -->
       <passcrypt>md5</passcrypt>
+      <!-- allow opers and auth-type users to authenticate using a supported authentication mechanism; this can be disabled/required per-group if needed -->
+      <allowauth>true</allowauth>
       <hostmasking>
          <!--
          ignitionServer Hostmasking Settings
@@ -178,12 +178,12 @@ or else your server will say it's misconfigured!
          200-299: Servers
          300-399: Services
          
-         You are encouraged to come up with your own naming convention,
-         but the names MUST be numbers, and cannot be higher than 32767.
+         You are encouraged to come up with your own numbering convention,
+         but they MUST be numbers, and cannot be higher than 32767.
          
          By the way, IRC Operators must have their own group, for security
          reasons. The server automatically assigns them to whatever group
-         specified in the <oper /> line, however it must be different from
+         is specified in their <user /> line, however it must be different from
          the group they were assigned to previously.
          
          Description of Fields:
@@ -196,7 +196,13 @@ or else your server will say it's misconfigured!
                 cannot immediately process a request (it's busy). this buffer is in place because
                 malicious clients could easily bog the server down without it. if a client exceeds
                 their sendq, they are killed and removed from the server.
-         title (optional): gives a name to the group
+         title: gives a name to the group, used in user interfaces.
+         requireauth: true, false, or disable. If true, authentication will be required for this group. If
+                false, authentication is allowed but not required. If disable, authentication will not be
+                allowed.
+         authtype (optional if requireauth is false, required if requireauth is true): the type of
+                authentication to require. Currently, only "Digest" is supported. This will be ignored
+                if requireauth is false.
          
          Recommended SendQ Lengths:
          Normal Clients: 20 RFC 1459 lines (512 bytes): 10240
@@ -205,12 +211,83 @@ or else your server will say it's misconfigured!
          -->
          
          <!-- Default Normal Client Group -->
-         <group id="1" ping="180" flood="0" maxclients="10000" sendq="10240" title="Default Normal Client Group"/>
+         <group id="1" ping="180" flood="0" maxclients="10000" sendq="10240" title="Default Normal Client Group" requireauth="false" />
          <!-- Default IRC Operator Group -->
-         <group id="100" ping="180" flood="0" maxclients="100" sendq="15360" title="Default IRC Operator Group"/>
+         <group id="100" ping="180" flood="0" maxclients="100" sendq="15360" title="Default IRC Operator Group" requireauth="false" />
          <!-- Default Server Group -->
-         <group id="200" ping="180" flood="0" maxclients="100000" sendq="30720" title="Default Server Group" />
+         <group id="200" ping="180" flood="0" maxclients="100000" sendq="30720" title="Default Server Group" requireauth="false" />
       </groups>
+      <users>
+         <!--
+         ignitionServer Users
+         ====================
+         
+         NEW INSTALLATIONS: ADMIN PASS IS "admin"
+         
+         Use included PassCrypt to generate passwords or log on to your server
+         and type /passcrypt MD5 password (replace password with your password)
+         
+         NOTE: Encrypted passwords only encrypt the passwords on disk - /oper'ing
+         is still the same (/oper user pass).. And when opering, you do NOT use
+         the encrypted password (in the default case, you'd still go
+         /oper admin admin).
+         
+         DO NOT FORGET! CHANGE THE DEFAULT PASSWORD FROM "admin" TO SOMETHING
+         ELSE! YOUR SERVER **WILL** BE COMPROMISED IF YOU FAIL TO DO THIS!
+   
+         NEW! You don't have to include a lot of modes now! Here's the simplified
+         list:
+            N - Network Administrator (NOocekbBKCRDWH)
+            O - Global Operator (OocekbBKCW)
+            o - Local Operator (ocekbB)
+   
+         In addition, you may want to add the following modes:
+            s - Gets Server Messages (good idea)
+            w - Gets Wallops (good idea)
+            P - Is High Protected (see X:HIGHPROT)
+            p - Is Low Protected (see X:LOWPROT)
+   
+         The following modes may or may not be automatically given to a specific
+         oper level (for security reasons), but are given automatically to some
+         oper levels:
+            W - Can send WallOps (automatic for global oper and netadmin, unless
+                mode expansion is off [then it's netadmin only])
+            H - Can /chghost and /chgnick (automatic for netadmin)
+   
+         Of course, you can always stick with the old long list of modes, if you
+         like (or if you want to customize a particular user's privledges). To do
+         this, prefix the list of modes with a dash (-). For example, to make a
+         user a local operator only, their <user /> line might look like this:
+            <user user="username" password="password" type="oper" hostmask="*" flags="-o" group="100" />.
+         The - simply tells ignitionServer to switch off mode expansion.
+   
+         Please note: NetAdmin gets access to some really powerful commands, so
+         do NOT just copy and paste the default modes from the default O: line
+         for the rest of your opers!
+         
+         You can also add other kinds of users, like vhosted users, or authenticated
+         users. Flags only apply to opers. Group is not required unless the user is
+         an operator. The following types of users are allowed:
+           oper  - IRC operator
+           vhost - virtual host
+           auth  - a user which can be authenticated. they receive no special privileges,
+               but if the server requires authentication, these users will be allowed in,
+               if they authenticate.
+           NOTE: OPERS DO NOT NEED A SEPERATE AUTH USER: THEY CAN ALWAYS AUTHENTICATE. Virtual
+           host users, on the other hand, cannot authenticate by default.
+           
+         If authentication is allowed for the type of user in the particular line (i.e. if they're
+         opers or auth type users), the following parameters also apply:
+            resource - the name of the resource the user belongs in. this is usually "default", unless
+                       you want to use a custom resource name, or to have the same username present in
+                       different resources
+            realpass - used in digest authentication: the user's real password. this is optional, unless
+                       you want to allow the user to authenticate. then, this is required (in addition to
+                       the regular password, which could be hashed).
+         -->
+         <user user="admin" password="21232f297a57a5a743894a0e4a801fc3" type="oper" hostmask="*@localhost" flags="NPs" group="100" />
+         <user user="admin" password="21232f297a57a5a743894a0e4a801fc3" type="vhost" hostmask="*@localhost" />
+      </users>      
       <rules>
          <!--
          ignitionServer Client Assignment Rules
@@ -252,85 +329,12 @@ or else your server will say it's misconfigured!
                               the password is encrypted.
          group: group to assign the user to. must exist as a <group /> above.
          title (optional): gives a name to the rule
+         
+         Users may end up in a different group if they authenticate (if enabled), or if they /oper.
          -->
          <rule ipmask="*" hostmask="*" password="" group="1" title="Default Normal Client Rule" />
       </rules>
    </connections>
-   <opers>
-      <!--
-      ignitionServer Operator Settings
-      ================================
-      
-      NEW INSTALLATIONS: PASS IS "admin"
-      
-      Use included PassCrypt to generate passwords or log on to your server
-      and type /passcrypt MD5 password (replace password with your password)
-      
-      NOTE: Encrypted passwords only encrypt the passwords on disk - /oper'ing
-      is still the same (/oper user pass).. And when opering, you do NOT use
-      the encrypted password (in the default case, you'd still go
-      /oper admin admin).
-      
-      DO NOT FORGET! CHANGE THE DEFAULT PASSWORD FROM "admin" TO SOMETHING
-      ELSE! YOUR SERVER **WILL** BE COMPROMISED IF YOU FAIL TO DO THIS!
-
-      NEW! You don't have to include a lot of modes now! Here's the simplified
-      list:
-         N - Network Administrator (NOocekbBKCRDWH)
-         O - Global Operator (OocekbBKCW)
-         o - Local Operator (ocekbB)
-
-      In addition, you may want to add the following modes:
-         s - Gets Server Messages (good idea)
-         w - Gets Wallops (good idea)
-         P - Is High Protected (see X:HIGHPROT)
-         p - Is Low Protected (see X:LOWPROT)
-
-      The following modes may or may not be automatically given to a specific
-      oper level (for security reasons), but are given automatically to some
-      oper levels:
-         W - Can send WallOps (automatic for global oper and netadmin, unless
-             mode expansion is off [then it's netadmin only])
-         H - Can /chghost and /chgnick (automatic for netadmin)
-
-      Of course, you can always stick with the old long list of modes, if you
-      like (or if you want to customize a particular user's privledges). To do
-      this, prefix the list of modes with a dash (-). For example, to make a
-      user a local operator only, their <oper /> line might look like this:
-         <oper user="username" password="password" hostmask="*" flags="-o" group="100" />.
-      The - simply tells ignitionServer to switch off mode expansion.
-
-      Please note: NetAdmin gets access to some really powerful commands, so
-      do NOT just copy and paste the default modes from the default O: line
-      for the rest of your opers!
-      -->
-      <oper user="admin" password="21232f297a57a5a743894a0e4a801fc3" hostmask="*@localhost" flags="NPs" group="100" />
-   </opers>
-   <vhosts>
-      <!--
-      ignitionServer Virtual Host Settings
-      ====================================
-      
-      Virtual Hosts allow users to log in and use
-      a "virtual host". Their hostname will appear
-      to everyone as this virtual host. This prevents
-      script kiddie denial of service attacks and
-      also could allow for you to group users and IRC
-      operators (i.e. nick.operators.my-network).
-      
-      If the AutoVHost option is true, IRC operators
-      will get a VHost automatically set on them if
-      their hostname, user, and password match a
-      VHost.
-      
-      Users can "login" and receive a virtual host
-      by typing /vhost username password.
-      
-      If password encryption is enabled, the password
-      is encrypted.
-      -->
-      <vhost user="admin" password="21232f297a57a5a743894a0e4a801fc3" hostmask="*@localhost" vhost="admin.localhost" />
-   </vhosts>
    <bannednicks>
       <!--
       ignitionServer Banned Nicknames (Quarantines)
@@ -456,7 +460,7 @@ or else your server will say it's misconfigured!
       <option id="regchanmode" value="0" />
       <!-- Error Log: Critical errors are logged here. 0 = off, 1 = on -->
       <option id="errorlog" value="1" />
-      <!-- Auto V: Host: Automatically give operators VHosts if a VHost exists with the same username and password as the oper. 0 = off, 1 = on. See README for more info -->
+      <!-- Auto VHost: Automatically give operators VHosts if a VHost exists with the same username and password as the oper. 0 = off, 1 = on. See README for more info -->
       <option id="autovhost" value="1" />
    </options>
 </ignitionserver>

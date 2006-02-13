@@ -28,7 +28,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsClient.cls,v 1.22 2004/10/01 05:04:29 ziggythehamster Exp $
+' $Id: clsClient.cls,v 1.26 2004/12/04 21:43:09 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -99,6 +99,7 @@ Public IsLProtected As Boolean
 Public IsProtected As Boolean
 Public IsGagged As Boolean 'IRCX +z  -zg
 Public IsRemoteAdmClient As Boolean
+Public IsMonitored As Boolean '+L?
 
 Public CanGlobKill As Boolean
 Public CanLocKill As Boolean
@@ -233,7 +234,8 @@ If IsRegistered Then GetWhois = GetWhois & SPrefix & " 307 " & Nickname & " " & 
 If IsNetAdmin Then '-zg [this was rearranged because of the presence of the 308 raw]
   GetWhois = GetWhois & SPrefix & " 308 " & Nickname & " " & Nick & " :is a network administrator" & vbCrLf '-zg
 End If
-If (Len(Trim$(GetOnChans(True, Nickname))) > 0) Or WhoisAccessLevel >= 3 Then
+If Len(Trim$(GetOnChans(True, Nickname))) > 0 Or WhoisAccessLevel >= 3 Then
+  If WhoisAccessLevel >= 3 And Len(Trim$(GetOnChans(True, ""))) = 0 Then GoTo NextThing
   tmpNick = Nickname
   If WhoisAccessLevel >= 3 Then tmpNick = vbNullString
   If WhoisIRCX Then
@@ -242,6 +244,7 @@ If (Len(Trim$(GetOnChans(True, Nickname))) > 0) Or WhoisAccessLevel >= 3 Then
     GetWhois = GetWhois & SPrefix & " 319 " & Nickname & " " & Nick & " :" & GetOnChans1459(True, tmpNick) & vbCrLf
   End If
 End If
+NextThing:
 If Len(AwayMsg) > 0 Then GetWhois = GetWhois & SPrefix & " 301 " & Nickname & " " & Nick & " :" & AwayMsg & vbCrLf
 GetWhois = GetWhois & SPrefix & " 312 " & Nickname & " " & Nick & " " & ServerName & " :" & ServerDescription & vbCrLf
 If IsService Then
@@ -330,6 +333,7 @@ If CanGlobRoute Then GetModes = GetModes & "C"            '+C
 If CanDie Then GetModes = GetModes & "D"                  '+D
 If CanChange Then GetModes = GetModes & "H"               '+H
 If CanGlobKill Then GetModes = GetModes & "K"             '+K
+If IsMonitored Then GetModes = GetModes & "L"             '+L
 If IsNetAdmin Then GetModes = GetModes & "N"              '+N
 If IsGlobOperator Then GetModes = GetModes & "O"          '+O
 If IsProtected Then GetModes = GetModes & "P"             '+P

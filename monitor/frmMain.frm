@@ -23,6 +23,16 @@ Begin VB.Form frmMain
    ScaleHeight     =   2625
    ScaleWidth      =   8055
    StartUpPosition =   3  'Windows Default
+   Begin prjMonitor.ctlHoverMenu btnAdvanced 
+      Height          =   255
+      Left            =   4800
+      TabIndex        =   12
+      Top             =   2280
+      Width           =   1455
+      _ExtentX        =   2566
+      _ExtentY        =   450
+      Caption         =   "Advanced Settings"
+   End
    Begin VB.Timer timLusers 
       Interval        =   5000
       Left            =   6720
@@ -180,7 +190,7 @@ Begin VB.Form frmMain
    End
    Begin VB.Label lblServerTitle 
       BackStyle       =   0  'Transparent
-      Caption         =   "ignitionServer 0.3.5"
+      Caption         =   "ignitionServer 0.3.6"
       BeginProperty Font 
          Name            =   "Tahoma"
          Size            =   8.25
@@ -249,7 +259,7 @@ Attribute VB_Exposed = False
 'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
 '
 '
-' $Id: frmMain.frm,v 1.15 2004/09/25 19:28:38 ziggythehamster Exp $
+' $Id: frmMain.frm,v 1.17 2004/12/07 00:51:16 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -265,6 +275,7 @@ Attribute VB_Exposed = False
 'if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 Option Explicit
 Public IsMisconfigured As Boolean
+Public StaticData As String
 Private Declare Function Shell_NotifyIcon Lib "shell32" Alias "Shell_NotifyIconA" (ByVal dwMessage As Long, lpData As NOTIFYICONDATA) As Long
 Private Type NOTIFYICONDATA
     cbSize As Long
@@ -292,6 +303,10 @@ Private nidIcon As NOTIFYICONDATA
 Public WithEvents sckServer As CSocketMaster
 Attribute sckServer.VB_VarHelpID = -1
 
+Private Sub btnAdvanced_Click()
+frmAdvanced.Show
+End Sub
+
 Private Sub btnMoreInfo_Click()
 frmMoreInfo.Show
 End Sub
@@ -308,7 +323,7 @@ Private Sub btnRehash_Click()
   btnRehash.Visible = False
   cAutomaticIS.Left = 960
   DoEvents
-  Call Shell(App.Path & "\control.exe -rehash")
+  Call Shell(App.Path & "\control.exe -p " & GetSetting("ignitionServer", "Monitor", "Server Port", "6667") & " -rehash")
   IsMisconfigured = False
 End Sub
 
@@ -324,7 +339,7 @@ Private Sub btnRestart_Click()
   btnRehash.Visible = False
   cAutomaticIS.Left = 960
   DoEvents
-  Call Shell(App.Path & "\control.exe -restart")
+  Call Shell(App.Path & "\control.exe -p " & GetSetting("ignitionServer", "Monitor", "Server Port", "6667") & " -restart")
   IsMisconfigured = False
 End Sub
 
@@ -345,7 +360,7 @@ Select Case btnStart.Caption
       MsgBox "ignitionServer cannot be stopped; the commandline controller (control.exe) is missing."
       Exit Sub
     End If
-    Call Shell(App.Path & "\control.exe -stop")
+    Call Shell(App.Path & "\control.exe -p " & GetSetting("ignitionServer", "Monitor", "Server Port", "6667") & " -stop")
 End Select
 End Sub
 
@@ -457,10 +472,15 @@ If x = 1 Then
   Call Shell(App.Path & "\control.exe -start")
   cAutomaticIS.Value = vbChecked
 End If
+frmAdvanced.txtServerAddress.Text = GetSetting("ignitionServer", "Monitor", "Server Address", "127.0.0.1")
+frmAdvanced.txtPort.Text = GetSetting("ignitionServer", "Monitor", "Server Port", "6667")
+frmAdvanced.Hide
 End Sub
 
 Private Sub Form_QueryUnload(Cancel As Integer, UnloadMode As Integer)
 Unload frmMoreInfo
+Unload frmAdvanced
+End
 End Sub
 
 
@@ -511,9 +531,14 @@ For A = LBound(tmpSplitLF) To UBound(tmpSplitLF)
     Case "001"
       IsMisconfigured = False
       sckServer.SendData "STATS u" & vbCrLf
+    Case "004"
+      ':ignition.servebeer.com 004 Monitor273 ignition.servebeer.com ignitionServer-0.3.6 bcdeikoprswxzBCDEHKLNOPRSWZ bhiklmnopqrstuvxzOR
+      ':ignition.servebeer.com 005 Monitor273 IRCX CHANTYPES=# CHANLIMIT=#:10 NICKLEN=32 PREFIX=(qov).@+ CHANMODES=b,k,l,himnopqrstuvxzOR NETWORK=Ziggy's_Test_Server CASEMAPPING=ascii CHARSET=ascii MAXTARGETS=5 MAXCLONES=5 RFC1459 :are supported by this server
+      StaticData = StaticData & "Server: " & tmpSplit(3) & vbCrLf
+      StaticData = StaticData & "Version: " & tmpSplit(4) & vbCrLf
     Case "251"
       With frmMoreInfo.txtMoreInfo
-        .Text = RightOf(tmpSplitLF(A), ":") & vbCrLf
+        .Text = StaticData & RightOf(tmpSplitLF(A), ":") & vbCrLf
       End With
     Case "252"
       With frmMoreInfo.txtMoreInfo
@@ -618,7 +643,7 @@ If sckServer.State = sckClosed Then
   btnRehash.Visible = False
   cAutomaticIS.Left = 1440
   sckServer.CloseSck
-  sckServer.Connect "127.0.0.1", "6667" 'need a UI to change this
+  sckServer.Connect GetSetting("ignitionServer", "Monitor", "Server Address", "127.0.0.1"), GetSetting("ignitionServer", "Monitor", "Server Port", "6667") 'need a UI to change this
 ElseIf sckServer.State = sckConnected Then
   If IsMisconfigured Then
     lblServerDesc.Caption = "ignitionServer is misconfigured. Please see ircx.conf in the ignitionServer folder."

@@ -8,11 +8,11 @@
 # ignitionServer!                    #
 ######################################
 
-# ignitionServer 0.3.5 Configuration File
+# ignitionServer 0.3.6 Configuration File
 # Lines that begin with # are comments and IGNORED by ignitionServer!
 
 ################################################### 
-# $Id: migwiz.cftpl,v 1.12 2004/09/25 01:27:10 ziggythehamster Exp $ 
+# $Id: migwiz.cftpl,v 1.14 2004/12/07 00:51:13 ziggythehamster Exp $ 
 ###################################################
 
 !insertmacro generator
@@ -445,9 +445,16 @@ X:MONITORIP:127.0.0.1
 # if X:HIGHPROT: is set to Q, opers with +P will be an owner in a static channel. Basically, static channels are for channels
 # that you want to be mainly oper-controlled, and that you optionally want to be joined when people connect. A good use for static
 # channels are lobby channels.
-X:STATICCHAN:#Lobby:1
-X:STATICCHAN:#Test:0
 
-
+#LOGGING - Configure what stuff is logged
+# 0 - (default) log nothing
+# 1 - Log channel conversations
+# 2 - Log channel conversations and whispers
+# 3 - Log channel conversations, channel whispers, and private messages
+# WARNING: IT MAY BE ILLEGAL IN YOUR STATE OR COUNTRY
+# TO LOG CHATS. PLEASE CONSULT A LEGAL ADVISOR BEFORE
+# ENABLING THIS FEATURE.
+# NOTE: Only conversations and JOIN/PART/KICK are logged at this time.
+X:LOGGING:0
 
 # Congratulations! You're done!

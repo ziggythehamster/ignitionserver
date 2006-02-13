@@ -1,7 +1,7 @@
 {\rtf1\ansi\ansicpg1252\deff0\deflang1033\deflangfe1033{\fonttbl{\f0\fswiss\fprq2\fcharset0 Tahoma;}}
-{\*\generator Msftedit 5.41.15.1503;}\viewkind4\uc1\pard\f0\fs52 ignitionServer Readme\fs20\par
+\viewkind4\uc1\pard\f0\fs52 ignitionServer Readme\fs20\par
 \par
-$Id: readme.rtf,v 1.11 2004/09/11 23:43:28 ziggythehamster Exp $\par
+$Id: readme.rtf,v 1.12 2004/12/07 00:51:14 ziggythehamster Exp $\par
 \par
 \par
 \tab ===========++++++++===========++++++++===========\par
@@ -232,6 +232,19 @@ A: X:CREATEMODE is a new X: line that we added to give server administrators gre
    a fixed set of channels, you will probably want to use 1, which will only allow IRC operators to create channels. In addition\par
    to this, you can force users to register and identify to NickServ before they can create channels. To do this, set X:CREATEMODE to\par
    2. For more information, please read ircx.conf in your favorite text editor.\par
+\par
+\b Q: Why isn't ignitionServer working on Windows XP Service Pack 2?\b0\par
+A: Windows XP SP2 adds several security "enhancements", such as limiting the number of outbound connections, and\par
+   introducing an artificial lag between the opening of outbound listening sockets. On a normal desktop system,\par
+   these enhancements will probably prevent you from becoming a spam relay or zombie. When you're using your desktop\par
+   system as a server by running ignitionServer, these enhancements become a serious bottleneck. It will also probably\par
+   prevent ignitionServer from properly initializing (it will say "loaded OK" in the errorlog, becuase the Winsock\par
+   subsystem is lying to ignitionServer). In order to make ignitionServer properly function on XP SP2, you must make\par
+   changes to ircx.conf, and you must patch your TCP/IP subsystem to remove these security enhancements. WARNING:\par
+   PATCHING TCPIP.SYS IS HIGHLY DISCOURAGED BY MICROSOFT AND IT MAY VOID YOUR WARRANTY. YOU ACCEPT ALL RISKS BY\par
+   PATCHING YOUR TCP/IP SUBSYSTEM. BY PATCHING TCPIP.SYS, YOU AGREE NOT TO HOLD US LIABLE FOR ANY DAMAGES. That said,\par
+   you can get the instructions for patching TCPIP.SYS and modifying ircx.conf by clicking Start > (All) Programs >\par
+   ignitionServer > Documentation.\par
 \par
 If you have any more questions, see our forum at http://www.ignition-project.com/forums/.\par
 }

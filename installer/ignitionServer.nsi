@@ -16,10 +16,10 @@
 ; HM NIS Edit Wizard helper defines
 SetCompressor lzma
 !define PRODUCT_NAME "ignitionServer"
-!define PRODUCT_VERSION "0.3.5"
+!define PRODUCT_VERSION "0.3.6"
 !define PRODUCT_VERSION_MAJOR "0"
 !define PRODUCT_VERSION_MINOR "3"
-!define PRODUCT_VERSION_REVISION "5"
+!define PRODUCT_VERSION_REVISION "6"
 !define PRODUCT_PUBLISHER "The Ignition Project"
 !define PRODUCT_WEB_SITE "http://www.ignition-project.com/"
 !define PRODUCT_DOCUMENTATION "http://www.ignition-project.com/ignition/server/docs/"
@@ -231,6 +231,7 @@ Section Uninstall
   Delete "$SMPROGRAMS\$ICONS_GROUP\IRCXpro Migration Wizard.lnk"
 
   RMDir "$SMPROGRAMS\$ICONS_GROUP"
+  RMDir "$INSTDIR\logs"
   RMDir "$INSTDIR\docs"
   RMDir "$INSTDIR"
 

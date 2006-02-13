@@ -6,7 +6,7 @@
 # DG = DigiGuy (digi_guy@users.sourceforge.net)
 # AW = Airwalk (airwalk@ignition-project.com)
 #
-# $Id: changelog.txt,v 1.190 2004/10/09 23:09:05 ziggythehamster Exp $
+# $Id: changelog.txt,v 1.220 2004/12/07 00:51:13 ziggythehamster Exp $
 #
 ### Project Start ###
 #
@@ -634,3 +634,54 @@ Zg - [9-Oct] - Removed -cvs token for release
 Zg - [9-Oct] - Installer tweak
 Zg - [9-Oct] - Also a good idea to set X:DIE to 1 :)
 Zg - [9-Oct] - And a much better idea to remove the default static channels
+#
+### RELEASE - 0.3.4 - BETA 4 ###
+#
+Zg - [10-Oct] - Version increase
+Zg - [16-Oct] - Began MMC Snap-In
+Zg - [16-Oct] - MMC is being a PITA. Still did a bit more work on it though...
+Zg - [16-Oct] - Added a "Basic Settings" section, added some subitems under it.
+Zg - [16-Oct] - More images...
+Zg - [16-Oct] - Connection classes image
+Zg - [16-Oct] - Fix Users and Groups image so it doesn't have a weird transparency
+Zg - [16-Oct] - Added column heads for users
+Zg - [16-Oct] - Created an XML Namespace for ignitionserver.xml
+Zg - [16-Oct] - Shotty attempt at making property pages for the list items...
+Zg - [20-Oct] - Fixed bug #1050438 (WHO needs to return a null channel as *)
+Zg - [20-Oct] - Fixed bug #1050432 (Portal needs to be renamed to ignitionServer)
+Zg - [20-Oct] - Fixed bug #1050451 (Monitor needs to be able to specify host/port)
+Zg - [21-Oct] - Fixed bug #1050457 (IRCOpers see strange WHOIS reply)
+Zg - [21-Oct] - 200TH COMMIT TO CHANGELOG.TXT! YAY! Added CVS to the installer, to avoid confusion.
+Zg - [22-Oct] - Fixed bug #1044082 (can deowner/deop/devoice protected operators)
+Zg - [24-Oct] - Worked on devel-doc for IRCX Digest authentication
+Zg - [25-Oct] - Tweaked ignitionserver.xml
+Zg - [25-Nov] - Fixed bug #1069211 (LIST with certain parameters generates an error)
+Zg - [28-Nov] - Logging variables and such
+Zg - [28-Nov] - Variable to change the Winsock version used
+Zg - [28-Nov] - First run - output some sort of first init message when Main() gets executed
+Zg - [28-Nov] - Log output code
+Zg - [28-Nov] - Added .conf parsing code for X:LOGGING
+Zg - [28-Nov] - Oops, left debugging on in mod_user
+Zg - [28-Nov] - Now can log remote channel talk
+Zg - [28-Nov] - Logging for remote users talking
+Zg - [1-Dec] - Fixed bug that would prevent an error from showing if you try and start iS multiple times
+Zg - [1-Dec] - Fixed bug that prevented ignitionServer from starting.
+Zg - [1-Dec] - Fixed bug that prevented logging from occuring.
+Zg - [1-Dec] - Logging isn't working. It's giving me a headache. Also, it keeps throwing fatal exceptions for random reasons.
+Zg - [1-Dec] - You know, I really ought to have read my code better. The logging statements must go outside of the SendToChan expecting true crap, or it won't work. Man I feel dumb.
+Zg - [2-Dec] - Oops, add the modes to the 005 reply + add constants
+Zg - [2-Dec] - Set +z on channels when they're being watched
+Zg - [4-Dec] - Make the monitor's advanced configuration not resizable
+Zg - [4-Dec] - Added constants for user logging
+Zg - [4-Dec] - And make it flag you...
+Zg - [4-Dec] - Turn off super debug!
+Zg - [4-Dec] - Users are now getting logged properly.
+Zg - [5-Dec] - Parts/joins/kicks should now be logged.
+Zg - [5-Dec] - Log whispers now.
+Zg - [6-Dec] - Fixed bug that showed the wrong user getting kicked in logs
+Zg - [6-Dec] - Set version to release
+Zg - [6-Dec] - Added entry to README about problems with XPSP2
+Zg - [6-Dec] - Modified ircx.conf for release
+Zg - [6-Dec] - Added version/server to more info of the monitor
+Zg - [6-Dec] - Update config template. Man I can't wait until we make it an XML file. It will be so much easier to just integrate the migration wizard into the upcoming configuration wizard.
+Zg - [6-Dec] - Added several batch files to automate the release process

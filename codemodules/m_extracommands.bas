@@ -14,7 +14,7 @@ Attribute VB_Name = "m_extracommands"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: m_extracommands.bas,v 1.15 2004/09/12 19:18:13 ziggythehamster Exp $
+' $Id: m_extracommands.bas,v 1.17 2004/12/04 21:43:10 ziggythehamster Exp $
 '
 '
 'This program is free software.

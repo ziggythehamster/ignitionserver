@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_main"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_main.bas,v 1.41 2004/10/01 05:04:29 ziggythehamster Exp $
+' $Id: mod_main.bas,v 1.47 2004/12/04 23:19:57 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -79,22 +79,69 @@ End Function
 Public Sub Main()
 Dim F As Long
 F = FreeFile
+#If Debugging = 1 Then
+  InternalDebug "Booting..."
+#End If
 If App.PrevInstance = True And AllowMultiple = False Then
 'you can't display msgbox'es in an unattended app...
 'perhaps we need to puke it to a logfile or something?
 'MsgBox "FATAL ERROR IN MODULE ""IGNITIONSERVER"": You can not start multiple instances of ignitionServer - see X:ALLOWMULTIPLE to change this setting"
+ErrorLog = True
 ErrorMsg "ignitionServer was attempted to be started more than one time. ignitionServer can only be run once unless X:ALLOWMULTIPLE is enabled to allow this."
 End
 End If
 AppVersion = App.Major & "." & App.Minor & "." & App.Revision
 AppComments = "ignitionServer " & AppVersion & " (http://www.ignition-project.com/)"
 StartUpDate = Now
+If Len(Dir(App.Path & "\first.run")) = 0 Then
+  #If Debugging = 1 Then
+    InternalDebug "first run detected"
+  #End If
+  ErrorMsg2 AppComments & vbCrLf & vbCrLf & _
+  "This program is free software." & vbCrLf & _
+  "You can redistribute it and/or modify it under the terms of the" & vbCrLf & _
+  "GNU General Public License as published by the Free Software Foundation; either version 2 of the License," & vbCrLf & _
+  "or (at your option) any later version." & vbCrLf & vbCrLf & _
+  "This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY." & vbCrLf & _
+  "Without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE." & vbCrLf & _
+  "See the GNU General Public License for more details."
+  ErrorMsg2 "Have fun with ignitionServer. To get support, visit our site at http://www.ignition-project.com/"
+  Open App.Path & "\first.run" For Output As F: Close F
+End If
+#If Debugging = 1 Then
+  InternalDebug "making logs dirs"
+#End If
+'create logs dir
+If Len(Dir(App.Path & "\logs", vbDirectory)) = 0 Then
+  MkDir App.Path & "\logs"
+  #If Debugging = 1 Then
+    InternalDebug "made .\logs"
+  #End If
+End If
+If Len(Dir(App.Path & "\logs\channels", vbDirectory)) = 0 Then
+  MkDir App.Path & "\logs\channels"
+  #If Debugging = 1 Then
+    InternalDebug "made .\logs\channels"
+  #End If
+End If
+If Len(Dir(App.Path & "\logs\users", vbDirectory)) = 0 Then
+  MkDir App.Path & "\logs\users"
+  #If Debugging = 1 Then
+    InternalDebug "made .\logs\users"
+  #End If
+End If
+#If Debugging = 1 Then
+  InternalDebug "done."
+#End If
 Error_Connect
 InitUnixTime
 InitList
 hTmrUnixTime = SetTimer(0&, 0&, 1000&, AddressOf uT)
 hTmrDestroyWhoWas = SetTimer(0&, 0&, 300000, AddressOf DestroyWhoWas)
 IrcStat.GlobServers = 1
+#If Debugging = 1 Then
+  InternalDebug "building hash tables"
+#End If
 Set Channels = New clsChanHashTable
 Set Servers = New clsServerHashTable
 Set GlobUsers = New clsUserHashTable
@@ -115,6 +162,9 @@ WallOps.IgnoreCase = True
 
 Set Sockets = New clsSox
 Rehash vbNullString, True
+#If Debugging = 1 Then
+  InternalDebug "logging? " & LogChannels
+#End If
 If ErrorLog = True Then
   Open App.Path & "\errorlog.txt" For Append As F
   Print #F, "(" & Now & ") ignitionServer " & AppVersion & " loaded and ready to go."
@@ -327,7 +377,7 @@ Do
         CurCmd = .Message
     End With
 #If Debugging = 1 Then
-    CreateObject("Scripting.FileSystemObject").OpenTextFile(App.Path & "\ircx.log", 8, True).WriteLine CurCmd
+    InternalDebug CurCmd
 #End If
     If Len(CurCmd) = 0 Then GoTo nextmsg
     #If Debugging = 1 Then
@@ -577,6 +627,8 @@ Do
                     SendWsock .index, ReadMotd(.Nick), vbNullString, , True
                     .HasRegistered = True
                     If .IsIRCX Then SendWsock .index, SPrefix & " MODE " & .Nick & " +x", vbNullString, , True
+                    If LogUsers Then SendWsock .index, SPrefix & " MODE " & .Nick & " +L", vbNullString, , True
+                    If LogUsers Then .IsMonitored = True
                     'after careful consideration,
                     'i've decided that RealHost should be sent to links
                     'if the link supports MD5 encrpytion, then use it
@@ -1187,7 +1239,7 @@ Do While ColOutClientMsg.Count > 0
             GoTo nextmsg
         End If
 #If Debugging = 1 Then
-    CreateObject("Scripting.FileSystemObject").OpenTextFile(App.Path & "\ircx.log", 8, True).WriteLine .SendQ
+    InternalDebug .SendQ
 #End If
         SentMsg = SentMsg + 1
         OutMsg = StrConv(.SendQ, vbFromUnicode)
@@ -1198,3 +1250,80 @@ Do While ColOutClientMsg.Count > 0
 nextmsg:
 Loop
 End Sub
+
+Public Function LogChannel(ChannelName As String, Message As String)
+'this outputs the log
+#If Debugging = 1 Then
+  SendSvrMsg "LogChannel called!"
+#End If
+Dim FolderDate As String
+Dim FileChan As String
+Dim F As Long
+F = FreeFile
+FolderDate = CStr(Format(Date, "YYYY-MM-DD"))
+'this could be fun?
+If Len(Dir(App.Path & "\logs\channels\" & FolderDate, vbDirectory)) = 0 Then MkDir App.Path & "\logs\channels\" & FolderDate
+FileChan = ChanToFN(ChannelName)
+Open App.Path & "\logs\channels\" & FolderDate & "\" & FileChan & ".txt" For Append As F
+Print #F, "[" & Time & "] " & Message
+Close #F
+End Function
+Public Function LogUser(UserName As String, Message As String)
+'this outputs the log
+#If Debugging = 1 Then
+  SendSvrMsg "LogUser called!"
+#End If
+Dim FolderDate As String
+Dim FileUser As String
+Dim F As Long
+F = FreeFile
+FolderDate = CStr(Format(Date, "YYYY-MM-DD"))
+If Len(Dir(App.Path & "\logs\users\" & FolderDate, vbDirectory)) = 0 Then MkDir App.Path & "\logs\users\" & FolderDate
+FileUser = NickToFN(UserName)
+Open App.Path & "\logs\users\" & FolderDate & "\" & FileUser & ".txt" For Append As F
+Print #F, "[" & Time & "] " & Message
+Close #F
+End Function
+Public Function NickToFN(strConvert As String) As String
+Dim x As String
+x = strConvert
+If Left(x, 1) = "#" Then x = Right(x, Len(x) - 1)
+x = Replace(x, "\", "#B#")
+x = Replace(x, "|", "#U#")
+NickToFN = x
+End Function
+Public Function ChanToFN(strConvert As String) As String
+'\ / : * ? " < > | #
+'B F C A Q D L G U P
+
+Dim x As String
+x = strConvert
+If Left(x, 1) = "#" Then x = Right(x, Len(x) - 1)
+x = Replace(x, "\b", " ")
+x = Replace(x, "\c", ",")
+x = Replace(x, "#", "#P#")
+x = Replace(x, "\\", "#S#")
+x = Replace(x, "\r", "#R#")
+x = Replace(x, "\n", "#N#")
+x = Replace(x, "\t", "#T#")
+x = Replace(x, "\", "#B#")
+x = Replace(x, "/", "#F#")
+x = Replace(x, ":", "#C#")
+x = Replace(x, "*", "#A#")
+x = Replace(x, "?", "#Q#")
+x = Replace(x, """", "#D#")
+x = Replace(x, "<", "#L#")
+x = Replace(x, ">", "#G#")
+x = Replace(x, "|", "#U#")
+ChanToFN = x
+End Function
+'not masked because other non-local modules and stuff
+'depend on it
+Public Function InternalDebug(strDebug As String) As Boolean
+  Dim F As Long
+  F = FreeFile
+  Open App.Path & "\ircx.log" For Append As F
+    Print #F, strDebug
+  Close #F
+End Function
+

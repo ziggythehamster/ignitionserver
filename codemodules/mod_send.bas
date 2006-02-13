@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_send"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_send.bas,v 1.18 2004/09/08 03:48:58 ziggythehamster Exp $
+' $Id: mod_send.bas,v 1.20 2004/12/04 21:43:10 ziggythehamster Exp $
 '
 '
 'This program is free software.

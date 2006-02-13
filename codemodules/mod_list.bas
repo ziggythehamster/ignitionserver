@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_list"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_list.bas,v 1.77 2004/10/09 03:45:58 ziggythehamster Exp $
+' $Id: mod_list.bas,v 1.89 2004/12/06 04:26:43 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -37,7 +37,7 @@ Option Explicit
 Public Const MaxTrafficRate As Long = 100
 
 '-=BUILD DATE=-
-Public Const BuildDate As String = "20041009"
+Public Const BuildDate As String = "20041206"
 
 'Level Symbols
 'CHANGE AT YOUR OWN RISK.
@@ -181,6 +181,11 @@ Public CustomNotice As String
 'Crypt
 Public Crypt As Boolean
 Public MD5Crypt As Boolean
+
+'logging
+Public LogChannels As Boolean
+Public LogChannelWhispers As Boolean
+Public LogUsers As Boolean
 
 'HTM - High Traffic Mode
 'Added 2nd feb 2003 by dilligent to handle Oper/server sendq's more efficiently
@@ -732,7 +737,7 @@ Public Const cmOwner As Long = 113            '+q / owner
 Public Const cmVoice As Long = 118            '+v / voice
 
 'Lowercase
-Public Const cmCreateJoin As Long = 99            '+c / join after create (join flag, not a true mode)
+Public Const cmCreateJoin As Long = 99        '+c / create only if not exist
 Public Const cmCloneable As Long = 100        '+d / cloneable
 Public Const cmClone As Long = 101            '+e / clone
 Public Const cmHidden As Long = 104           '+h / hidden
@@ -747,6 +752,7 @@ Public Const cmSecret As Long = 115           '+s / secret
 Public Const cmOpTopic As Long = 116          '+t / only ops change topic
 Public Const cmKnock As Long = 117            '+u / knock
 Public Const cmAuditorium As Long = 120       '+x / auditorium
+Public Const cmMonitored As Long = 122        '+z / a service is watching
 
 'Uppercase
 Public Const cmOperOnly As Long = 79          '+O / oper only
@@ -760,10 +766,10 @@ Public Const modeRemove As Long = 45
 'All possible modes for chan/user
 'Now in alphabetical order - Ziggy
 'Added missing modes
-Public Const UserModes As String = "bcdeikoprswxzBCDEHKNOPRSWZ"
-Public Const ChanModes As String = "bhiklmnopqrstuvOR"
+Public Const UserModes As String = "bcdeikoprswxzBCDEHKLNOPRSWZ"
+Public Const ChanModes As String = "bhiklmnopqrstuvxzOR"
 'for the 005 reply
-Public Const ChanModesX As String = "b,k,l,himnopqrstuvOR"
+Public Const ChanModesX As String = "b,k,l,himnopqrstuvxzOR"
 
 'Authentication Packages/IRCX stuff
 Public Const AuthPackages As String = "ANON"
@@ -779,6 +785,7 @@ Public Const umCanDie As Long = 68      '+D / access to /die server
 Public Const umCanAdd As Long = 69      '+E / can use /add
 Public Const umCanChange As Long = 72   '+H / can use /chghost and /chgnick
 Public Const umGlobKills As Long = 75   '+K / access to global /kill's
+Public Const umMonitored As Long = 76   '+L / monitored
 Public Const umNetAdmin As Long = 78    '+N / is Net Admin
 Public Const umGlobOper As Long = 79    '+O / Global IRC Operator, flags included: oRDCKN
 Public Const umProtected As Long = 80   '+P / protected operator, can't be deopped or kicked from a channel

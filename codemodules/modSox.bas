@@ -14,7 +14,7 @@ Attribute VB_Name = "modSox"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: modSox.bas,v 1.19 2004/09/23 03:37:23 ziggythehamster Exp $
+' $Id: modSox.bas,v 1.21 2004/12/04 21:43:10 ziggythehamster Exp $
 '
 '
 'This program is free software.

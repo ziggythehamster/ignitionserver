@@ -1,0 +1,141 @@
+VERSION 5.00
+Begin VB.PropertyPage ppgBasic 
+   Caption         =   "Basic Settings"
+   ClientHeight    =   3600
+   ClientLeft      =   0
+   ClientTop       =   0
+   ClientWidth     =   4800
+   BeginProperty Font 
+      Name            =   "Tahoma"
+      Size            =   8.25
+      Charset         =   0
+      Weight          =   400
+      Underline       =   0   'False
+      Italic          =   0   'False
+      Strikethrough   =   0   'False
+   EndProperty
+   PaletteMode     =   0  'Halftone
+   ScaleHeight     =   3600
+   ScaleWidth      =   4800
+   Begin VB.TextBox txtDescription 
+      BackColor       =   &H8000000F&
+      Height          =   2295
+      Left            =   120
+      Locked          =   -1  'True
+      TabIndex        =   5
+      Top             =   1080
+      Width           =   4575
+   End
+   Begin VB.TextBox txtValue 
+      Height          =   285
+      Left            =   1440
+      TabIndex        =   3
+      Top             =   480
+      Width           =   3255
+   End
+   Begin VB.TextBox txtPropertyName 
+      BackColor       =   &H8000000F&
+      Height          =   285
+      Left            =   1440
+      Locked          =   -1  'True
+      TabIndex        =   1
+      Top             =   120
+      Width           =   3255
+   End
+   Begin VB.Label Label3 
+      BackStyle       =   0  'Transparent
+      Caption         =   "Property Description:"
+      Height          =   255
+      Left            =   120
+      TabIndex        =   4
+      Top             =   840
+      Width           =   1695
+   End
+   Begin VB.Label Label2 
+      BackStyle       =   0  'Transparent
+      Caption         =   "Property Value:"
+      Height          =   255
+      Left            =   120
+      TabIndex        =   2
+      Top             =   480
+      Width           =   1215
+   End
+   Begin VB.Label Label1 
+      BackStyle       =   0  'Transparent
+      Caption         =   "Property Name:"
+      Height          =   255
+      Left            =   120
+      TabIndex        =   0
+      Top             =   140
+      Width           =   1455
+   End
+End
+Attribute VB_Name = "ppgBasic"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
+Option Explicit
+Implements IMMCPropertyPage
+' When the property page is part of a multiple selection this variable holds the
+' index within SelectedControls() of the particular object for which the instance of
+' the property page is being displayed.
+Private m_Index As Integer
+' MMC API DLL function declarations
+Private Declare Function MMCPropertyHelp Lib "mssnapr.dll" (ByVal HelpTopic As String) As Long
+
+
+Private Sub IMMCPropertyPage_Cancel()
+'
+End Sub
+
+Private Sub IMMCPropertyPage_Close()
+'
+End Sub
+
+' =============================================================================
+' Method:       IMMCPropertyPage_Initialize
+' Type:         Interface method
+' Description:  Called when the property page is created to pass the last
+'               parameter from MMCPropertySheet.AddPage to the property page
+'
+' Parameters:   Data          The final parameter from MMCPropertySheet.AddPage
+' Output:       None
+' Notes:        Unlike a UserControl property page, SelectedControls(0) will
+'               contain the ScopeItems and/or ListItems for which the property sheet
+'               is being displayed. Changes can be made directly to an item's
+'               properties. The property page can notify the snap-in of the
+'               changes by calling ScopeItem.PropertyChanged or
+'               MMCListItem.PropertyChanged. Calling these methods will
+'               generate the ScopeItems_PropertyChanged or
+'               ResultViews_PropertyChanged event in the snap-in.
+' =============================================================================
+'
+Private Sub IMMCPropertyPage_Initialize(ByVal Data As Variant, ByVal PropertySheet As SnapInLib.MMCPropertySheet)
+
+    m_Index = Data
+    
+    Dim theItem As MMCListItem
+    
+    If TypeOf SelectedControls(m_Index) Is MMCListItem Then
+        Set theItem = SelectedControls(m_Index)
+        txtPropertyName.Text = theItem.ListSubItems(1).Text
+        txtValue.Text = theItem.ListSubItems(2).Text
+        txtDescription.Text = theItem.ListSubItems(3).Text
+    End If
+
+End Sub
+
+Private Sub IMMCPropertyPage_Help()
+    'would be needed later
+    'MMCPropertyHelp ("mmc.chm::/sag_MMCconcepts0_0.htm")
+End Sub
+
+Private Sub IMMCPropertyPage_GetDialogUnitSize(Height As Variant, Width As Variant)
+    Height = 218
+    Width = 252
+End Sub
+
+Private Sub IMMCPropertyPage_QueryCancel(Allow As Boolean)
+'
+End Sub

@@ -28,7 +28,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsSox.cls,v 1.12 2004/08/15 20:42:37 ziggythehamster Exp $
+' $Id: clsSox.cls,v 1.16 2004/12/04 21:43:09 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -355,6 +355,7 @@ Private Const WINSOCK_1_1 As Long = &H101
 Private Const WINSOCK_2_0 As Long = &H2
 Private Const WINSOCK_2_1 As Long = &H102 'does 2.1 exist?
 Private Const WINSOCK_2_2 As Long = &H202
+Private Const WINSOCK_USE As Long = &H202
 
 'Public Const WINSOCK_MESSAGE As Long = 4025 'The only Message type currently used ... not anymore :)
 Private Const soxSERVER As Long = 4026& ' This indicates that the Socket is either a Listening Socket, or was created from a Listening Socket, either way, our machine is acting as a Sox Server
@@ -398,11 +399,11 @@ Private Sockets() As typSocket
 Private Socks As New Collection
 
 Private Sub Class_Initialize()
-    If apiWSAStartup(WINSOCK_2_0, WSADATA) = SOCKET_ERROR Then
+    If apiWSAStartup(WINSOCK_USE, WSADATA) = SOCKET_ERROR Then
         Call MsgBox("WinSock failed to initialize properly - Error#: " & err.LastDllError) 'Creates an 'application instance' and memory space in the WinSock DLL (MUST be cleaned up later)
         ErrorMsg "Winsock failed to initialize properly (Error #" & err.LastDllError & ")"
     Else
-        Let Portal.hWnd = apiCreateWindowEx(0&, "STATIC", "Portal", 0&, 0&, 0&, 0&, 0&, 0&, 0&, App.hInstance, ByVal 0&) 'Create a hidden object to accept our WinSock messages
+        Let Portal.hWnd = apiCreateWindowEx(0&, "STATIC", "ignitionServer", 0&, 0&, 0&, 0&, 0&, 0&, 0&, App.hInstance, ByVal 0&) 'Create a hidden object to accept our WinSock messages
         If Portal.hWnd = 0 Then
             Call MsgBox("Error: " & err.LastDllError & " on Portal creation.")   'If cleanup failed, does not / cannot raise errors
             ErrorMsg "Socket layer failed to create a portal (Error #" & err.LastDllError & ")"
@@ -902,7 +903,11 @@ Public Function Address(insox As Long) As String ' Returns the address used by a
     Let Address = StringFromPointer(apiNLToIP(Sockets(insox).SocketAddr.sin_addr))
 End Function
 Public Function Port(insox As Long) As Long
+On Error GoTo Whoops
     Let Port = apiNToHS(Sockets(insox).SocketAddr.sin_port)
+    Exit Function
+Whoops:
+Let Port = 0
 End Function
 
 Private Sub ShutDown(insox As Long)

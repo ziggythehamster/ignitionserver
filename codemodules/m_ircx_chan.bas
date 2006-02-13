@@ -14,7 +14,7 @@ Attribute VB_Name = "m_ircx_chan"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: m_ircx_chan.bas,v 1.24 2004/09/11 23:43:27 ziggythehamster Exp $
+' $Id: m_ircx_chan.bas,v 1.28 2004/12/05 04:00:38 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -133,6 +133,7 @@ Else
     ElseIf UBound(parv) = 1 Then
       Call ParseModes(parv(1), Chan)
     End If
+    If LogChannels = True Then Chan.IsMonitored = True
     
     'send CREATE message
     SendWsock cptr.index, "CREATE " & parv(0) & " 0", vbNullString
@@ -266,6 +267,7 @@ If cptr.AccessLevel = 4 Then
                 'the user is an local user
                 SendWsock Recp.index, "WHISPER " & Chan.Name & " " & Recp.Nick, ":" & parv(2), sptr.Prefix
             End If
+            If LogChannelWhispers Then LogChannel Chan.Name, "[" & sptr.Nick & " whispers to " & Recp.Nick & "] " & parv(2)
         End If
 NextCmd:
     Next
@@ -357,6 +359,7 @@ Else
             SendWsock cptr.index, RPL_AWAY & " " & cptr.Nick & " " & sptr.Nick, ":" & sptr.AwayMsg
         End If
         'reset idle time
+        If LogChannelWhispers Then LogChannel Chan.Name, "[" & cptr.Nick & " whispers to " & sptr.Nick & "] " & parv(2)
         cptr.Idle = UnixTime
       End If
 nextmsg:

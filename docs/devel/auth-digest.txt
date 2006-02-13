@@ -1,0 +1,165 @@
+IRCX DIGEST AUTHENTICATION
+==========================
+
+0. INTRODUCTION
+
+    This document describes Digest authentication, formatted specifically
+    for the IRCX SASL authentication mechanism. Most of IRCX Digest
+    authentication is based upon HTTP Digest authentication, RFC 2617.
+    We have modified it to be friendly with IRCX and to allow users to
+    authenticate on other "resources". More on this in a later section.
+
+1. OVERVIEW OF IRCX AUTHENTICATION MECHANISM
+
+    IRCX provides an authentication mechanism: the AUTH command. We will
+    cover how this command/response is used, and how we are using it.
+
+    There are two sequences -- an initial sequence (I) and a subsequent
+    sequence (S). In IRCX, the AUTH command is formatted like this:
+
+         AUTH <Method> <Sequence> :<Data>
+    
+    <Method> refers to the type of authentication that is going to be used.
+    In our case, we are using Digest authentication.
+    
+    <Sequence> was explained earlier. The I sequence is used for the very
+    first sequence (sent by the client), and the S sequence is used every
+    time afterwards. If the sequence sent from the client is *, the server
+    must abort authenticating the user. If the sequence sent from the server
+    is *, the client has successfully authenticated. The * sequence received
+    from the server is formatted slightly differently than the previous method:
+
+         AUTH <Method> * <userid@domain> 0<OID>
+
+    <userid@domain> refers to the user's "ident". The nickname is not known when
+    authentication occurs, so only the user's username and hostname is returned.
+    In IRCX Digest authentication, userid will refer to the username used to
+    authenticate (the username token). If spaces are present, they should be
+    escaped with \b. Consequently, all other escapable characters should be
+    escaped with whatever is defined by the "Modified UTF-8 encoding of Unicode
+    characters" in the IRCX draft. Domain could be the hostname from which the
+    user is connecting from, or it could be the resource in which they're
+    authenticating for (again, escaped).
+
+    0<OID> is an object identifier, as defined by the IRCX draft. If the server
+    does not support object identifiers, it should just have 0 in this field.
+
+2. AUTHENTICATION PROCESS
+    
+    In order for HTTP Digest to be completely compatibie with IRCX, it had to
+    have a few features removed, and a few added (such as resource). When a
+    client wants to authenticate with Digest authentication, it will send the
+    following line:
+
+         AUTH Digest I :username="Username",resource="resource name"
+    
+    These are the only two parameters allowed in the initial sequence. As you
+    can see from the example, the tokens are tokenname="Value" and seperated by
+    commas. Usernames and resources may not contain commas, equal signs, at-signs,
+    or quotes, so output isn't confused. If a line is unparsable, the server should 
+    return the IRCERR_AUTHENTICATIONFAILED error message. The only required parameter
+    for the I sequence is the username. Both usernames and resources may have any
+    character allowed by IRCX, except for the characters previously mentioned. Escaping
+    is required for every applicable character except for space (then it is optional).
+
+    The server will now respond with a S sequence, if the username exists in the
+    resource specified (if no resource is specified, assume the "default" resource):
+
+         AUTH Digest S :nonce="332sdfqewrweq",opaque="asdf",resource="resource name"
+
+    nonce is a random string (the longer the better) that will be used by the client
+    to generate the hash. The server performs the same operation, and that's how
+    authentication is done. This parameter is required.
+
+    opaque is a random string that will not be altered by the client but will be
+    returned in all subsequent replies. Think of it as a "checksum". It is not
+    required, but its use is encouraged.
+
+    resource is included here to specify what resource the server thinks you're
+    authenticating for. If it was not specified in the initial sequence, the resource
+    should be returned as "default" (or whatever the name of the default resource is).
+    If resources are disabled or not being used, this parameter is optional.
+
+    After the client receives this, it computes a hash. This hash is computed as
+    follows:
+    
+         userhash = MD5(username + ":" + resource + ":" + password) 
+         hash = MD5(userhash + ":" + nonce)
+
+    This hash is then sent back to the server:
+
+         AUTH Digest S :response="(hash)",opaque="asdf"
+   
+    The server does the same computation the client did, and if it gets the same
+    hash, authentication must have succeeded. If the resource is not known (i.e.
+    the server has disabled them), the userhash will look like this:
+
+         userhash = MD5(username + ":" + ":" + password)
+
+    opaque is only returned if it was specified by the server.
+
+3. RESOURCES
+    
+    Resources are similar to realms in HTTP Digest. Like realms, they specify what
+    exactly the user is authenticating for. However, realms can have any meaning,
+    or could be used to prompt the user with any arbitrary string.
+
+    Resources are more strict than realms. A user can belong in one resource but
+    not an another. Because IRC doesn't have URIs, the administrator wouldn't be
+    able to create seperate login areas. Resources take care of that.
+
+    There are two standard resources: default and admin. Administrators may add
+    more resources, as needed, but every server is expected to at least recognize
+    these two resources (even if they don't accept them).
+
+4. SAMPLE SUCCESSFUL AUTHENTICATION
+
+    The username is "admin" and the password is "nimda". The process is listed from
+    when the user connects to the server until the user successfully registers as a
+    user. Additionally, the client does not specify a resource.
+
+    (from client)    MODE ISIRCX
+                     (the client is checking to see if the server supports IRCX)
+
+    (from server)    :irc.somewhere.com 800 Anonymous 0 0 Digest,ANON 512 *
+                     (the client sees the server supports IRCX and Digest authentication)
+
+    (from client)    IRCX
+                     (the client is enabling IRCX)
+    
+    (from server)    :irc.somewhere.com 800 Anonymous 1 0 Digest,ANON 512 *
+                     (the server enables IRCX and returns the 800 reply)
+
+    (from client)    AUTH Digest I :username="admin"
+                     (tell the server to login as admin)
+    
+    (from server)    AUTH Digest S :nonce="e6def669a2b6d6f70c5b222c0f26eee8",opaque="89f3914a1b1b6b9d7fe29673f8658068",resource="default"
+                     (the server responds with a nonce and an opaque token)
+    
+    Now, before the next S sequence is sent, the following computation occurs:
+         
+         userhash = MD5("admin:default:nimda")
+         userhash = "89e6bfefca850042a530f047941441c3"
+         hash = MD5("89e6bfefca850042a530f047941441c3:e6def669a2b6d6f70c5b222c0f26eee8") // the first hash is the 
+                                                                                         // userhash, the second is the nonce,
+                                                                                         // which doesn't necessarily have to be MD5
+         hash = "daaed541c49b941f4c69a60a178b498d"
+
+   Now that the hash is gathered, the client responds:
+
+   (from client)    AUTH Digest S :response="daaed541c49b941f4c69a60a178b498d",opaque="89f3914a1b1b6b9d7fe29673f8658068"
+                    (opaque was included because the server specified it)
+
+   (from server)    AUTH Digest * admin@default 0
+                    (the server responds with an "Authentication OK" message; the server is configured to show the resource in the
+                    reply, although it could respond with a hostname. clients should NOT rely on this message to determine the client's
+                    ident)
+   
+   (from client)    NICK Administrator
+                    (the client specifies its nickname)
+
+   (from client)    USER admin "somewhere.com" "irc.somewhere.com" :Administrator
+                    (the client specifies its user information)
+
+   (from server)    :irc.somewhere.com 001 Administrator :Welcome to the Somewhere IRC Network, Administrator!admin@myisp.com
+                    (the standard 001 reply -- the format of it varies, so use whatever is appropriate for whatever IRCD is in use)

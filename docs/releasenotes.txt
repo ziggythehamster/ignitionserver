@@ -1,43 +1,41 @@
-		RELEASE NOTES FOR IGNITIONSERVER RELEASE: 0.3.5
-# $Id: releasenotes.txt,v 1.29 2004/10/09 03:29:09 ziggythehamster Exp $
+		RELEASE NOTES FOR IGNITIONSERVER RELEASE: 0.3.6
+# $Id: releasenotes.txt,v 1.31 2004/12/07 00:51:15 ziggythehamster Exp $
 
 #/--------------------------------------------------------------
 # For best results, view this document with word wrap enabled.
 #--------------------------------------------------------------/
 
 Changes:
-*** WE HAVE REVERTED TO C: AND N: LINES! L: LINES WILL NO LONGER WORK!
-All KILL messages coming from clients are now in quotes, so server kills can't be faked
-RFC1459 is added to the 005 token list
-All GUIDs are now Windows style GUIDs
-If you make a stupid mistake with Y: and I: lines, it will notify you sometimes.
+Changed Winsock version asked for to Winsock 2.2. It may begin to function better on XPSP2 and other modern platforms.
 
 New Features include:
-Channels now have GUIDs
-B: (bounce) lines - read ircx.conf for a full description
-LISTX flags! Now, you can search for channels with all kinds of options (limit, creation, topic, subject, language, etc.)
-Servers now propragrate properties using our unofficial NPROP command
-X:CREATEMODE - select who has permissions to create channels
-X:STATICCHAN - create static channels (channels that always exist, are opless [unless an oper with sufficient privileges joins], and are limitless [unless an oper with sufficient privileges sets a limit])
+"First Run" errorlog message. Prints our license, and some help information.
+Verbose logging. Channels, channel whispers, and private messages can now be logged. Use at your own risk.
 
 Bug Fixes:
 
 Bug #   | Bug Name
 ---------------------
-1007675 | CREATE is entirely wrong
-1006680 | Complete linking failure
-1001732 | No nick collision detection while linking
-1015181 | Max Global/Local users is wrong
-1016496 | USER.NICK event shows wrong nickname
-1016500 | NICK changes don't have a hostname
-997723  | ServerTraffic is slightly off
-1026533 | control.exe needs rewrite
-1026739 | monitor.exe needs to stop using MSWINSCK.OCX
-1026974 | make B: lines use 010 reply
-        | possible buffer overrun bug
-        | B: line reply problems
-        | possible bug that could allow users to make channels cease to exist without sufficient privileges
-1043391 | Cannot kick hosts
+1050438 | WHO needs to return a null channel as *
+1050432 | Portal needs to be renamed to ignitionServer
+1050451 | Monitor needs to be able to specify host/port
+1050457 | IRCOpers see strange WHOIS reply
+1044082 | can deowner/deop/devoice protected operators
+1069211 | LIST with certain parameters generates error
+        | An error does not show if you try to start ignitionServer twice, although one should
+        | Stray On Error Resume Next keeps ignitionServer from starting
+        | Missing parameter on Dir() prevented logging from occuring
+        | Wrong user gets logged when a kick occurs
 
 Comments:
-ignitionServer is a lot like a fine wine. With age, it keeps getting better and better. 0.3.5 is no different. In this version, we have 99% operational linking, several bug fixes, performance improvements, and a bunch of features of IRCX that we lacked, such as bounce lines, which allow you to forward certain users to a different server. The IRCX server message used is REDIRECT, and we use the 010 IRC reply for non-IRCX clients. We also now have LISTX flags, which allow you to search for a channel based on specific criteria. Basically, this version is 900% better than all previous versions. We've even plugged a few possible holes. At the rate we're going, 0.3.6 will be 900% better than this one. Bet you can't wait, eh?
+ignitionServer 0.3.6 is mainly a bugfix release.
+We have added very few new things, except for
+logging. All users are strongly encouraged to
+upgrade their ignitionServer installations to
+ignitionServer 0.3.6. ignitionServer 0.3.7 will
+hopefully contain a configuration wizard (with at
+least "beginner" functionality; an advanced editor
+is also intended but may not make it), some form
+of IRCX authentication, and more RFC 1459 compliant
+strings. We also hope to decrease the footprint
+substantially.

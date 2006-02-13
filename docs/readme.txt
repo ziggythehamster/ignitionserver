@@ -1,8 +1,9 @@
 			#######################
 			#ignitionServer README#
 			#######################
-# $Id: readme.txt,v 1.14 2004/09/11 23:43:28 ziggythehamster Exp $
-
+# $Id: readme.txt,v 1.15 2004/12/07 00:51:15 ziggythehamster Exp $
+# TODO:
+#  - format for 800x600 and not 1280x1024, it is too wide
 
 	===========++++++++===========++++++++===========
 
@@ -238,5 +239,18 @@ A: X:CREATEMODE is a new X: line that we added to give server administrators gre
    a fixed set of channels, you will probably want to use 1, which will only allow IRC operators to create channels. In addition
    to this, you can force users to register and identify to NickServ before they can create channels. To do this, set X:CREATEMODE to
    2. For more information, please read ircx.conf in your favorite text editor.
+
+Q: Why isn't ignitionServer working on Windows XP Service Pack 2?
+A: Windows XP SP2 adds several security "enhancements", such as limiting the number of outbound connections, and
+   introducing an artificial lag between the opening of outbound listening sockets. On a normal desktop system,
+   these enhancements will probably prevent you from becoming a spam relay or zombie. When you're using your desktop
+   system as a server by running ignitionServer, these enhancements become a serious bottleneck. It will also probably
+   prevent ignitionServer from properly initializing (it will say "loaded OK" in the errorlog, becuase the Winsock
+   subsystem is lying to ignitionServer). In order to make ignitionServer properly function on XP SP2, you must make
+   changes to ircx.conf, and you must patch your TCP/IP subsystem to remove these security enhancements. WARNING:
+   PATCHING TCPIP.SYS IS HIGHLY DISCOURAGED BY MICROSOFT AND IT MAY VOID YOUR WARRANTY. YOU ACCEPT ALL RISKS BY
+   PATCHING YOUR TCP/IP SUBSYSTEM. BY PATCHING TCPIP.SYS, YOU AGREE NOT TO HOLD US LIABLE FOR ANY DAMAGES. That said,
+   you can get the instructions for patching TCPIP.SYS and modifying ircx.conf by clicking Start > (All) Programs >
+   ignitionServer > Documentation.
 
 If you have any more questions, see our forum at http://www.ignition-project.com/forums/.

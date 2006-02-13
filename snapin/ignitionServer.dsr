@@ -1,0 +1,1752 @@
+VERSION 5.00
+Begin {B3E55942-FFD8-11D1-9788-44A620524153} ignitionServer 
+   ClientHeight    =   13725
+   ClientLeft      =   0
+   ClientTop       =   0
+   ClientWidth     =   15165
+   _ExtentX        =   26749
+   _ExtentY        =   24209
+   m_iNextNodeNumber=   31
+   Persistence.MajorVersion=   0
+   Persistence.MinorVersion=   12
+   BeginProperty ImageLists {FFF9A8F6-06CB-11D2-9791-50C320524153} 
+      Persistence.MajorVersion=   0
+      Persistence.MinorVersion=   12
+      Count           =   1
+      KeysOnly        =   0
+      BeginProperty Item1 {87BC1809-C8FB-11D1-B44A-30F4BC000000} 
+         Persistence.MajorVersion=   0
+         Persistence.MinorVersion=   12
+         Name            =   "ilMain"
+         Index           =   1
+         Key             =   "ilMain"
+         MaskColor       =   16777215
+         BeginProperty ListImages {87BC180B-C8FB-11D1-B44A-30F4BC000000} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   9
+            KeysOnly        =   0
+            BeginProperty Item1 {87BC180D-C8FB-11D1-B44A-30F4BC000000} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Index           =   1
+               Key             =   "imgUsersAndGroups"
+               Tag             =   ""
+               Picture         =   "ignitionServer.dsx":0000
+            EndProperty
+            BeginProperty Item2 {87BC180D-C8FB-11D1-B44A-30F4BC000000} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Index           =   2
+               Key             =   "imgIS"
+               Tag             =   ""
+               Picture         =   "ignitionServer.dsx":0254
+            EndProperty
+            BeginProperty Item3 {87BC180D-C8FB-11D1-B44A-30F4BC000000} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Index           =   3
+               Key             =   "imgFolderClosed"
+               Tag             =   ""
+               Picture         =   "ignitionServer.dsx":04A8
+            EndProperty
+            BeginProperty Item4 {87BC180D-C8FB-11D1-B44A-30F4BC000000} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Index           =   4
+               Key             =   "imgFolderOpen"
+               Tag             =   ""
+               Picture         =   "ignitionServer.dsx":06FC
+            EndProperty
+            BeginProperty Item5 {87BC180D-C8FB-11D1-B44A-30F4BC000000} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Index           =   5
+               Key             =   "imgUser"
+               Tag             =   ""
+               Picture         =   "ignitionServer.dsx":0950
+            EndProperty
+            BeginProperty Item6 {87BC180D-C8FB-11D1-B44A-30F4BC000000} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Index           =   6
+               Key             =   "imgGroup"
+               Tag             =   ""
+               Picture         =   "ignitionServer.dsx":0BA4
+            EndProperty
+            BeginProperty Item7 {87BC180D-C8FB-11D1-B44A-30F4BC000000} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Index           =   7
+               Key             =   "imgConnections"
+               Tag             =   ""
+               Picture         =   "ignitionServer.dsx":0DF8
+            EndProperty
+            BeginProperty Item8 {87BC180D-C8FB-11D1-B44A-30F4BC000000} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Index           =   8
+               Key             =   "imgBasicSettings"
+               Tag             =   ""
+               Picture         =   "ignitionServer.dsx":104C
+            EndProperty
+            BeginProperty Item9 {87BC180D-C8FB-11D1-B44A-30F4BC000000} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Index           =   9
+               Key             =   "imgConnectionClasses"
+               Tag             =   ""
+               Picture         =   "ignitionServer.dsx":12A0
+            EndProperty
+         EndProperty
+         DISPID          =   1000
+      EndProperty
+   EndProperty
+   BeginProperty Menus {11517450-27FE-11D3-AA41-00104B880587} 
+      Persistence.MajorVersion=   0
+      Persistence.MinorVersion=   12
+      Count           =   2
+      KeysOnly        =   0
+      BeginProperty Item1 {91CC37D5-CE2B-11D1-B44D-7E92AF000000} 
+         Persistence.MajorVersion=   0
+         Persistence.MinorVersion=   12
+         Caption         =   "New User"
+         Visible         =   -1
+         Checked         =   0
+         Enabled         =   -1
+         Grayed          =   0
+         MenuBreak       =   0
+         MenuBarBreak    =   0
+         Default         =   0
+         Index           =   1
+         Name            =   "mnuNewUser"
+         StatusBarText   =   ""
+         BeginProperty Children {11517450-27FE-11D3-AA41-00104B880587} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   1
+            KeysOnly        =   0
+            BeginProperty Item1 {91CC37D5-CE2B-11D1-B44D-7E92AF000000} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Caption         =   "User"
+               Visible         =   -1
+               Checked         =   0
+               Enabled         =   -1
+               Grayed          =   0
+               MenuBreak       =   0
+               MenuBarBreak    =   0
+               Default         =   0
+               Index           =   1
+               Name            =   "NewUser"
+               StatusBarText   =   ""
+               BeginProperty Children {11517450-27FE-11D3-AA41-00104B880587} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+               Key             =   "NewUser"
+               DISPID          =   1003
+            EndProperty
+         EndProperty
+         Key             =   "mnuNewUser"
+         DISPID          =   1002
+      EndProperty
+      BeginProperty Item2 {91CC37D5-CE2B-11D1-B44D-7E92AF000000} 
+         Persistence.MajorVersion=   0
+         Persistence.MinorVersion=   12
+         Caption         =   "Menu1"
+         Visible         =   -1
+         Checked         =   0
+         Enabled         =   -1
+         Grayed          =   0
+         MenuBreak       =   0
+         MenuBarBreak    =   0
+         Default         =   0
+         Index           =   2
+         Name            =   "mnuRootNewUser"
+         StatusBarText   =   ""
+         BeginProperty Children {11517450-27FE-11D3-AA41-00104B880587} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   1
+            KeysOnly        =   0
+            BeginProperty Item1 {91CC37D5-CE2B-11D1-B44D-7E92AF000000} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Caption         =   "New User..."
+               Visible         =   -1
+               Checked         =   0
+               Enabled         =   -1
+               Grayed          =   0
+               MenuBreak       =   0
+               MenuBarBreak    =   0
+               Default         =   0
+               Index           =   1
+               Name            =   "RootNewUser"
+               StatusBarText   =   ""
+               BeginProperty Children {11517450-27FE-11D3-AA41-00104B880587} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+               Key             =   "RootNewUser"
+               DISPID          =   1005
+            EndProperty
+         EndProperty
+         Key             =   "Menu1"
+         DISPID          =   1004
+      EndProperty
+   EndProperty
+   BeginProperty Toolbars {FFF9A8FA-06CB-11D2-9791-50C320524153} 
+      Persistence.MajorVersion=   0
+      Persistence.MinorVersion=   12
+      Count           =   0
+      KeysOnly        =   0
+   EndProperty
+   BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+      Persistence.MajorVersion=   0
+      Persistence.MinorVersion=   12
+      BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+         Persistence.MajorVersion=   0
+         Persistence.MinorVersion=   12
+         Count           =   3
+         KeysOnly        =   0
+         BeginProperty Item1 {FFF9A8EC-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Index           =   1
+            Key             =   "lvGroups"
+            Name            =   "lvGroups"
+            AddToViewMenu   =   0
+            ViewMenuText    =   ""
+            ViewMenuStatusBarText=   ""
+            DefaultItemTypeGUID=   "{4CA96B2C-CBE6-4E60-BFC1-39554EDD122C}"
+            Extensible      =   -1
+            BeginProperty ListView {87BC180F-C8FB-11D1-B44A-30F4BC000000} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+               Icons           =   ""
+               SmallIcons      =   ""
+               Sorted          =   0
+               SortKey         =   0
+               SortOrder       =   0
+               View            =   0
+               Virtual         =   0
+               UseFontLinking  =   0
+               MultiSelect     =   0
+               HideSelection   =   0
+               SortHeader      =   -1
+               SortIcon        =   -1
+               FilterChangeTimeout=   1000
+               ShowChildScopeItems=   -1
+               LexicalSort     =   0
+            EndProperty
+         EndProperty
+         BeginProperty Item2 {FFF9A8EC-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Index           =   2
+            Key             =   "lvUsers"
+            Name            =   "lvUsers"
+            AddToViewMenu   =   0
+            ViewMenuText    =   ""
+            ViewMenuStatusBarText=   ""
+            DefaultItemTypeGUID=   "{29B02518-36BB-4584-99AC-CB6B651C2045}"
+            Extensible      =   -1
+            BeginProperty ListView {87BC180F-C8FB-11D1-B44A-30F4BC000000} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   4
+                  KeysOnly        =   0
+                  BeginProperty Item1 {3B15D613-CD57-11D1-B44C-44750B000000} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Index           =   1
+                     Key             =   "usersName"
+                     Text            =   "Name"
+                     Object.Width           =   -1
+                     Alignment       =   0
+                     Hidden          =   0
+                     TextFilter      =   ""
+                     TextFilterMaxLen=   260
+                     NumericFilter   =   ""
+                  EndProperty
+                  BeginProperty Item2 {3B15D613-CD57-11D1-B44C-44750B000000} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Index           =   2
+                     Key             =   "usersHostMask"
+                     Text            =   "Host Mask"
+                     Object.Width           =   -1
+                     Alignment       =   0
+                     Hidden          =   0
+                     TextFilter      =   ""
+                     TextFilterMaxLen=   260
+                     NumericFilter   =   ""
+                  EndProperty
+                  BeginProperty Item3 {3B15D613-CD57-11D1-B44C-44750B000000} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Index           =   3
+                     Key             =   "usersType"
+                     Text            =   "Type"
+                     Object.Width           =   -1
+                     Alignment       =   0
+                     Hidden          =   0
+                     TextFilter      =   ""
+                     TextFilterMaxLen=   260
+                     NumericFilter   =   ""
+                  EndProperty
+                  BeginProperty Item4 {3B15D613-CD57-11D1-B44C-44750B000000} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Index           =   4
+                     Key             =   "usersGroup"
+                     Text            =   "Group"
+                     Object.Width           =   -1
+                     Alignment       =   0
+                     Hidden          =   0
+                     TextFilter      =   ""
+                     TextFilterMaxLen=   260
+                     NumericFilter   =   ""
+                  EndProperty
+               EndProperty
+               Icons           =   ""
+               SmallIcons      =   ""
+               Sorted          =   0
+               SortKey         =   0
+               SortOrder       =   0
+               View            =   3
+               Virtual         =   0
+               UseFontLinking  =   0
+               MultiSelect     =   0
+               HideSelection   =   0
+               SortHeader      =   -1
+               SortIcon        =   -1
+               FilterChangeTimeout=   1000
+               ShowChildScopeItems=   -1
+               LexicalSort     =   0
+            EndProperty
+         EndProperty
+         BeginProperty Item3 {FFF9A8EC-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Index           =   3
+            Key             =   "lvBasic"
+            Name            =   "lvBasic"
+            AddToViewMenu   =   0
+            ViewMenuText    =   ""
+            ViewMenuStatusBarText=   ""
+            DefaultItemTypeGUID=   "{361DF1B3-EA0A-464A-B0CE-BEDE3A21FB23}"
+            Extensible      =   -1
+            BeginProperty ListView {87BC180F-C8FB-11D1-B44A-30F4BC000000} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   3
+                  KeysOnly        =   0
+                  BeginProperty Item1 {3B15D613-CD57-11D1-B44C-44750B000000} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Index           =   1
+                     Key             =   "basicName"
+                     Text            =   "Property Name"
+                     Object.Width           =   150
+                     Alignment       =   0
+                     Hidden          =   0
+                     TextFilter      =   ""
+                     TextFilterMaxLen=   260
+                     NumericFilter   =   ""
+                  EndProperty
+                  BeginProperty Item2 {3B15D613-CD57-11D1-B44C-44750B000000} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Index           =   2
+                     Key             =   "basicValue"
+                     Text            =   "Property Value"
+                     Object.Width           =   300
+                     Alignment       =   0
+                     Hidden          =   0
+                     TextFilter      =   ""
+                     TextFilterMaxLen=   260
+                     NumericFilter   =   ""
+                  EndProperty
+                  BeginProperty Item3 {3B15D613-CD57-11D1-B44C-44750B000000} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Index           =   3
+                     Key             =   "basicDescription"
+                     Text            =   "Property Description"
+                     Object.Width           =   600
+                     Alignment       =   0
+                     Hidden          =   0
+                     TextFilter      =   ""
+                     TextFilterMaxLen=   260
+                     NumericFilter   =   ""
+                  EndProperty
+               EndProperty
+               Icons           =   "ilMain"
+               SmallIcons      =   "ilMain"
+               Sorted          =   0
+               SortKey         =   0
+               SortOrder       =   0
+               View            =   3
+               Virtual         =   0
+               UseFontLinking  =   0
+               MultiSelect     =   0
+               HideSelection   =   0
+               SortHeader      =   -1
+               SortIcon        =   -1
+               FilterChangeTimeout=   1000
+               ShowChildScopeItems=   -1
+               LexicalSort     =   0
+            EndProperty
+         EndProperty
+      EndProperty
+      BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+         Persistence.MajorVersion=   0
+         Persistence.MinorVersion=   12
+         Count           =   0
+         KeysOnly        =   0
+      EndProperty
+      BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+         Persistence.MajorVersion=   0
+         Persistence.MinorVersion=   12
+         Count           =   0
+         KeysOnly        =   0
+      EndProperty
+      BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+         Persistence.MajorVersion=   0
+         Persistence.MinorVersion=   12
+         Count           =   0
+         KeysOnly        =   0
+      EndProperty
+   EndProperty
+   BeginProperty DataFormats {91FE14C5-7370-11D2-97D8-00104B880587} 
+      Persistence.MajorVersion=   0
+      Persistence.MinorVersion=   12
+      Count           =   0
+      KeysOnly        =   0
+   EndProperty
+   BeginProperty SnapInDef {FFF9A8E4-06CB-11D2-9791-50C320524153} 
+      Persistence.MajorVersion=   0
+      Persistence.MinorVersion=   12
+      Name            =   "ignitionServer"
+      NodeTypeName    =   "ignitionServer"
+      NodeTypeGUID    =   "{877F4071-7FB6-474A-9A20-87330F24C771}"
+      DisplayName     =   "ignitionServer"
+      Type            =   2
+      HelpFile        =   ""
+      LinkedTopics    =   ""
+      Description     =   "Provides configuration and statistics for ignitionServer"
+      Provider        =   "The Ignition Project"
+      Version         =   "0.3.6"
+      SmallFolders    =   "ilMain"
+      SmallFoldersOpen=   "ilMain"
+      LargeFolders    =   "ilMain"
+      Icon            =   "ignitionServer.dsx":14F4
+      Watermark       =   "ignitionServer.dsx":C7FE
+      Header          =   "ignitionServer.dsx":C85C
+      Palette         =   "ignitionServer.dsx":C8BA
+      StretchWatermark=   0
+      StaticFolder    =   2
+      DefaultView     =   ""
+      Extensible      =   -1
+      BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+         Persistence.MajorVersion=   0
+         Persistence.MinorVersion=   12
+         BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   0
+            KeysOnly        =   1
+         EndProperty
+         BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   0
+            KeysOnly        =   1
+         EndProperty
+         BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   0
+            KeysOnly        =   1
+         EndProperty
+         BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   0
+            KeysOnly        =   1
+         EndProperty
+      EndProperty
+      BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+         Persistence.MajorVersion=   0
+         Persistence.MinorVersion=   12
+         Count           =   0
+         KeysOnly        =   0
+      EndProperty
+      IID             =   "{E1B3F8D3-6C32-4E94-AC02-27A1CD8BD879}"
+      Preload         =   0
+   EndProperty
+   BeginProperty ExtensionDefs {FFF9A8E6-06CB-11D2-9791-50C320524153} 
+      Persistence.MajorVersion=   0
+      Persistence.MinorVersion=   12
+      ExtendsNewMenu  =   -1
+      ExtendsTaskMenu =   0
+      ExtendsTopMenu  =   -1
+      ExtendsViewMenu =   -1
+      ExtendsPropertyPages=   -1
+      ExtendsToolbar  =   -1
+      ExtendsNameSpace=   -1
+      BeginProperty ExtendedSnapIns {BDA4B9D1-0872-11D2-9791-50C320524153} 
+         Persistence.MajorVersion=   0
+         Persistence.MinorVersion=   12
+         Count           =   0
+         KeysOnly        =   0
+      EndProperty
+   EndProperty
+   BeginProperty AutoCreateNodes {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+      Persistence.MajorVersion=   0
+      Persistence.MinorVersion=   12
+      Count           =   6
+      KeysOnly        =   0
+      BeginProperty Item1 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+         Persistence.MajorVersion=   0
+         Persistence.MinorVersion=   12
+         Name            =   "BasicSettings"
+         Index           =   1
+         Key             =   "BasicSettings"
+         NodeTypeName    =   "BasicSettings"
+         NodeTypeGUID    =   "{5EB7A666-61CB-4357-8208-EEA907F5632F}"
+         DisplayName     =   "Basic Settings"
+         Folder          =   "imgBasicSettings"
+         DefaultDataFormat=   ""
+         AutoCreate      =   -1
+         DefaultView     =   "lvBasic"
+         HasChildren     =   0
+         Extensible      =   -1
+         BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   1
+               KeysOnly        =   1
+               Item1           =   "lvBasic"
+            EndProperty
+            BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+            BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+            BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+         EndProperty
+         BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   0
+            KeysOnly        =   0
+         EndProperty
+         Tag             =   "BasicSettings"
+         BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   0
+            KeysOnly        =   0
+         EndProperty
+      EndProperty
+      BeginProperty Item2 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+         Persistence.MajorVersion=   0
+         Persistence.MinorVersion=   12
+         Name            =   "UsersAndGroups"
+         Index           =   2
+         Key             =   "UsersAndGroups"
+         NodeTypeName    =   "UsersAndGroups"
+         NodeTypeGUID    =   "{2F1F8A50-8032-4A46-A739-D7CF09AC7841}"
+         DisplayName     =   "Users and Groups"
+         Folder          =   "imgUsersAndGroups"
+         DefaultDataFormat=   ""
+         AutoCreate      =   -1
+         DefaultView     =   ""
+         HasChildren     =   -1
+         Extensible      =   -1
+         BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+            BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+            BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+            BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+         EndProperty
+         BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   2
+            KeysOnly        =   0
+            BeginProperty Item1 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Name            =   "Users"
+               Index           =   1
+               Key             =   "Users"
+               NodeTypeName    =   "Users"
+               NodeTypeGUID    =   "{D3DB4DBC-A609-4113-AE5B-75993518BC6E}"
+               DisplayName     =   "Users"
+               Folder          =   "imgUser"
+               DefaultDataFormat=   ""
+               AutoCreate      =   -1
+               DefaultView     =   "lvUsers"
+               HasChildren     =   0
+               Extensible      =   -1
+               BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   1
+                     KeysOnly        =   1
+                     Item1           =   "lvUsers"
+                  EndProperty
+                  BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+               EndProperty
+               BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+               BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+            EndProperty
+            BeginProperty Item2 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Name            =   "Groups"
+               Index           =   2
+               Key             =   "Groups"
+               NodeTypeName    =   "Groups"
+               NodeTypeGUID    =   "{66159E05-B0D9-486E-94BC-0BEDFB883B96}"
+               DisplayName     =   "Groups"
+               Folder          =   "imgGroup"
+               DefaultDataFormat=   ""
+               AutoCreate      =   -1
+               DefaultView     =   "lvGroups"
+               HasChildren     =   0
+               Extensible      =   -1
+               BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   1
+                     KeysOnly        =   1
+                     Item1           =   "lvGroups"
+                  EndProperty
+                  BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+               EndProperty
+               BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+               BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+            EndProperty
+         EndProperty
+         BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   0
+            KeysOnly        =   0
+         EndProperty
+      EndProperty
+      BeginProperty Item3 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+         Persistence.MajorVersion=   0
+         Persistence.MinorVersion=   12
+         Name            =   "Connections"
+         Index           =   3
+         Key             =   "Connections"
+         NodeTypeName    =   "Connections"
+         NodeTypeGUID    =   "{E20F7BBD-621A-4252-90F9-F465AA92EA9A}"
+         DisplayName     =   "Connections"
+         Folder          =   "imgConnections"
+         DefaultDataFormat=   ""
+         AutoCreate      =   -1
+         DefaultView     =   ""
+         HasChildren     =   -1
+         Extensible      =   -1
+         BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+            BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+            BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+            BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+         EndProperty
+         BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   4
+            KeysOnly        =   0
+            BeginProperty Item1 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Name            =   "ConnectionClasses"
+               Index           =   1
+               Key             =   "ConnectionClasses"
+               NodeTypeName    =   "ConnectionClasses"
+               NodeTypeGUID    =   "{5683D798-A83D-4E1E-9D7A-C79DB223F783}"
+               DisplayName     =   "Connection Classes"
+               Folder          =   "imgConnectionClasses"
+               DefaultDataFormat=   ""
+               AutoCreate      =   -1
+               DefaultView     =   ""
+               HasChildren     =   0
+               Extensible      =   -1
+               BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+               EndProperty
+               BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+               BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+            EndProperty
+            BeginProperty Item2 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Name            =   "Servers"
+               Index           =   2
+               Key             =   "Servers"
+               NodeTypeName    =   "Servers"
+               NodeTypeGUID    =   "{7924FEE2-9D31-47B3-A860-0954AF0060C4}"
+               DisplayName     =   "Servers"
+               DefaultDataFormat=   ""
+               AutoCreate      =   -1
+               DefaultView     =   ""
+               HasChildren     =   0
+               Extensible      =   -1
+               BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+               EndProperty
+               BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+               BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+            EndProperty
+            BeginProperty Item3 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Name            =   "BlockedIPs"
+               Index           =   3
+               Key             =   "BlockedIPs"
+               NodeTypeName    =   "BlockedIPs"
+               NodeTypeGUID    =   "{C2C7E113-139C-4F32-984D-9E4419B0D5F1}"
+               DisplayName     =   "Blocked IPs"
+               DefaultDataFormat=   ""
+               AutoCreate      =   -1
+               DefaultView     =   ""
+               HasChildren     =   0
+               Extensible      =   -1
+               BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+               EndProperty
+               BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+               BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+            EndProperty
+            BeginProperty Item4 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Name            =   "Ports"
+               Index           =   4
+               Key             =   "Ports"
+               NodeTypeName    =   "Ports"
+               NodeTypeGUID    =   "{90485A7D-F589-4F79-9D40-0EE2004D0F2A}"
+               DisplayName     =   "Ports"
+               DefaultDataFormat=   ""
+               AutoCreate      =   -1
+               DefaultView     =   ""
+               HasChildren     =   0
+               Extensible      =   -1
+               BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+               EndProperty
+               BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+               BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+            EndProperty
+         EndProperty
+         BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   0
+            KeysOnly        =   0
+         EndProperty
+      EndProperty
+      BeginProperty Item4 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+         Persistence.MajorVersion=   0
+         Persistence.MinorVersion=   12
+         Name            =   "Security"
+         Index           =   4
+         Key             =   "Security"
+         NodeTypeName    =   "Security"
+         NodeTypeGUID    =   "{4B8F204C-3C4A-498B-A5D8-A93771DC0244}"
+         DisplayName     =   "Security"
+         DefaultDataFormat=   ""
+         AutoCreate      =   -1
+         DefaultView     =   ""
+         HasChildren     =   -1
+         Extensible      =   -1
+         BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+            BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+            BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+            BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+         EndProperty
+         BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   1
+            KeysOnly        =   0
+            BeginProperty Item1 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Name            =   "Passwords"
+               Index           =   1
+               Key             =   "Passwords"
+               NodeTypeName    =   "Passwords"
+               NodeTypeGUID    =   "{6B381E35-2C01-4193-8CDB-DBD0B532244B}"
+               DisplayName     =   "Passwords"
+               DefaultDataFormat=   ""
+               AutoCreate      =   -1
+               DefaultView     =   ""
+               HasChildren     =   0
+               Extensible      =   -1
+               BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+               EndProperty
+               BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+               BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+            EndProperty
+         EndProperty
+         BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   0
+            KeysOnly        =   0
+         EndProperty
+      EndProperty
+      BeginProperty Item5 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+         Persistence.MajorVersion=   0
+         Persistence.MinorVersion=   12
+         Name            =   "MessageOfTheDay"
+         Index           =   5
+         Key             =   "MessageOfTheDay"
+         NodeTypeName    =   "MessageOfTheDay"
+         NodeTypeGUID    =   "{8CF1F8E2-AEC7-4C73-8610-4ED4134A054B}"
+         DisplayName     =   "Message of the Day"
+         DefaultDataFormat=   ""
+         AutoCreate      =   -1
+         DefaultView     =   ""
+         HasChildren     =   -1
+         Extensible      =   -1
+         BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+            BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+            BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+            BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+         EndProperty
+         BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   3
+            KeysOnly        =   0
+            BeginProperty Item1 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Name            =   "DefaultMOTD"
+               Index           =   1
+               Key             =   "DefaultMOTD"
+               NodeTypeName    =   "DefaultMOTD"
+               NodeTypeGUID    =   "{EC67B70C-1EFC-426B-99FB-4860CD53A93D}"
+               DisplayName     =   "Default MOTD"
+               DefaultDataFormat=   ""
+               AutoCreate      =   -1
+               DefaultView     =   ""
+               HasChildren     =   0
+               Extensible      =   -1
+               BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+               EndProperty
+               BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+               BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+            EndProperty
+            BeginProperty Item2 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Name            =   "ShortMOTD"
+               Index           =   2
+               Key             =   "ShortMOTD"
+               NodeTypeName    =   "ShortMOTD"
+               NodeTypeGUID    =   "{8CF54009-DCE2-4412-9502-4538FE825AE9}"
+               DisplayName     =   "Short MOTD"
+               DefaultDataFormat=   ""
+               AutoCreate      =   -1
+               DefaultView     =   ""
+               HasChildren     =   0
+               Extensible      =   -1
+               BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+               EndProperty
+               BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+               BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+            EndProperty
+            BeginProperty Item3 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Name            =   "OperatorMOTDs"
+               Index           =   3
+               Key             =   "OperatorMOTDs"
+               NodeTypeName    =   "OperatorMOTDs"
+               NodeTypeGUID    =   "{5E76D182-5F40-4E7D-95EA-AF77F451357E}"
+               DisplayName     =   "Operator MOTDs"
+               DefaultDataFormat=   ""
+               AutoCreate      =   -1
+               DefaultView     =   ""
+               HasChildren     =   -1
+               Extensible      =   -1
+               BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+                  BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Count           =   0
+                     KeysOnly        =   1
+                  EndProperty
+               EndProperty
+               BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   4
+                  KeysOnly        =   0
+                  BeginProperty Item1 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Name            =   "DefaultOperatorMOTD"
+                     Index           =   1
+                     Key             =   "DefaultOperatorMOTD"
+                     NodeTypeName    =   "DefaultOperatorMOTD"
+                     NodeTypeGUID    =   "{FA9E2F50-6EB0-40CC-AE00-D86DC336C3E9}"
+                     DisplayName     =   "Default Operator MOTD"
+                     DefaultDataFormat=   ""
+                     AutoCreate      =   -1
+                     DefaultView     =   ""
+                     HasChildren     =   0
+                     Extensible      =   -1
+                     BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+                        Persistence.MajorVersion=   0
+                        Persistence.MinorVersion=   12
+                        BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+                           Persistence.MajorVersion=   0
+                           Persistence.MinorVersion=   12
+                           Count           =   0
+                           KeysOnly        =   1
+                        EndProperty
+                        BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+                           Persistence.MajorVersion=   0
+                           Persistence.MinorVersion=   12
+                           Count           =   0
+                           KeysOnly        =   1
+                        EndProperty
+                        BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+                           Persistence.MajorVersion=   0
+                           Persistence.MinorVersion=   12
+                           Count           =   0
+                           KeysOnly        =   1
+                        EndProperty
+                        BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+                           Persistence.MajorVersion=   0
+                           Persistence.MinorVersion=   12
+                           Count           =   0
+                           KeysOnly        =   1
+                        EndProperty
+                     EndProperty
+                     BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+                        Persistence.MajorVersion=   0
+                        Persistence.MinorVersion=   12
+                        Count           =   0
+                        KeysOnly        =   0
+                     EndProperty
+                     BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+                        Persistence.MajorVersion=   0
+                        Persistence.MinorVersion=   12
+                        Count           =   0
+                        KeysOnly        =   0
+                     EndProperty
+                  EndProperty
+                  BeginProperty Item2 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Name            =   "LocalOperatorMOTD"
+                     Index           =   2
+                     Key             =   "LocalOperatorMOTD"
+                     NodeTypeName    =   "LocalOperatorMOTD"
+                     NodeTypeGUID    =   "{5F5DF0EB-0669-4E7C-B88B-D3EA477C9AC3}"
+                     DisplayName     =   "Local Operator MOTD"
+                     DefaultDataFormat=   ""
+                     AutoCreate      =   -1
+                     DefaultView     =   ""
+                     HasChildren     =   0
+                     Extensible      =   -1
+                     BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+                        Persistence.MajorVersion=   0
+                        Persistence.MinorVersion=   12
+                        BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+                           Persistence.MajorVersion=   0
+                           Persistence.MinorVersion=   12
+                           Count           =   0
+                           KeysOnly        =   1
+                        EndProperty
+                        BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+                           Persistence.MajorVersion=   0
+                           Persistence.MinorVersion=   12
+                           Count           =   0
+                           KeysOnly        =   1
+                        EndProperty
+                        BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+                           Persistence.MajorVersion=   0
+                           Persistence.MinorVersion=   12
+                           Count           =   0
+                           KeysOnly        =   1
+                        EndProperty
+                        BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+                           Persistence.MajorVersion=   0
+                           Persistence.MinorVersion=   12
+                           Count           =   0
+                           KeysOnly        =   1
+                        EndProperty
+                     EndProperty
+                     BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+                        Persistence.MajorVersion=   0
+                        Persistence.MinorVersion=   12
+                        Count           =   0
+                        KeysOnly        =   0
+                     EndProperty
+                     BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+                        Persistence.MajorVersion=   0
+                        Persistence.MinorVersion=   12
+                        Count           =   0
+                        KeysOnly        =   0
+                     EndProperty
+                  EndProperty
+                  BeginProperty Item3 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Name            =   "GlobalOperatorMOTD"
+                     Index           =   3
+                     Key             =   "GlobalOperatorMOTD"
+                     NodeTypeName    =   "GlobalOperatorMOTD"
+                     NodeTypeGUID    =   "{EC144F1D-489C-4F08-BAFF-39190C6A89DD}"
+                     DisplayName     =   "Global Operator MOTD"
+                     DefaultDataFormat=   ""
+                     AutoCreate      =   -1
+                     DefaultView     =   ""
+                     HasChildren     =   0
+                     Extensible      =   -1
+                     BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+                        Persistence.MajorVersion=   0
+                        Persistence.MinorVersion=   12
+                        BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+                           Persistence.MajorVersion=   0
+                           Persistence.MinorVersion=   12
+                           Count           =   0
+                           KeysOnly        =   1
+                        EndProperty
+                        BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+                           Persistence.MajorVersion=   0
+                           Persistence.MinorVersion=   12
+                           Count           =   0
+                           KeysOnly        =   1
+                        EndProperty
+                        BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+                           Persistence.MajorVersion=   0
+                           Persistence.MinorVersion=   12
+                           Count           =   0
+                           KeysOnly        =   1
+                        EndProperty
+                        BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+                           Persistence.MajorVersion=   0
+                           Persistence.MinorVersion=   12
+                           Count           =   0
+                           KeysOnly        =   1
+                        EndProperty
+                     EndProperty
+                     BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+                        Persistence.MajorVersion=   0
+                        Persistence.MinorVersion=   12
+                        Count           =   0
+                        KeysOnly        =   0
+                     EndProperty
+                     BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+                        Persistence.MajorVersion=   0
+                        Persistence.MinorVersion=   12
+                        Count           =   0
+                        KeysOnly        =   0
+                     EndProperty
+                  EndProperty
+                  BeginProperty Item4 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+                     Persistence.MajorVersion=   0
+                     Persistence.MinorVersion=   12
+                     Name            =   "NetworkAdministratorMOTD"
+                     Index           =   4
+                     Key             =   "NetworkAdministratorMOTD"
+                     NodeTypeName    =   "NetworkAdministratorMOTD"
+                     NodeTypeGUID    =   "{A17C6949-98BE-454F-96B8-2869258A8291}"
+                     DisplayName     =   "Network Administrator MOTD"
+                     DefaultDataFormat=   ""
+                     AutoCreate      =   -1
+                     DefaultView     =   ""
+                     HasChildren     =   0
+                     Extensible      =   -1
+                     BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+                        Persistence.MajorVersion=   0
+                        Persistence.MinorVersion=   12
+                        BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+                           Persistence.MajorVersion=   0
+                           Persistence.MinorVersion=   12
+                           Count           =   0
+                           KeysOnly        =   1
+                        EndProperty
+                        BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+                           Persistence.MajorVersion=   0
+                           Persistence.MinorVersion=   12
+                           Count           =   0
+                           KeysOnly        =   1
+                        EndProperty
+                        BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+                           Persistence.MajorVersion=   0
+                           Persistence.MinorVersion=   12
+                           Count           =   0
+                           KeysOnly        =   1
+                        EndProperty
+                        BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+                           Persistence.MajorVersion=   0
+                           Persistence.MinorVersion=   12
+                           Count           =   0
+                           KeysOnly        =   1
+                        EndProperty
+                     EndProperty
+                     BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+                        Persistence.MajorVersion=   0
+                        Persistence.MinorVersion=   12
+                        Count           =   0
+                        KeysOnly        =   0
+                     EndProperty
+                     BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+                        Persistence.MajorVersion=   0
+                        Persistence.MinorVersion=   12
+                        Count           =   0
+                        KeysOnly        =   0
+                     EndProperty
+                  EndProperty
+               EndProperty
+               BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+                  Persistence.MajorVersion=   0
+                  Persistence.MinorVersion=   12
+                  Count           =   0
+                  KeysOnly        =   0
+               EndProperty
+            EndProperty
+         EndProperty
+         BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   0
+            KeysOnly        =   0
+         EndProperty
+      EndProperty
+      BeginProperty Item6 {FFF9A8EA-06CB-11D2-9791-50C320524153} 
+         Persistence.MajorVersion=   0
+         Persistence.MinorVersion=   12
+         Name            =   "AdvancedSettings"
+         Index           =   6
+         Key             =   "AdvancedSettings"
+         NodeTypeName    =   "AdvancedSettings"
+         NodeTypeGUID    =   "{5AEB3F4A-E5D4-416D-AC99-46F336473FB9}"
+         DisplayName     =   "Advanced Settings"
+         DefaultDataFormat=   ""
+         AutoCreate      =   -1
+         DefaultView     =   ""
+         HasChildren     =   0
+         Extensible      =   -1
+         BeginProperty ViewDefs {FFF9A8E1-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            BeginProperty ListViews {FFF9A8FC-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+            BeginProperty OCXViews {FFF9A8FF-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+            BeginProperty URLViews {FFF9A902-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+            BeginProperty TaskpadViews {FFF9A904-06CB-11D2-9791-50C320524153} 
+               Persistence.MajorVersion=   0
+               Persistence.MinorVersion=   12
+               Count           =   0
+               KeysOnly        =   1
+            EndProperty
+         EndProperty
+         BeginProperty Children {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   0
+            KeysOnly        =   0
+         EndProperty
+         BeginProperty ColumnHeaders {3B15D611-CD57-11D1-B44C-44750B000000} 
+            Persistence.MajorVersion=   0
+            Persistence.MinorVersion=   12
+            Count           =   0
+            KeysOnly        =   0
+         EndProperty
+      EndProperty
+   EndProperty
+   BeginProperty OtherNodes {FFF9A8F4-06CB-11D2-9791-50C320524153} 
+      Persistence.MajorVersion=   0
+      Persistence.MinorVersion=   12
+      Count           =   0
+      KeysOnly        =   0
+   EndProperty
+   TypeinfoCookie  =   230
+   ProjectName     =   "ignitionServerMMC"
+End
+Attribute VB_Name = "ignitionServer"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = True
+Option Explicit
+
+Private Sub ExtensionSnapIn_Expand(ByVal Data As SnapInLib.MMCDataObject, ByVal ScopeNode As SnapInLib.ScopeNode)
+    On Error Resume Next
+    Dim MachineName As String
+    Dim ExtensionRoot As ScopeItem
+
+' not working, anyone want to fix?
+' (this would have added ignitionServer under Services and Applications in computer management)
+'    If ScopeNode.NodeTypeGUID = "{476E6449-AAFF-11D0-B944-00C04FD8D5B0}" Then
+        MachineName = FormatData(Data.GetData("MMC_SNAPIN_MACHINE_NAME", 512), 1, siString)
+        If MachineName = "" Then
+            MachineName = "Local Machine"
+        End If
+        Set ExtensionRoot = ScopeItems.AddPreDefined("ExtensionRoot", _
+                                                     "ExtensionRoot", _
+                                                    ScopeNode, siParent)
+        ExtensionRoot.ScopeNode.DisplayName = "ignitionServer (" & MachineName & ")"
+'    End If
+End Sub
+
+Private Sub ResultViews_Initialize(ByVal ResultView As SnapInLib.ResultView)
+Dim theItem As MMCListItem
+If ResultView.DisplayString = "lvBasic" Then
+  With ResultView
+    Set theItem = .ListView.ListItems.Add(, "serveraddr", "Server Address") 'this item is only displayed when not in report view
+    'name value desc
+    theItem.ListSubItems.Add , "serveraddr_name", "Server Address"
+    theItem.ListSubItems.Add , "serveraddr_value", "ignition.servebeer.com"
+    theItem.ListSubItems.Add , "serveraddr_desc", "Sets the hostname the server returns in all of its replies. Must only contain alphanumeric characters, dot (.), and dash (-). It may NOT contain spaces."
+    theItem.Data.SetData "ignition.servebeer.com", "Value"
+    Set theItem = .ListView.ListItems.Add(, "servername", "Server Name")
+    theItem.ListSubItems.Add , "servername_name", "Server Name"
+    theItem.ListSubItems.Add , "servername_value", "ignitionServer Test Server"
+    theItem.ListSubItems.Add , "servername_desc", "Sets the long name returned by the server whenever its name is required (such as /whois replies). May contain spaces, and should be somewhat short (i.e. no poetry)."
+    Set theItem = .ListView.ListItems.Add(, "serverdesc", "Server Description")
+    theItem.ListSubItems.Add , "serverdesc_name", "Server Description"
+    theItem.ListSubItems.Add , "servername_value", "IRCXpro - $300. Exchange - $1500. ignitionServer - Priceless."
+    theItem.ListSubItems.Add , "servername_desc", "Sets the description the server returns. Could be a geographical location, poetry, quote, or long server name (i.e. ""My Chat Network's Excellent Beta Test Server"")"
+    Set theItem = .ListView.ListItems.Add(, "adminname", "Administrator Name")
+    theItem.ListSubItems.Add , "adminname_name", "Administrator Name"
+    theItem.ListSubItems.Add , "adminname_value", "Your Name Here"
+    theItem.ListSubItems.Add , "adminname_desc", "Sets the name of this server's administrator. Used in the reply for the /admin command."
+    Set theItem = .ListView.ListItems.Add(, "adminlocation", "Administrator Location")
+    theItem.ListSubItems.Add , "adminlocation_name", "Administrator Location"
+    theItem.ListSubItems.Add , "adminlocation_value", "Some Location, Earth"
+    theItem.ListSubItems.Add , "adminlocation_desc", "Sets the geographical location of this server's administrator. Used in the reply for the /admin command."
+    Set theItem = .ListView.ListItems.Add(, "adminemail", "Administrator E-Mail")
+    theItem.ListSubItems.Add , "adminemail_name", "Administrator E-Mail"
+    theItem.ListSubItems.Add , "adminemail_value", "admin@yoursite.com"
+    theItem.ListSubItems.Add , "adminemail_desc", "Sets the e-mail address of this server's administrator so users can contact him/her in case of an emergency. Used in the reply for the /admin command."
+  End With
+End If
+End Sub
+
+Private Sub Views_AddNewMenuItems(ByVal View As SnapInLib.View, ByVal Selection As SnapInLib.MMCClipboard, ByVal ContextMenu As SnapInLib.ContextMenu, InsertionAllowed As Boolean)
+If Selection.SelectionType = siSingleScopeItem Then
+  If Selection.ScopeItems(1).Name = "Users" Then
+    ContextMenu.AddMenu mnuNewUser
+  End If
+End If
+End Sub
+
+Private Sub Views_AddTopMenuItems(ByVal View As SnapInLib.View, ByVal Selection As SnapInLib.MMCClipboard, ByVal ContextMenu As SnapInLib.ContextMenu, InsertionAllowed As Boolean)
+If Selection.SelectionType = siSingleScopeItem Then
+  If Selection.ScopeItems(1).Name = "Users" Then
+    ContextMenu.AddMenu mnuRootNewUser
+  End If
+End If
+End Sub
+
+Private Sub Views_CreatePropertyPages(ByVal View As SnapInLib.View, ByVal Selection As SnapInLib.MMCClipboard, ByVal PropertySheet As SnapInLib.MMCPropertySheet)
+Dim Position As Long
+Dim ScopeItem As ScopeItem
+Dim ListItem As MMCListItem
+
+Position = 0
+
+For Each ScopeItem In Selection.ScopeItems
+    If ScopeItem.ScopeNode.Parent.DisplayName = "Basic Settings" Then
+        PropertySheet.AddPage "ppgBasic", ScopeItem.ScopeNode.DisplayName, True, False, Str(Position)
+        Position = Position + 1
+    End If
+Next ScopeItem
+End Sub
+
+Private Sub Views_QueryPagesFor(ByVal View As SnapInLib.View, ByVal Selection As SnapInLib.MMCClipboard, HasPropertyPages As Boolean)
+    Dim ScopeItem As ScopeItem
+
+    ' Assume no property pages.
+    'HasPropertyPages = False
+    
+    ' If there are any list items then we do have property pages.
+
+    If Selection.ListItems.Count > 0 Then
+        ConsoleMsgBox "listitems > 0"
+        HasPropertyPages = True
+        Exit Sub
+    End If
+End Sub

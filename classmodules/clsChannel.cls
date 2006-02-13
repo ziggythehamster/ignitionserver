@@ -28,7 +28,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsChannel.cls,v 1.13 2004/09/25 19:28:37 ziggythehamster Exp $
+' $Id: clsChannel.cls,v 1.16 2004/12/04 21:43:09 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -61,6 +61,7 @@ Public IsKnock As Boolean 'IRCX
 Public IsAuditorium As Boolean 'IRCX
 Public IsClone As Boolean 'IRCX
 Public IsCloneable As Boolean 'IRCX
+Public IsMonitored As Boolean 'IRCX - A Service Is Watching.
 
 Public IsPrivate As Boolean
 Public IsSecret As Boolean

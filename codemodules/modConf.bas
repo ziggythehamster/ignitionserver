@@ -14,7 +14,7 @@ Attribute VB_Name = "modConf"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: modConf.bas,v 1.30 2004/09/25 19:28:37 ziggythehamster Exp $
+' $Id: modConf.bas,v 1.33 2004/12/04 21:43:10 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -507,6 +507,28 @@ Select Case UCase$(Flag)
                       ReDim Preserve AutoJoinChannels(UBound(AutoJoinChannels) + 1)
                       AutoJoinChannels(UBound(AutoJoinChannels)) = CStr(Line(1))
                     End If
+                  End If
+                ElseIf UCase$(Section) = "LOGGING" Then
+                  If Line(1) = "0" Then
+                    LogChannels = False
+                    LogChannelWhispers = False
+                    LogUsers = False
+                  ElseIf Line(1) = "1" Then
+                    LogChannels = True
+                    LogChannelWhispers = False
+                    LogUsers = False
+                  ElseIf Line(1) = "2" Then
+                    LogChannels = True
+                    LogChannelWhispers = True
+                    LogUsers = False
+                  ElseIf Line(1) = "3" Then
+                    LogChannels = True
+                    LogChannelWhispers = True
+                    LogUsers = True
+                  Else
+                    LogChannels = False
+                    LogChannelWhispers = False
+                    LogUsers = False
                   End If
                 ElseIf UCase$(Section) = "SVSNICK" Then
                     If UCase$(Line(1)) = "NICKSERV" Then

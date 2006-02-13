@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_NativeFunctions"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_NativeFunctions.bas,v 1.21 2004/09/11 22:02:37 ziggythehamster Exp $
+' $Id: mod_NativeFunctions.bas,v 1.23 2004/12/04 21:43:10 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -215,7 +215,7 @@ End Function
 'through all users and check for these modes! -Dill
 Public Sub SendSvrMsg(Msg As String, Optional Glob As Boolean = False, Optional Origin As String)
 #If Debugging = 1 Then
-    CreateObject("Scripting.FileSystemObject").OpenTextFile(App.Path & "\ircx.log", 8, True).WriteLine Msg
+    InternalDebug Msg
 #End If
 If ServerMsg.Count = 0 Then Exit Sub
 If Len(Origin) = 0 Then Origin = ServerName
@@ -268,7 +268,13 @@ For i = LBound(Recv) To UBound(Recv)
 Next i
 If Glob Then SendToServer "GNOTICE :" & Msg, Origin
 End Sub
-
+Public Sub ErrorMsg2(Msg As String)
+Dim F As Long
+F = FreeFile
+Open App.Path & "\errorlog.txt" For Append As F
+Print #1, "[" & Now & "] " & Msg
+Close #F
+End Sub
 'simply substituting chr$(0) with the users nick because the motd is cached -Dill
 Public Function ReadMotd(Nick As String) As String
 #If Debugging = 1 Then
