@@ -1,0 +1,103 @@
+body {
+   font-family: Tahoma, Verdana, Bitstream Vera Sans, Vera Sans, Lucida Grande, Helvetica, Arial, sans-serif;
+   font-size: 10pt;
+   line-height: 135%;
+}
+
+td {
+   padding: 5px;
+}
+
+th {
+   padding: 5px;
+   font-weight: bold;
+}
+
+tt.filename {
+   color: #000000;
+   background-color: #CCFFCC;
+   border-right: 1px solid #66CC66;
+   border-bottom: 1px solid #66CC66;
+   border-top: 1px solid #DDDDDD;
+   border-left: 1px solid #DDDDDD;
+   padding-left: 2px;
+   padding-right: 2px;
+   margin-left: 2px;
+   margin-right: 2px;
+}
+
+tt.systemitem {
+   color: #000000;
+   font-family: Bitstream Vera Sans Mono, Vera Sans Mono, Lucida Console, Courier New, fixed;
+   font-size: 10pt;
+   border-bottom: 1px dashed #CCCCCC;
+}
+
+tr.question td {
+   /* background-color: #CCFFCC; */
+   /* border: 1px solid #009900; */
+   background-color: #99CCFF;
+   border: 1px solid #0066CC;
+   color: #000000;
+   margin: 0;
+}
+
+tr.answer td {
+   /* background-color: #FFCCCC; */
+   /* border: 1px solid #FF0000; */
+   background-color: #EEEEEE;
+   border: 1px solid #AAAAAA;
+   color: #000000;
+   margin: 0;
+}
+
+div.qandaset dl {
+   background-color: #EEEEEE;
+   border: 1px solid #AAAAAA;
+   color: #000000;
+   padding: 5px;
+}
+
+.command {
+   font-family: Courier New, monospace;
+   font-weight: normal;
+   font-size: 95%;
+}
+
+.synopsis {
+   font-family: Courier New, monospace;
+   font-weight: normal;
+   font-size: 100%;
+}
+
+.note {
+   padding: 10px;
+   margin-top: 10px;
+   border: 1px dashed #CCCCCC;
+}
+
+.token {
+   font-weight: bold;
+   font-style: italic;
+}
+.userinput {
+   background-color: #FFCCCC;
+   border-right: 1px solid #FF0000;
+   border-bottom: 1px solid #FF0000;
+   border-top: 1px solid #FF9999;
+   border-left: 1px solid #FF9999;
+   padding-top: 0px;
+   padding-bottom: 0px;
+   padding-left: 2px;
+   padding-right: 2px;
+   margin-left: 2px;
+   margin-right: 2px;
+   color: #000000;
+}
+.userinput tt {
+   margin: 0;
+   padding: 0;
+}
+.strong {
+   font-weight: bold;
+}

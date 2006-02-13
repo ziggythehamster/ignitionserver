@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<ignitionserver xmlns="http://www.ignition-project.com/xmlns/ignitionserver/1.0">
+<ignitionserver
+	       m:xmlns="http://www.ignition-project.com/xmlns/ignitionserver-macros/1.0" 
+	       xmlns="http://www.ignition-project.com/xmlns/ignitionserver/1.0">
 <!--
-ignitionServer 0.3.4 Server Configuration
+ignitionServer 0.3.7 Server Configuration
 =========================================
 
 This XML file contains all of the settings
@@ -16,9 +18,12 @@ same line, etc. All comments are enclosed
 with characters like this comment block is.
 It shouldn't be too hard to figure out :).
 
-P.S. DON'T FORGET! Set the "die" option line,
+P.S. DON'T FORGET! Set the "die" option to false,
 or else your server will say it's misconfigured!
 -->
+
+<!-- also note: tags are CASE SENSITIVE -->
+
    <core>
       <!--
       ignitionServer Core Settings
@@ -35,22 +40,17 @@ or else your server will say it's misconfigured!
       best results, server address should be a resolvable hostname,
       but it's not necessarily required.
       -->
-      <serveraddress>localhost</serveraddress>
-      <servername>ignitionServer Test Server</servername>
-      <serverlocation>Oklahoma, US</serverlocation>
-      <serverdescription>IRCXpro - $300. Exchange - $1500. ignitionServer - Priceless.</serverdescription>
-      
-      <administrator location="Some Location, Earth" name="Your Name Here" email="admin@yoursite.com" />
-      <!--
-      /restart and /die passwords
-      If password encrpytion is enabled, they are encrypted.
-      
-      defaults:
-      /restart: restart
-      /die: die
-      -->
-      <restartpass>8a7ef1c3e82395341b7000b79c239eb4</restartpass>
-      <diepass>81b63b9d54b303edeaf9765a6915ee13</diepass>
+      <server>
+         <serverAddress>localhost</serverAddress>
+         <serverName>ignitionServer Test Server</serverName>
+         <serverLocation>Oklahoma, US</serverLocation>
+         <serverDescription>IRCXpro - $300. Exchange - $1500. ignitionServer - Priceless.</serverDescription>
+         <administrator>
+            <administratorLocation>Some Location, Earth</administratorLocation>
+            <administratorName>Your Name Here</administratorName>
+            <administratorEmail>admin@yoursite.com</administratorEmail>
+         </administrator>
+      </server>	
    </core>
    <ports>
       <!--
@@ -63,18 +63,30 @@ or else your server will say it's misconfigured!
       various options on the port. Currently,
       there are no supported options, however we
       intend on adding them.
-      
-      Description of Fields:
-      adapter: IP address of the adapter to bind to. can be retreived with ipconfig /all (NT/2000/XP) or winipcfg (95/98/Me)
-      port: port on the adapter to bind to. must not be already bound to, by ignitionServer or another process
-      options (optional): comma-delimted list of options for the port. no options are currently supported, however we plan on supporting
-               the following options:
-               ssl - use SSL encryption on this port
-               serveronly - clients will be killed if they attempt to register as a client and not a server
-               motd="file.motd" - specify a special MOTD for this port
-      Note: options are currently NOT supported!
+
+      Currently supported nodes:
+      port/portAdapter: specify the IP address of the adapter to bind to (0.0.0.0 binds to every adapter, the default)
+      port/portNumber: number of the port to bind to (6667 usually)
+      port/portOptions
+      port/portOptions/portMOTD: Message of the day file to use for users connecting to this port. Default path is where ignitionServer is installed. (optional)
+      port/portOptions/portUseSSL: Port should use SSL (true/false) [unsupported, planned for addition]
+      port/portProtocol: protocol in use on this port. Possible options: irc, telnet (future), irp (ignition remote protocol - future); default = irc
+      port/portSecurity
+      port/portSecurity/portAuth: Name of the authentication mechanism to use. Possible options: digest, proxy, plain, none (default = none)
+
+      Add multiple port nodes to make ignitionServer bind to multiple ports
       -->
-      <port adapter="*" port="6667" />
+      <port>
+         <portAdapter>0.0.0.0</portAdapter>
+         <portNumber>6667</portNumber>
+         <portOptions>
+            <portMOTD>ircx.motd</portMOTD>
+         </portOptions>
+         <portProtocol>irc</portProtocol>
+         <portSecurity>
+            <portAuth>none</portAuth>
+         </portSecurity>
+      </port>
    </ports>   
    <security>
       <!--
@@ -87,46 +99,71 @@ or else your server will say it's misconfigured!
       settings here first.
       -->
       
+      <!--
+	/restart and /die passwords
+	If password encrpytion is enabled, they are encrypted.
+	
+	defaults:
+	/restart: restart
+	/die: die
+      -->
+      <restartpass>8a7ef1c3e82395341b7000b79c239eb4</restartpass>
+      <diepass>81b63b9d54b303edeaf9765a6915ee13</diepass>
+      
       <!-- in all of the following, 0 means "infinite" (which really means 4,294,967,296) -->
       <!-- Use infinite with extreme caution! Setting the maximum nickname length to infinite will allow Denial of Service attacks! -->
-      <maxconnections>1024</maxconnections>  <!-- total number of connections the server can handle -->
-      <maxclones>5</maxclones>               <!-- maximum number of connections from a particular IP address -->
-      <maxchansperuser>10</maxchansperuser>  <!-- maximum number of channels a user can be in -->
-      <nicklen>32</nicklen>                  <!-- maximum length of a nickname -->
-      <topiclen>150</topiclen>               <!-- maximum length of a channel's topic -->
-      <kicklen>150</kicklen>                 <!-- maximum length of a kick message -->
-      <partlen>150</partlen>                 <!-- maximum length of a part message -->
-      <keylen>32</keylen>                    <!-- maximum length of a host/owner/member key -->
-      <quitlen>150</quitlen>                 <!-- maximum length of a quit message -->
-      <wholen>200</wholen>                   <!-- maximum number of users to return in a /who -->
-      <maxlistlen>0</maxlistlen>             <!-- maximum number of channels to return in a /list or /listx -->
-      <maxmessagequeue>0</maxmessagequeue>   <!-- maximum number of messages in a user's queue - in a large network, set this to about 20 for adequate flood protection -->
+
+      <!-- total number of connections the server can handle -->
+      <maxConnections>1024</maxConnections>
+      <!-- maximum number of connections from a particular IP address -->
+      <maxClones>5</maxClones>
+      <!-- maximum number of channels a user can be in -->
+      <maxChansPerUser>10</maxChansPerUser>
+      <!-- maximum length of a nickname -->
+      <nickLen>32</nickLen>
+      <!-- maximum length of a channel's topic -->
+      <topicLen>150</topicLen>
+      <!-- maximum length of a kick message -->
+      <kickLen>150</kickLen>
+      <!-- maximum length of a part message -->
+      <partLen>150</partLen>
+      <!-- maximum length of a host/owner/member key -->
+      <keyLen>32</keyLen>
+      <!-- maximum length of a quit message -->
+      <quitLen>150</quitLen>
+      <!-- maximum number of users to return in a /who -->
+      <whoLen>200</whoLen>
+      <!-- maximum number of channels to return in a /list or /listx -->
+      <maxListLen>0</maxListLen>
+      <!-- maximum number of messages in a user's queue - in a large network, set this to about 20 for adequate flood protection -->
+      <maxMessageQueue>0</maxMessageQueue>
+
       <!-- in the following settings, 0 does NOT mean "infinite" -->
       <!--
       passcrypt: set the password encryption type
                  Currently, the only supported password encryption is MD5 (casing does not matter).
       -->
-      <passcrypt>md5</passcrypt>
-      <!-- allow opers and auth-type users to authenticate using a supported authentication mechanism; this can be disabled/required per-group if needed -->
-      <allowauth>true</allowauth>
+      <passCrypt>md5</passCrypt>
+
       <hostmasking>
          <!--
          ignitionServer Hostmasking Settings
          ===================================
          
-         hostmaskmode: set how to mask hostnames
+         hostmaskMode: set how to mask hostnames
                        Currently, the following options are valid:
                        none - do not mask hostnames
                        md5 - mask hostnames with the MD5 sum of the hostname
                        host - custom hostname masking
-         hostmaskhost: set the hostname mask for use when hostmaskmode is host
+         hostmaskHost: set the hostname mask for use when hostmaskmode is host
                        The user's signon nickname is appended to the hostname with a dot.
                        Example: nickname.hostname
          -->
-         <hostmaskmode>md5</hostmaskmode>
-         <hostmaskhost>users.yoursite.com</hostmaskhost>
+         <hostmaskMode>md5</hostmaskMode>
+         <hostmaskHost>users.yoursite.com</hostmaskHost>
       </hostmasking>
-      <operprot>
+
+      <operProt>
          <!--
          ignitionServer Operator Protection Settings
          ===========================================
@@ -143,10 +180,10 @@ or else your server will say it's misconfigured!
          -->
          
          <!-- highprot = +P -->
-         <highprot>owner</highprot>
+         <highProt>owner</highProt>
          <!-- lowprot = +p -->
-         <lowprot>host</lowprot>
-      </operprot>
+         <lowProt>host</lowProt>
+      </operProt>
    </security>
    <connections>
       <!--
@@ -160,10 +197,10 @@ or else your server will say it's misconfigured!
       For those of you who are familiar with the old-style
       configuration, groups are Y: lines and rules are I: lines.
       -->
-      <groups>
+      <classes>
          <!--
-         ignitionServer Group Settings
-         =============================
+         ignitionServer Connection Class Settings
+         ========================================
          
          When setting up your server, it helps to
          designate certain ranges of IDs for certain
@@ -171,7 +208,7 @@ or else your server will say it's misconfigured!
          
          For the purposes of this configuration, we use
          the following ranges (FYI: more than one user can
-         belong to a group):
+         belong to a class):
          
          1-99:    Normal Clients
          100-199: IRC Operators
@@ -181,28 +218,31 @@ or else your server will say it's misconfigured!
          You are encouraged to come up with your own numbering convention,
          but they MUST be numbers, and cannot be higher than 32767.
          
-         By the way, IRC Operators must have their own group, for security
-         reasons. The server automatically assigns them to whatever group
-         is specified in their <user /> line, however it must be different from
-         the group they were assigned to previously.
+         By the way, IRC Operators must have their own class, for security
+         reasons. The server automatically assigns them to whatever class
+         is specified in their <user /> node, however it must be different from
+         the class they were assigned to previously by a connection rule.
          
-         Description of Fields:
-         id: any number from 1 to 32767, must be unique
-         ping: the number of seconds between pings when the user is inactive. 0 disables pinging.
-         flood: the number of seconds required between clients "joining" the group. if a client
-                joins faster than this, they are not allowed to connect. 0 disables this feature.
-         maxclients: the maximum number of clients that can belong to this group. 0 means infinite.
-         sendq: the length (in bytes) of the output buffer. this buffer is used whenever the server
-                cannot immediately process a request (it's busy). this buffer is in place because
-                malicious clients could easily bog the server down without it. if a client exceeds
-                their sendq, they are killed and removed from the server.
-         title: gives a name to the group, used in user interfaces.
-         requireauth: true, false, or disable. If true, authentication will be required for this group. If
-                false, authentication is allowed but not required. If disable, authentication will not be
-                allowed.
-         authtype (optional if requireauth is false, required if requireauth is true): the type of
+         Description of Values:
+         classId:    any number from 1 to 32767, must be unique
+         classPing:  the number of seconds between pings when the user is inactive. 0 disables pinging.
+         classFlood: the number of seconds required between clients "joining" the class. if a client
+                     joins faster than this, they are not allowed to associate with the class. 0 disables this feature.
+		     A good use for this would be to limit the speed at which IRC operators can become
+		     IRC operators; this would prevent oper flooding if you get a disgruntled oper.
+         classMaxClients: the maximum number of clients that can belong to this class. 0 means infinite.
+         classSendQ: the length (in bytes) of the output buffer for members of the class. this buffer is used
+	 	     whenever the server cannot immediately process a request (it's busy). this buffer is in
+		     place because malicious clients could easily bog the server down without it. if a client exceeds
+                     their class's SendQ, they are killed and removed from the server.
+         classTitle: gives a name to the class, used in user interfaces.
+	 == future ==
+         classRequireAuth: Boolean. If true, authentication will be required for this group. If
+                false, authentication is disabled.
+         authtype (ignored if requireauth is false, required if requireauth is true): the type of
                 authentication to require. Currently, only "Digest" is supported. This will be ignored
-                if requireauth is false.
+                if requireauth is false. You can specify multiple forms of allowed authentication if you
+		seperate each type with spaces.
          
          Recommended SendQ Lengths:
          Normal Clients: 20 RFC 1459 lines (512 bytes): 10240
@@ -210,13 +250,98 @@ or else your server will say it's misconfigured!
          Servers: 60 RFC 1459 lines (512 bytes): 30720
          -->
          
-         <!-- Default Normal Client Group -->
-         <group id="1" ping="180" flood="0" maxclients="10000" sendq="10240" title="Default Normal Client Group" requireauth="false" />
-         <!-- Default IRC Operator Group -->
-         <group id="100" ping="180" flood="0" maxclients="100" sendq="15360" title="Default IRC Operator Group" requireauth="false" />
-         <!-- Default Server Group -->
-         <group id="200" ping="180" flood="0" maxclients="100000" sendq="30720" title="Default Server Group" requireauth="false" />
-      </groups>
+         <!-- Default Normal Client Class -->
+         <class>
+		 <classId>1</classId>
+		 <classPing>180</classPing>
+		 <classFlood>0</classFlood>
+		 <classMaxClients>10000</classMaxClients>
+		 <classSendQ>10240</classSendQ>
+		 <classTitle>Default Normal Client Class</classTitle>
+		 <classRequireAuth>false</classRequireAuth>
+		 <classAuthType>digest</classAuthType>
+	 </class>
+         <!-- Default IRC Operator Class -->
+         <class>
+		 <classId>100</classId>
+		 <classPing>180</classPing>
+		 <classFlood>0</classFlood>
+		 <classMaxClients>100</classMaxClients>
+		 <classSendQ>15360</classSendQ>
+		 <classTitle>Default IRC Operator Group</classTitle>
+		 <classRequireAuth>false</classRequireAuth>
+		 <classAuthType>digest</classAuthType>
+	 </class>
+         <!-- Default Server Class -->
+	 <class>
+		 <classId>200</classId>
+		 <classPing>180</classPing>
+		 <classFlood>0</classFlood>
+		 <classMaxClients>100000</classMaxClients>
+		 <classSendQ>30720</classSendQ>
+		 <classTitle>Default Server Class</classTitle>
+		 <classRequireAuth>false</classRequireAuth>
+		 <classAuthType>digest</classAuthType>
+	 </class>
+      </classes>
+      <rules>
+	      <!--
+		  ignitionServer Client Assignment Rules
+		  ======================================
+		  
+		  Client assignment rules assign clients to particular
+		  classes based on rules. Rules do not "cascade"; you cannot
+		  make one rule that allows all users with one password, and
+		  then have the same rule with a different password. However,
+		  rules are processed in order, and clients are assigned based
+		  on the first rule they match. THIS MEANS THAT IF YOU HAVE
+		  CUSTOM RULES, YOU MUST PLACE THEM BEFORE THE DEFAULT "ALL"
+		  RULE! If you do not do this, all clients will be assigned to
+		  the first rule their hosts match, which would be the
+		  "everybody" rule.
+		  
+		  If you remove the "all users" rule and someone connects who
+		  does not match, they will not be allowed to connect.
+		  
+		  Assignment rules allow you to give certain hosts or IP addresses
+		  different classes. For example, you could create a "Netherlands" class,
+		  and assign any user whose host is *.nl to it. This class could benefit
+		  from a larger sendq, a less frequent ping, and possibly a higher client
+		  number. This would be extremely handy if your server was located in the
+		  Netherlands. Clients from elsewhere will be slower from clients located
+		  in the Netherlands.
+		  
+		  NOTE: DO NOT MODIFY THE DEFAULT RULE UNLESS YOU UNDERSTAND WHAT YOU
+		  ARE DOING! NORMALLY, CHANGING THE DEFAULT RULE OR ADDING MORE RULES IS
+		  UNNECESSARY!
+		  
+		  Description of Fields:
+		  matchIP: the IP to match. if you want to match using the hostname, leave this
+		           blank. wildcards ? and * permitted
+		  matchHost: the host to match, if matchIP is blank. wildcards ? and * permitted.
+		  rulePassword (optional): password required to log in if a user matches this rule. servers must not have a
+		           rule password and a link password (you need to create a new rule for them if the
+		           server would match a rule that requires a password). if encryption is enabled,
+		           the password is encrypted.
+		  ruleClass: class to assign the user to. must exist as a <class /> above.
+		  ruleMode: either permit or deny. permit is the default. if set to permit, anything that matches
+		           the rule will be allowed on the server (assuming they didn't match a previous rule). if
+			   set to deny, anyone matching it (assuming they didn't match a previous rule) will not be
+			   able to connect (the error will read "Connections not accepted from your host").
+		  ruleTitle (optional): gives a name to the rule
+		  
+		  Users may end up in a different class if they authenticate (if enabled), or if they /oper. Rules only
+		  apply when users connect.
+		  -->
+		  <rule>
+			  <matchIP>*</matchIP>
+			  <matchHost>*</matchHost>
+			  <rulePassword></rulePassword>
+			  <ruleClass>1</ruleClass>
+			  <ruleMode>permit</ruleMode>
+			  <ruleTitle>Default Normal Client Rule</ruleTitle>
+		  </rule>
+      </rules>
       <users>
          <!--
          ignitionServer Users
@@ -257,12 +382,13 @@ or else your server will say it's misconfigured!
          Of course, you can always stick with the old long list of modes, if you
          like (or if you want to customize a particular user's privledges). To do
          this, prefix the list of modes with a dash (-). For example, to make a
-         user a local operator only, their <user /> line might look like this:
-            <user user="username" password="password" type="oper" hostmask="*" flags="-o" group="100" />.
-         The - simply tells ignitionServer to switch off mode expansion.
+         user a local operator only, their <operModes /> line might look like this:
+            <operModes>-o</operModes>.
+         The - simply tells ignitionServer to switch off mode expansion for the rest
+	 of the line.
    
          Please note: NetAdmin gets access to some really powerful commands, so
-         do NOT just copy and paste the default modes from the default O: line
+         do NOT just copy and paste the default modes from the default user node
          for the rest of your opers!
          
          You can also add other kinds of users, like vhosted users, or authenticated
@@ -273,67 +399,37 @@ or else your server will say it's misconfigured!
            auth  - a user which can be authenticated. they receive no special privileges,
                but if the server requires authentication, these users will be allowed in,
                if they authenticate.
-           NOTE: OPERS DO NOT NEED A SEPERATE AUTH USER: THEY CAN ALWAYS AUTHENTICATE. Virtual
-           host users, on the other hand, cannot authenticate by default.
+           NOTE: OPERS AND VHOSTS DO NOT NEED A SEPERATE AUTH USER: THEY CAN ALWAYS AUTHENTICATE.
+	   
+	 You can make the class of the user change when the user logs in by setting userClass. You
+	 must set userClass for operators, and it must be a different class than was used in the rule
+	 they matched upon connection.
            
          If authentication is allowed for the type of user in the particular line (i.e. if they're
          opers or auth type users), the following parameters also apply:
-            resource - the name of the resource the user belongs in. this is usually "default", unless
-                       you want to use a custom resource name, or to have the same username present in
-                       different resources
-            realpass - used in digest authentication: the user's real password. this is optional, unless
-                       you want to allow the user to authenticate. then, this is required (in addition to
-                       the regular password, which could be hashed).
+            authResource - the name of the resource the user belongs in. this is usually "default", unless
+                           you want to use a custom resource name, or to have the same username present in
+                           different resources
+            digestRealPass - used in digest authentication, which needs to know the real password to be able to
+	                     authenticate. If this user won't be authenticating using digest, this paramter isn't
+			     needed. if they try to authenticate using digest auth and this is not set, authentication
+			     will fail unless the password isn't hashed/encrypted (option crypt = false)
          -->
-         <user user="admin" password="21232f297a57a5a743894a0e4a801fc3" type="oper" hostmask="*@localhost" flags="NPs" group="100" />
-         <user user="admin" password="21232f297a57a5a743894a0e4a801fc3" type="vhost" hostmask="*@localhost" />
-      </users>      
-      <rules>
-         <!--
-         ignitionServer Client Assignment Rules
-         ======================================
-         
-         Client assignment rules assign clients to particular
-         groups based on rules. Rules do not "cascade"; you cannot
-         make one rule that allows all users with one password, and
-         then have the same rule with a different password. However,
-         rules are processed in order, and clients are assigned based
-         on the first rule they match. THIS MEANS THAT IF YOU HAVE
-         CUSTOM RULES, YOU MUST PLACE THEM BEFORE THE DEFAULT "ALL"
-         RULE! If you do not do this, all clients will be assigned to
-         the first rule their hosts match, which would be the
-         "everybody" rule.
-         
-         Assignment rules allow you to give certain hosts or IP addresses
-         different groups. For example, you could create a "Netherlands" group,
-         and assign any user whose host is *.nl to it. This group could benefit
-         from a larger sendq, a less frequent ping, and possibly a higher client
-         number. This would be extremely handy if your server was located in the
-         Netherlands. Clients from elsewhere will be slower from clients located
-         in the Netherlands.
-         
-         NOTE: DO NOT MODIFY THE DEFAULT RULE UNLESS YOU UNDERSTAND WHAT YOU
-         ARE DOING! NORMALLY, CHANGING THE DEFAULT RULE IS UNNECESSARY!
-         
-         Description of Fields:
-         ipmask: a mask of the IP address. if you prefer to mask using hostnames, specify
-                 NOMATCH here. if you do not do this, the hostmask will not be matched (this
-                 is for security reasons - it is a lot more powerful to assign using IP addresses,
-                 and we need to be certain you want to use the less-accurate hostmask method [if,
-                 for example, you're wanting to require a password from everyone except for 192.168.0.*]).
-                 wildcards * and ? are allowed.
-         hostmask: a mask of the hostname. will only be used if ipmask is NOMATCH. wildcards * and ? are allowed.
-         password (optional): password required to log in if a user matches this rule. servers must not have a
-                              rule password and a link password (you need to create a new rule for them if the
-                              server would match a rule that requires a password). if encryption is enabled,
-                              the password is encrypted.
-         group: group to assign the user to. must exist as a <group /> above.
-         title (optional): gives a name to the rule
-         
-         Users may end up in a different group if they authenticate (if enabled), or if they /oper.
-         -->
-         <rule ipmask="*" hostmask="*" password="" group="1" title="Default Normal Client Rule" />
-      </rules>
+         <user>
+		 <userName>admin</userName>
+		 <userType>oper</userType>
+		 <userPassword>21232f297a57a5a743894a0e4a801fc3</userPassword>
+		 <userHostmask>*</userHostmask>
+		 <operModes>NPs</operModes>
+		 <userClass>100</userClass>
+	 </user>
+	 <user>
+		 <userName>admin</userName>
+		 <userType>vhost</userType>
+		 <userPassword>21232f297a57a5a743894a0e4a801fc3</userPassword>
+		 <userHostmask>*</userHostmask>
+	 </user>
+      </users>
    </connections>
    <bannednicks>
       <!--
@@ -345,9 +441,9 @@ or else your server will say it's misconfigured!
       Only local clients/nicknames can be banned.
       
       Description of Fields:
-      nick: the nickname/nickname mask that is disallowed
-      reason: the reason to display to the client
-      action (optional): either warn or kill. the default action is
+      banNick: the nickname/nickname mask that is disallowed
+      banReason: the reason to display to the client
+      banAction (optional): either warn or kill. the default action is
                          warn - a standard erroneous nickname message
                          is sent, and the user is expected to change
                          the nickname. if the action is set to kill,
@@ -355,44 +451,84 @@ or else your server will say it's misconfigured!
                          clonebots that keep joining your server)
       -->
       <!-- standard services -->
-      <bannednick nick="ChanServ" reason="Reserved for services" />
-      <bannednick nick="NickServ" reason="Reserved for services" />
-      <bannednick nick="MemoServ" reason="Reserved for services" />
-      <bannednick nick="OperServ" reason="Reserved for services" />
-      <bannednick nick="HelpServ" reason="Reserved for services" />
+      <bannednick>
+	      <banNick>*Serv</banNick>
+	      <banReason>Reserved for services</banReason>
+      </bannednick>
       <!-- undernet and other networks use X and Q for services -->
-      <bannednick nick="X" reason="Reserved for services" />
-      <bannednick nick="Q" reason="Reserved for services" />
+      <bannednick>
+	      <banNick>X</banNick>
+	      <banReason>Reserved for services</banReason>
+      </bannednick>
+      <bannednick>
+	      <banNick>Q</banNick>
+	      <banReason>Reserved for services</banReason>
+      </bannednick>      
       <!-- common IRC operator nicknames -->
-      <bannednick nick="DALnet*" reason="Reserved for IRC Operators" />
-      <bannednick nick="IRCop*" reason="Reserved for IRC Operators" />
-      <bannednick nick="Sysop*" reason="Reserved for IRC Operators" />
-      <bannednick nick="Admin*" reason="Reserved for IRC Operators" />
-      <bannednick nick="HelpOp*" reason="Reserved for IRC Operators" />
+      <bannednick>
+	      <banNick>DALnet*</banNick>
+	      <banReason>Reserved for IRC Operators</banReason>
+      </bannednick>
+      <bannednick>
+	      <banNick>IRCop*</banNick>
+	      <banReason>Reserved for IRC Operators</banReason>
+      </bannednick>
+      <bannednick>
+	      <banNick>Sysop*</banNick>
+	      <banReason>Reserved for IRC Operators</banReason>
+      </bannednick>
+      <bannednick>
+	      <banNick>Admin*</banNick>
+	      <banReason>Reserved for IRC Operators</banReason>
+      </bannednick>
+      <bannednick>
+	      <banNick>HelpOp*</banNick>
+	      <banReason>Reserved for IRC Operators</banReason>
+      </bannednick>
       <!-- example of the kill action -->
-      <bannednick nick="localhost" reason="You are not localhost" action="kill" />
+      <bannednick>
+	      <banNick>localhost</banNick>
+	      <banReason>You are not localhost!</banReason>
+	      <banAction>kill</banAction>
+      </bannednick>
    </bannednicks>
    <klines>
       <!--
       ignitionServer Kill Lines
       =========================
       
-      Kill lines automatically kill a user when they register as a user (and not before).
+      Kill lines automatically kill a user when they become a user (and not before).
       This can be used to ban pesky bots, or annoying users. Kill lines are different
       from the command /kline in that kill lines are permanent (until removed from this file).
       Bans added with /kline exist only while the server is running, and are forgotten when
       the server is rehashed or restarted.
       
       Description of Fields:
-      hostmask: a mask of the host to kill
-      message: the message to kill the user with
-      identmask: a mask of the ident of the user - for example, you could kline a user with
-                 an ident matching that of a known clonebot.
+      klineHost: a mask of the host to kill
+      klineMessage: the message to kill the user with
+      klineIdent: a mask of the ident of the user - for example, you could kline a user with
+                  an ident matching that of a known clonebot.
+      klineTitle: a title describing the line
                  
       Examples:
-      <kline hostmask="*aol.com" message="Use your free minutes elsewhere!" identmask="*" /> - ban AOL
-      <kline hostmask="*" message="You are a clone bot." identmask="1337*BOT*" /> - ban any user with an ident matching 1337*BOT*
-      <kline hostmask="*" message="Go away." identmask="*" /> - bans everybody
+      <kline>
+	      <klineHost>*aol.com</klineHost>
+	      <klineIdent>*</klineIdent>
+	      <klineMessage>Use your free minutes elsewhere!</klineMessage>
+	      <klineTitle>Ban for AOL users</klineTitle>
+      </kline>
+      <kline>
+	      <klineHost>*</klineHost>
+	      <klineIdent>1337BOT*</klineIdent>
+	      <klineMessage>You think you're so cool with your floodbot, don't you?</klineMessage>
+	      <klineTitle>Ban for a floodbot that uses an ident of 1337BOT with anything else at the end</klineTitle>
+      </kline>
+      <kline>
+	      <klineHost>*</klineHost>
+	      <klineIdent>*</klineIdent>
+	      <klineMessage>Go Away!</klineMessage>
+	      <klineTitle>Bans everyone</klineTitle>
+      </kline>
       -->
    </klines>
    <zlines>
@@ -405,13 +541,27 @@ or else your server will say it's misconfigured!
       also require less server power to enforce.
       
       Description of Fields:
-      ipmask: a mask of the IP address
-      message: the message to show to the user
+      zlineIP: a mask of the IP address
+      zlineMessage: the message to show to the user
+      zlineTitle: optional. a description of the Z-Line.
       
       Examples:
       <zline ipmask="12.*" message="We don't like your ISP" /> - bans AT&T
-      <zline ipmask="192.168.*" message="Don't connect via my LAN address" /> - bans your home network and tells them to connect to another address
-      <zline ipmask="*" message="Go away." /> - bans everybody on connection
+      <zline>
+	      <zlineIP>12.*</zlineIP>
+	      <zlineMessage>We don't like your ISP</zlineMessage>
+	      <zlineTitle>Bans anyone who uses AT&T WorldNet or who uses an ISP which uses AT&T</zlineTitle>
+      </zline>
+      <zline>
+	      <zlineIP>192.168.*</zlineIP>
+	      <zlineMessage>Do not connect from the LAN</zlineMessage>
+	      <zlineTitle>Bans all class C private networks</zlineTitle>
+      </zline>
+      <zline>
+	      <zlineIP>*</zlineIP>
+	      <zlineMessage>Go Away!</zlineMessage>
+	      <zlineTitle>Ban Everybody</zlineTitle>
+      </zline>
       -->
    </zlines>
    <options>
@@ -423,44 +573,109 @@ or else your server will say it's misconfigured!
       Compare to "classic" X: lines.
       -->
       <!-- Die: Prevent the server from starting; requires you to at least look at this file -->
-      <!-- Set this to anything except 1. ANYTHING! You could set it to 0, or off, or monkey. I don't care, just not 1 -->
-      <option id="die" value="1" />
-      <!-- Offline Mode: Switch the server online or offline. 0 = normal operation, 1 = offline -->
-      <option id="offlinemode" value="0" />
+      <!--      options: true (default), false. Please set this to false when you're ready to bring your server up -->
+      <option>
+	      <name>die</name>
+	      <value>true</value>
+      </option>
+      <!-- Offline Mode: Switch the server online or offline. -->
+      <!--               options: online (default), offline. Set this to offline to bring the server offline
+			 (rehash the server to take effect) -->
+      <option>
+	      <name>offlineMode</name>
+	      <value>online</value>
+      </option>
       <!-- Offline Message: The message to give users when the server is offline -->
-      <option id="offlinemessage" value="This server is under maintenance and offline." />
+      <!--                  value: string -->
+      <option>
+	      <name>offlineMessage</name>
+	      <value>This server is currently offline for maintenance. Please try again later.</value>
+      </option>
       <!-- Custom Auth Notice: A custom message to give users when connecting. If null, no custom message is sent. -->
-      <option id="cnotice" value="Welcome to our IRC network, powered by ignitionServer: http://www.ignition-project.com/ignition/server/" />
+      <option>
+	      <name>customAuthNotice</name>
+	      <value>Welcome to the <m:IRCNetwork />, powered by ignitionServer: http://www.ignition-project.com/ignition/server/</value>
+      </option>
       <!-- DNS Masking, Operator Protection, and Encryption: Please see the security section -->
       <!-- Server Location: Please see the core section -->
-      <!-- Allow Multiple Instances: [ADVANCED FEATURE] Allow ignitionServer to be started multiple times. This will break the monitor, and will require a lot of configuration checks on your part -->
-      <option id="allowmultiple" value="0" />
+      <!-- Allow Multiple Instances: [ADVANCED FEATURE] Allow ignitionServer to be started multiple times. This will break the monitor, and will 
+	   require a lot of configuration checks on your part -->
+      <!-- values: false (default), true -->
+      <option>
+	      <name>allowMultipleInstances</name>
+	      <value>false</value>
+      </option>
       <!--
          Gag Mode - Set how gag (usermode +z) functions
-         0 - Do not show the user getting gagged that they are getting gagged (IRCX defined method)
-         1 - Show the user getting gagged they are getting gagged
-         2 - Do not show the user getting gagged and do not bounce messages (the user will not see any messages bounce and will likely blame it on the server)
+         ircx - (default) Do not show the user getting gagged that they are getting gagged, bounce messages (IRCX defined method)
+         nice - Show the user getting gagged they are getting gagged, bounce messages
+         mean - Do not show the user getting gagged and do not bounce messages (the user will not see any messages bounce and will likely blame it
+	        on the server)
       -->
-      <option id="gagmode" value="0" />
+      <option>
+	      <name>gagMode</name>
+	      <value>ircx</value>
+      </option>
       <!--
-         IRCX Method - Set how to send IRCX-specific raws
-         0 - Use "Transitional" compatibility, for replies that have an IRCX equavilent, send the RFC1459 reply
-         1 - Use "IRCX" compatibility, for replies that have an IRCX equavilent, send RFC1459 clients the RFC1459 reply and IRCX clients the IRCX reply
-         2 - Both, send both the IRCX reply and the RFC1459 reply to all clients. Ensures the most compatibility, but causes some IRCX-compatible clients to show messages twice (mIRC for example)
+         IRCX Method - Set how to send replies that exist in both IRCX and RFC1459
+         rfc1459only - (default) Only send RFC1459 messages. IRCX-enabled clients will not receive the IRCX raws for commands that can generate 
+	               either RFC1459 replies or IRCX replies.
+         normal - For replies that have an IRCX equavilent, send RFC1459 clients the RFC1459 reply and IRCX clients the IRCX reply. Some clients
+	          may say they support IRCX but may not properly function with this mode and therefore it is not the default. However, if you're
+		  sure that all of the clients connecting support IRCX properly (or, don't support IRCX at all [like X-Chat]), this mode is the
+		  preferred choice.
+         both - Send both the IRCX reply and the RFC1459 reply to all clients. Ensures the most compatibility, but causes some clients to show 
+	        messages twice (mIRC for example). Modes not supported in RFC1459 will be filtered out, so non-IRCX clients can safely get IRCX
+		messages.
          - NOTE -
-         When setting MODE +k, it will always get sent. In this case, only both and IRCX/Strict have an effect (when setting PROP MEMBERKEY, however, it is normal)           
+         Currently, mode +k isn't parsed or handled by this option. This is a known bug.
       -->
-      <option id="ircxmethod" value="0" />
+      <option>
+	      <name>ircxMethod</name>
+	      <value>rfc1459only</value>
+      </option>
       <!--
-         Registered Channel Mode - Set whether or not registered channels are handled as persistant
-         0 - Registered channels always stay open
-         1 - Registered channels never stay open
-         2 - Registered channels with mode +R always stay open; all others do not
+         Registered Channel Behavior - Set whether or not registered channels are handled as persistant channels
+         persist - Registered channels always stay open
+         nopersist - Registered channels never stay open
+         selectivepersist - Registered channels with mode +R always stay open; all others do not
       -->
-      <option id="regchanmode" value="0" />
-      <!-- Error Log: Critical errors are logged here. 0 = off, 1 = on -->
-      <option id="errorlog" value="1" />
-      <!-- Auto VHost: Automatically give operators VHosts if a VHost exists with the same username and password as the oper. 0 = off, 1 = on. See README for more info -->
-      <option id="autovhost" value="1" />
+      <option>
+	      <name>registeredChannelBehavior</name>
+	      <value>persist</value>
+      </option>
+      <!-- Error Log: Critical errors are logged here. -->
+      <option>
+	      <name>errorLog</name>
+	      <value>true</value>
+      </option>
+      <!-- Auto VHost: Automatically give operators VHosts if a VHost exists with the same username and password as the oper. See README for more
+	   info -->
+      <option>
+	      <name>autoVirtualHost</name>
+	      <value>true</value>
+      </option>
+      <!-- createBehavior: Control who can create channels on the server
+	   normal - (default) All users can create channels
+	   operonly - Only IRC operators can create channels
+	   privileged - Only IRC operators and +r (registered/identified) users can create channels
+	   -->
+      <option>
+	      <name>createBehavior</name>
+	      <value>normal</value>
+      </option>
+      <!-- activityLog: Log server activity. Options:
+	   disable (default): don't log
+	   channelpublic - Log channel conversations
+	   channelall - Log channel conversations and whispers
+	   all - Log channel conversations, channel whispers, and private messages.
+	   
+	   WARNING: IT MAY BE ILLEGAL TO ENABLE LOGGING IN YOUR STATE/COUNTRY/CITY/COUNTY WITHOUT
+	   NOTIFYING USERS WHO CONNECT. YOU ACCEPT FULL RESPONSIBILITY IF YOU BREAK THE LAW!
+	   -->
+      <option>
+	      <name>activityLog</name>
+	      <value>disable</value>
+      </option>
    </options>
 </ignitionserver>

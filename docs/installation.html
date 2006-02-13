@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="iso-8859-1" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" /><title>Installation</title><link rel="stylesheet" href="ignitionserver-docs.css" type="text/css" /><meta name="generator" content="DocBook XSL Stylesheets V1.66.1" /><link rel="start" href="index.html" title="ignitionServer Documentation" /><link rel="up" href="readme.html" title="Chapter 1. Readme" /><link rel="prev" href="support.html" title="Support Info" /><link rel="next" href="faq.html" title="Frequently Asked Questions" /></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Installation</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="support.html">Prev</a> </td><th width="60%" align="center">Chapter 1. Readme</th><td width="20%" align="right"> <a accesskey="n" href="faq.html">Next</a></td></tr></table><hr /></div><div class="section" lang="en" xml:lang="en"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="installation"></a>Installation</h2></div></div></div><p>
+				ignitionServer should have come bundled with an installer. This installer runs on
+				Windows 95, 98, Me, NT, 2000, XP, and 2003, and all included utilities should work on
+				both Windows NT (NT/2000/XP/2003) and Windows 9x (95/98/Me) with the latest patches
+				and service packs applied (however, there are known issues with some configurations
+				of Windows XP Service Pack 2 -- please see the related FAQ entries later in the
+				documentation). <span class="emphasis"><em>Running ignitionServer on Windows 9x is strongly
+				discouraged!</em></span>
+			</p><p>
+				ignitionServer may run under UNIX/Linux with Wine or CrossOver Office, but we have
+				not been successful in making it run (then again, we tried with ttydrv -- it might
+				work with x11drv and the proper DLLs). If you need ignitionServer to run on this
+				platform, you can either wait for ignitionServer NG, or you can see if you can get
+				CodeWeavers (makers of CrossOver Office) to include support for ignitionServer in
+				CrossOver (they charge for special requests like this, but generally speaking, they
+				can make almost everything work). We can try to help you if you attempt to make
+				ignitionServer run on UNIX/Linux, but our support will be very limited; we have
+				other issues to attend to.
+			</p><p>
+				<span class="strong">After installing ignitionServer, you will need to configure
+				it.</span> To do this, browse to where you installed ignitionServer and open 
+				<tt class="filename">ircx.conf</tt> in Notepad. <tt class="filename">ircx.conf</tt> is very
+				well documented using comments (lines beginning with
+				<tt class="computeroutput">#</tt> -- <span class="emphasis"><em>these are IGNORED!</em></span>).
+				Please take the time to read all of the comments in this file, and you will
+				know what to fill in the normal lines.
+			</p><p>
+				You will most likely also want to edit your MOTD (Message of the Day). This file
+				has no special format and is named <tt class="filename">ircx.motd</tt> in the same
+				directory as <tt class="filename">ircx.conf</tt>. Keep in mind that some IRC clients
+				are limited to 80 characters per line, and adding more will either trim the line
+				or make it wrap to the next line. Do not include the standard "-" that appears at
+				the beginning of the MOTD, the server adds this automatically to ensure full
+				compatibility with IRC clients that expect MOTD content to begin with a "-".
+			</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><table border="0" summary="Note: X:DIE"><tr><td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="images/note.png" /></td><th align="left">X:DIE</th></tr><tr><td colspan="2" align="left" valign="top"><p>
+					By default, the server has the special X:DIE line set to true (1). This
+					WILL keep the server from starting, and it will make it throw errors like
+					"Server Misconfigured". <span class="emphasis"><em>This is not a bug, it's fully
+					intended!</em></span> The reason we added this feature was to make sure that
+					every ignitionServer user configures their server, and at the very least,
+					changes the default passwords from "admin" to something else. Please make
+					fully certain that you change the passwords before you start the server.
+				</p><p>
+					To turn the "Server Misconfigured" message off, simply set X:DIE to false
+					(0). If the server was already running when you changed this value, you
+					may need to restart it. Under most cases, the "Restart" button in the
+					ignitionServer Monitor should work, but if it does not, press Ctrl-Alt-Del
+					on your keyboard and end the process named "ignitionServer.exe". Some
+					versions of Windows may show a shortened version of this (in particular,
+					Windows 2000 sometimes truncates it to "ignitionServer.").
+				</p></td></tr></table></div></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="support.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="readme.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="faq.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Support Info </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Frequently Asked Questions</td></tr></table></div></body></html>

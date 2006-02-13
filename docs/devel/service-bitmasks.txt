@@ -1,0 +1,55 @@
+ignitionServer SERVICE command bitmasks
+=======================================
+
+This document describes the value of the "type"
+field of the SERVICE command. The type field is in
+binary. To get a certain feature, add the numbers
+together for the features you want.
+
+The server must be configured to accept the service,
+and the service must be explicitly allowed the type
+of access it's requesting.
+
+This is probably going to be 16 bits, broken up in
+sections.
+
+Setting the "type" to 0 gives services the same
+privileges as normal users.
+
+Note: Services will always be allowed to send
+NOTICEs, since RFC1459 says all automated services
+should only send NOTICEs. All services can also
+join/create local channels, but those channels are
+given a flag (and oper only unless it unsets that
+mode)
+
+       B           A
+[GFED CBA9 8765] [4321]
+Decimal | Constant         | Description
+========| Section A: Access Level
+1       | S_LOCOP      (1) | Gets the same access as a local operator
+2       | S_GLOBOP     (2) | Gets the same access as a global operator
+4       | S_NETADMIN   (3) | Gets the same access as a network administrator
+8       | S_SERVER     (4) | Gets the same access as a server (and can introduce links/users **USE SPARANGLY**; shows up in LINKS as Nickname followed by a dot)
+========| Section B: Special Privileges
+16      | S_CANJOIN    (5) | Can join channels (can also create channels)
+32      | S_HIDEINCHAN (6) | Hide the service in the channel (really meant for logging services and such)
+64      | S_CANPRIVMSG (7) | Can send PRIVMSGs
+128     | S_CANDATA    (8) | Can send DATA/REQUEST/REPLY
+256     | S_CANKICK    (9) | Can kick users in channels (doesn't have to join to kick)
+512     | S_CANUMODE   (A) | Can change the modes of a user
+1024    | S_CANCMODE   (B) | Can change the modes of a channel
+2048    | S_CANUPROP   (C) | Can change the properties of a user
+4096    | S_CANCPROP   (D) | Can change the properties of a channel
+8192    | S_CANIMPSRVR (E) | Can impersonate a server (send data claiming to come from a server - needs to be enabled if you're going to introduce links with S_SERVER)
+16384   | S_CANIMPUSR  (F) | Can impersonate a user (send data claiming to come from a user - needs to be enabled if you're going to introduce users with S_SERVER)
+32768   | S_HOOKEVENTS (G) | Can hook events
+
+To get the features you want, add the decimal values
+together for the features you want and place that
+number in the configuration file. For example, a
+typical services package will probably want to
+either make each service connect individually, or
+umbrella every service under a generic "Services"
+user with S_SERVER, S_CANIMPUSR, and various other
+modes. 

@@ -1,41 +1,14 @@
-		RELEASE NOTES FOR IGNITIONSERVER RELEASE: 0.3.6
-# $Id: releasenotes.txt,v 1.31 2004/12/07 00:51:15 ziggythehamster Exp $
+		RELEASE NOTES FOR IGNITIONSERVER RELEASE: 0.3.7
+# $Id: releasenotes.txt,v 1.32 2004/12/27 02:42:18 ziggythehamster Exp $
 
 #/--------------------------------------------------------------
 # For best results, view this document with word wrap enabled.
 #--------------------------------------------------------------/
 
 Changes:
-Changed Winsock version asked for to Winsock 2.2. It may begin to function better on XPSP2 and other modern platforms.
 
 New Features include:
-"First Run" errorlog message. Prints our license, and some help information.
-Verbose logging. Channels, channel whispers, and private messages can now be logged. Use at your own risk.
 
 Bug Fixes:
 
-Bug #   | Bug Name
----------------------
-1050438 | WHO needs to return a null channel as *
-1050432 | Portal needs to be renamed to ignitionServer
-1050451 | Monitor needs to be able to specify host/port
-1050457 | IRCOpers see strange WHOIS reply
-1044082 | can deowner/deop/devoice protected operators
-1069211 | LIST with certain parameters generates error
-        | An error does not show if you try to start ignitionServer twice, although one should
-        | Stray On Error Resume Next keeps ignitionServer from starting
-        | Missing parameter on Dir() prevented logging from occuring
-        | Wrong user gets logged when a kick occurs
-
 Comments:
-ignitionServer 0.3.6 is mainly a bugfix release.
-We have added very few new things, except for
-logging. All users are strongly encouraged to
-upgrade their ignitionServer installations to
-ignitionServer 0.3.6. ignitionServer 0.3.7 will
-hopefully contain a configuration wizard (with at
-least "beginner" functionality; an advanced editor
-is also intended but may not make it), some form
-of IRCX authentication, and more RFC 1459 compliant
-strings. We also hope to decrease the footprint
-substantially.

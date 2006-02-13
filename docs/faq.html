@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="iso-8859-1" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" /><title>Frequently Asked Questions</title><link rel="stylesheet" href="ignitionserver-docs.css" type="text/css" /><meta name="generator" content="DocBook XSL Stylesheets V1.66.1" /><link rel="start" href="index.html" title="ignitionServer Documentation" /><link rel="up" href="readme.html" title="Chapter 1. Readme" /><link rel="prev" href="installation.html" title="Installation" /></head><body><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Frequently Asked Questions</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="installation.html">Prev</a> </td><th width="60%" align="center">Chapter 1. Readme</th><td width="20%" align="right"> </td></tr></table><hr /></div><div class="section" lang="en" xml:lang="en"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="faq"></a>Frequently Asked Questions</h2></div></div></div><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><table border="0" summary="Note: About This FAQ"><tr><td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="images/note.png" /></td><th align="left">About This FAQ</th></tr><tr><td colspan="2" align="left" valign="top"><p>
+					Older versions of ignitionServer (i.e. those that supported the MSN Chat
+					control) were a bit easier to use/modify than this version. This version
+					is actually a lot better than the old MSN-supporting version, has way less
+					bugs, and is several thousand times faster.
+				</p><p>
+					While we do not mind very much answering common questions in the support
+					forums, we ask that you <span class="emphasis"><em>please</em></span> read this FAQ before you
+					ask questions on the forums. Most of the common questions are answered here.
+				</p></td></tr></table></div><div class="qandaset"><dl><dt>Q: <a href="faq.html#ignitionserver-no-ui">When I start ignitionServer, nothing comes
+						up!</a></dt><dt>Q: <a href="faq.html#ignitionserver-wont-start">Why doesn't ignitionServer start?</a></dt><dt>Q: <a href="faq.html#ignitionserver-x-die">Why does ignitionServer send out Closing Link:
+						(AutoKilled: Server Misconfigured [see ircx.conf]) and disconnect users
+						on connection?</a></dt><dt>Q: <a href="faq.html#ignitionserver-suggested-os">What is the reccommended operating system for
+						using ignitionServer?</a></dt><dt>Q: <a href="faq.html#ignitionserver-violate-eula">Does ignitionServer violate my 
+						EULA?</a></dt><dt>Q: <a href="faq.html#ignitionserver-i-cant-connect">Why can't I connect to my ignitionServer
+						installation?</a></dt><dt>Q: <a href="faq.html#igntiionserver-others-cant-connect">I can connect to my ignitionServer installation,
+						but nobody else can, how can I fix this?</a></dt><dt>Q: <a href="faq.html#msn-wont-connect">Why doesn't MSN connect?</a></dt><dt>Q: <a href="faq.html#alternatives-to-msn-webchat">Since you don't support the MSN Chat Control, what other solutions do you
+							have for a good webchat?</a></dt><dt>Q: <a href="faq.html#is-ignitionserver-free">Is ignitionServer free?</a></dt><dt>Q: <a href="faq.html#add-irc-operators">How do I add IRC operators?</a></dt><dt>Q: <a href="faq.html#highprot-and-lowprot">What is the difference between oper flag P and p?</a></dt><dt>Q: <a href="faq.html#where-are-services">Where are ChanServ/NickServ/MemoServ?</a></dt><dt>Q: <a href="faq.html#differences-between-irc-and-ircx">What's the difference between IRCD and IRCX?</a></dt><dt>Q: <a href="faq.html#reload-motd">How do I reload a modified MOTD?</a></dt><dt>Q: <a href="faq.html#edit-motd">How do I edit the Message of the Day?</a></dt><dt>Q: <a href="faq.html#auto-vhost">How does the Auto VHost (X:AUTOVHOST) system work?</a></dt><dt>Q: <a href="faq.html#error-writing-ignitionserver-exe">How come I'm getting this error in the installer: Error Opening File for
+							 Writing: "C:\Program Files\ignitionServer\ignitionServer.exe"?</a></dt><dt>Q: <a href="faq.html#error-writing-monitor-exe">How come I'm getting this error in the installer: Error Opening File for
+							Writing: "C:\Program Files\ignitionServer\monitor.exe"?</a></dt><dt>Q: <a href="faq.html#broken-l-lines">Why don't my L: lines work anymore?</a></dt><dt>Q: <a href="faq.html#what-is-createmode">What is X:CREATEMODE and how do I use it?</a></dt><dt>Q: <a href="faq.html#id2518771">Why isn't ignitionServer working on Windows XP Service Pack 2 (and/or Windows Server 2003)?</a></dt></dl><table border="0" summary="Q and A Set"><col align="left" width="1%" /><tbody><tr class="question"><td align="left" valign="top"><a id="ignitionserver-no-ui"></a><a id="id2471447"></a><b>Q:</b></td><td align="left" valign="top"><p>When I start ignitionServer, nothing comes
+						up!</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							It's supposed to do this! ignitionServer now runs as a
+							full-fledged daemon (Windows calls this a "background
+							service"). You will not get any interface at all when
+							you start ignitionServer (unless you're using the ignitionServer
+							Monitor, which allows you to do a few things to the server, but
+							it's not actually the server). If you are not sure you started
+							it properly, start your IRC client and type:
+						</p><p>
+							<b class="userinput"><tt>/server localhost</tt></b>
+						</p><p>
+							If you connect to something, the server is running. A less
+							time-intensive method would be to hit Ctrl-Alt-Del and see if
+							the ignitionServer process is running.
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="ignitionserver-wont-start"></a><a id="id2471498"></a><b>Q:</b></td><td align="left" valign="top"><p>Why doesn't ignitionServer start?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							First, make sure you read the above question. Then, check the 
+							following things:
+							</p><div class="orderedlist"><ol type="1"><li><p>Is <tt class="filename">ircx.conf</tt> in the 
+									same folder as ignitionServer?</p></li><li><p>Was <tt class="filename">ircx.conf</tt>
+									configured properly? Make sure all of the
+									parameters are set right and that you're
+									not using P: lines that bind to an adapter
+									that doesn't exist or to a port in use.
+									</p></li></ol></div><p>
+						</p><p>
+							If you diagnosed those things and still have a problem, make
+							sure ignitionServer isn't already running. ignitionServer
+							cannot, by default, be run more than one time. This is to
+							prevent one copy of ignitionServer from spinning out of control
+							by not being able to bind to the same ports/adapters as the
+							currently running version. If you need to be able to run
+							multiple copies of ignitionServer, see the "How do I run
+							more than one copy of ignitionServer?" question below.
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="ignitionserver-x-die"></a><a id="id2471580"></a><b>Q:</b></td><td align="left" valign="top"><p>Why does ignitionServer send out Closing Link:
+						(AutoKilled: Server Misconfigured [see ircx.conf]) and disconnect users
+						on connection?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							In an earlier version of ignitionServer, we introduced a
+							configuration option called X:DIE that is set to "1" (true)
+							by default in all official distributions of ignitionServer.
+							When this is set to true (1), the server will not allow anyone
+							to connect to your server. <span class="emphasis"><em>This is to require that
+							all server administrators read the configuration file and
+							understand all of the data that has been entered in it.
+							</em></span> Before you can use ignitionServer, you
+							<span class="strong">must</span> edit the configuration.
+							In the process of configuring your server, you will notice
+							X:DIE. Set this to 0 (false) to disable the "Server 
+							Misconfigured" message.
+						</p><p>
+							You may need to restart the server. The ignitionServer
+							Monitor should work, but in the event it doesn't, you can try
+							to end ignitionServer's process in the task manager (press
+							Ctrl-Alt-Delete).
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="ignitionserver-suggested-os"></a><a id="id2471739"></a><b>Q:</b></td><td align="left" valign="top"><p>What is the reccommended operating system for
+						using ignitionServer?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							We reccommend using an operating system based on Windows NT,
+							such as Windows 2000, Windows XP, or Windows Server 2003. For
+							best performance, we suggest running on a server flavor of
+							Windows, such as Windows 2000 Server, or Windows Server 2003.
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="ignitionserver-violate-eula"></a><a id="id2471771"></a><b>Q:</b></td><td align="left" valign="top"><p>Does ignitionServer violate my 
+						<span class="acronym">EULA</span>?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							Probably. We can't answer this for you though. You need to read 
+							the End User License Agreement that came with your operating
+							system. Most versions of Windows and Windows NT only allow 10 
+							simultaneous connections in the EULA. ignitionServer, by design, 
+							opens ports and connections as it needs to. At any one time,
+							ignitionServer can have anywhere from 0 to 65535 connections 
+							open. You take full legal responsibility if you decide to
+							violate your EULA.
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="ignitionserver-i-cant-connect"></a><a id="id2471818"></a><b>Q:</b></td><td align="left" valign="top"><p>Why can't I connect to my ignitionServer
+						installation?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							Are you connecting to the right address? Usually, you'll want to
+							connect to "localhost" or "127.0.0.1". In mIRC, you'd go
+							<b class="userinput"><tt>/server localhost</tt></b>. Other people
+							will want to connect to your outgoing hostname or outgoing IP
+							address. See the next question for more help on getting users to
+							connect to your outbound address. If you are trying to connect
+							to <tt class="systemitem">localhost</tt> or 
+							<tt class="systemitem">127.0.0.1</tt>, make sure 
+							ignitionServer is running and that it's running on port 6667 (or try
+							<b class="userinput"><tt>/server localhost <span class="token">port</span></tt></b>, 
+							replacing <span class="token">port</span> with
+							whatever port you configured ignitionServer to run on.
+						</p><p>
+							Also, newer versions of Windows, such as Windows XP Service Pack 
+							2 and Windows Server 2003 require you specify a physical adapter
+							instead of the loopback device (localhost). On these versions
+							of Windows, you will have to change the M: line to specify
+							an adapter to bind to, and you must connect to that address
+							instead of localhost or 127.0.0.1. The proper address varies
+							from system to system. You can get the address from the 
+							<span class="guilabel">Support</span> tab of your default Internet
+							connection's "Properties" window. You can view a list of all
+							of your connections in "Network Connections" in the Control
+							Panel. Usually, it's called "Local Area Connection".
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="igntiionserver-others-cant-connect"></a><a id="id2471912"></a><b>Q:</b></td><td align="left" valign="top"><p>I can connect to my ignitionServer installation,
+						but nobody else can, how can I fix this?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							First and foremost, are you giving your users the right
+							address? Any IP address beginning with <tt class="systemitem">172.16</tt>,
+							<tt class="systemitem">127</tt>, <tt class="systemitem">192.168</tt> , or <tt class="systemitem">10</tt>
+							is called a "non-routable IP" -- i.e. it can only be used on
+							your local network and not on the Internet. You must give your
+							users your public IP address -- the one that every other
+							computer on the Internet sees. To get your IP, go to a site like
+							<a href="http://www.showmemyip.com/" target="_top">http://www.showmemyip.com/</a>. <span class="strong">By giving people your IP address, you are not particularly making
+							yourself vulnerable in any way.</span> The media has scared
+							most people into thinking an IP address is some magic cookie that
+							when found lets anyone hack into your computer. This is simply
+							not true, and if someone tells you to go get a Dynamic DNS
+							service to "mask" your IP, they don't know what they're
+							talking about, because DNS is just a way to assign a name to
+							an IP address -- the address is still readily available to
+							anyone. In short, do not be afraid to hand out your IP address,
+							just as long as you keep your computer up to date (because
+							there are unfixed vulnerabilities in services that run by default
+							on Windows, and if someone has your address and knows how to
+							exploit these, some damage can be done -- but if your computer is
+							kept up to date, you can't really get hacked).
+						</p><p>
+							Here are other things to consider:
+							</p><div class="itemizedlist"><ul type="disc"><li><p>Is your router or firewall allowing port 
+									6667 through to your machine? If it isn't, you
+									need to make sure your firewall is properly 
+									configured and that your router is forwarding
+									port 6667 to your machine (see the manual - 
+									usually it's something like "port forwarding",
+									"virtual server", "network applications", etc.).
+									</p></li><li><p>Are you behind a proxy? If you are behind 
+									a proxy, you probably can't run ignitionServer 
+									on the Internet.</p></li><li><p>It may help your users remember the
+									address if you have a dynamic DNS service, which
+									you can get at No-IP.com or DynDNS.org.</p></li></ul></div><p>
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="msn-wont-connect"></a><a id="id2472045"></a><b>Q:</b></td><td align="left" valign="top"><p>Why doesn't MSN connect?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							A: ignitionServer does not support the MSN Chat Control. We will never add support for 
+							this unless Microsoft decides to open their protocol and make it a standard, and even then
+							it's not really likely we will add support for it. With the current state of licensing for
+							MSN property, it is ILLEGAL to use the MSN Chat Control unless you are using it to connect
+							to MSN) without official written permission from Microsoft Corporation, and even then,
+							you had better make sure you have a good lawyer, because while they may license you to use
+							the control, there is almost no chance they'll license their protocol and server
+							implementation to you. In a nutshell, if you are wanting a server that supports the MSN
+							Chat Control, you will probably be committing a crime by using it. I am not a lawyer, so
+							you will probably want to talk to someone that is, if you really want to do the lame thing
+							and use the MSN Chat Control to connect to a server. And please, save our support techs
+							time and don't ask us this question!
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="alternatives-to-msn-webchat"></a><a id="id2472091"></a><b>Q:</b></td><td align="left" valign="top"><p>Since you don't support the MSN Chat Control, what other solutions do you
+							have for a good webchat?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							There are many good webchat clients. We are working on ignitionLite, which will work on
+							Linux, Windows, MacOS X, FreeBSD, and any other platform supported by Firefox, Mozilla,
+							Netscape, Safari, or Internet Explorer. Opera 8 and Konqueror may also work. This will be
+							your best solution for a web chat client. We currently do not have a due date for
+							ignitionLite, but we are trying to push some real code out before 2006. Then again, it's
+							just a bunch of guys doing this in our spare time -- just be patient and when it's ready,
+							we'll release it. You can get more information at
+							<a href="http://www.ignition-project.com/ignition/lite/" target="_top">http://www.ignition-project.com/ignition/lite/</a>.
+						</p><p>
+							Since you probably need something <span class="emphasis"><em>now</em></span>, we reccommend PJIRC, which is
+							a fairly decent Java IRC client that is highly customizable and open source. You can get
+							PJIRC from <a href="http://www.pjirc.com/" target="_top">http://www.pjirc.com/</a>.
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="is-ignitionserver-free"></a><a id="id2518156"></a><b>Q:</b></td><td align="left" valign="top"><p>Is ignitionServer free?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							Absolutely. ignitionServer is avaliable under the GNU General Public License and is
+							avaliable for download for free from SourceForge.net and our own website. The GPL,
+							however, permits people to sell copies of any GPL software so long as the sourcecode
+							is provided, for an equal or lesser amount than the compiled executable (binary). We
+							cannot help you get your money back, because it's legal. However, if you bought
+							ignitionServer, and feel you have been ripped off, see if the seller will give you a
+							refund. Legitimate companies usually have a return policy. Just because you paid for a 
+							copy of ignitionServer doesn't mean you were ripped off -- it's possible someone sold you
+							a version with extra features or something -- which is fine, UNLESS they did not offer
+							you sourcecode; and if they did this, PLEASE report this person to
+							<tt class="email">&lt;<a href="mailto:gpl-violations at ignition-project dot com">gpl-violations <span class="strong">at</span> ignition-project <span class="strong">dot</span> com</a>&gt;</tt>
+							immediately so we can seek legal action
+							against	the person who sold our software to you.
+						</p><p>
+							ignitionServer is also "free as in speech". That is, you're free to make whatever changes
+							you want to our sourcecode (so long as you follow our licensing). For more information,
+							please read <tt class="filename">license.txt</tt> in the docs directory.
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="add-irc-operators"></a><a id="id2518244"></a><b>Q:</b></td><td align="left" valign="top"><p>How do I add IRC operators?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							Open <tt class="filename">ircx.conf</tt> in <span class="application">Notepad</span> and read it.
+							About halfway down, there is a section for "IRC Operators". Read that section, it's fairly
+							complete and has complete help for how to add IRC operators.
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="highprot-and-lowprot"></a><a id="id2518286"></a><b>Q:</b></td><td align="left" valign="top"><p>What is the difference between oper flag P and p?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							There are two differences:
+							</p><div class="itemizedlist"><ul type="disc"><li><p>Opers with +P cannot be kicked by opers with +p, even if you set
+									+p to be a higher level in the channel than +P.</p></li><li><p>You can give +P different onjoin modes than +p, effectively giving
+									an oper with HighProt (+P) higher privileges (or lower, if you want) than
+									an oper with LowProt (+p).</p></li></ul></div><p>
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="where-are-services"></a><a id="id2518335"></a><b>Q:</b></td><td align="left" valign="top"><p>Where are ChanServ/NickServ/MemoServ?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							Other IRCX servers (most notably <span class="application">IRCXpro</span>) include the services
+							inside the server. This is a bad, bandwidth-wasting idea. It requires that every server
+							exchange the data about the users, rather than it being kept in a centralized place. It's
+							also fairly difficult to make sure the data is regulated and only directly accessible 
+							by a certain group of administrators. ignitionServer, however, handles services like every
+							other self-respecting IRC server does. You connect services as a link (or, as the case
+							will eventually be, as a service), and services does the job it needs to do. You need an
+							IRC services that is compatible with standard RFC 1459 IRC (Anope works really good, I
+							hear, but you'll need to compile your own; the only versions of Anope I see floating
+							around only support UnrealIRCd.. also, I've never tested it myself, so it might not even
+							work at all). You may also need to tweak some IRC server specific settings (i.e. you
+							probably don't want to use Unreal's SVSMODE). If you want services specifically designed
+							for Windows and ignitionServer, use ignitionServices. More information can be found at our
+							website.
+						</p><p>
+							P.S. We know that ignitionServices is fairly unmaintained. Please keep in mind the current
+							release of ignitionServices should be considered "Alpha", and as such, expect it to do
+							anything, ranging from not working at all to catching your computer on fire. It probably
+							won't do either of those things, but there's a chance it will. In any event, we plan on
+							writing a module for Anope to support ignitionServer, so we really have no intentions of
+							making the current ignitionServices suck less. But, if we find something particularly
+							nasty, we'll fix it.
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="differences-between-irc-and-ircx"></a><a id="id2518403"></a><b>Q:</b></td><td align="left" valign="top"><p>What's the difference between IRCD and IRCX?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							Simply put, nothing. There's a common misconception about these acronyms. An IRCX server
+							is just as much an IRCD as any other type of IRC server. If you think that an IRCD means
+							"a server that isn't IRCX", I probably just confused you. IRCD means "IRC server" (daemon
+							is a word used by UNIX and UNIX-like systems [Linux] to mean "server", and the D in IRCD
+							actually stands for daemon). IRCX means "Internet Relay Chat eXtensions". When IRCX is
+							properly implemented, it is RFC 1459 (the IRC specification) plus the IRCX specification.
+							IRCX is not a protocol, but an extension to a protocol. In theory, any regular RFC
+							1459-compliant server can add these extensions. Many people think that IRCDs have weird
+							modes and are "servers that are not IRCX". However, you could easily turn something like
+							UnrealIRCD into an IRCX server, because IRCX only defines additions to the IRC protocol.
+							In most circumstances, the differences between regular IRC, and IRC with the extensions
+							(IRCX) are as follows:
+						</p><p>
+							First off, IRCX adds several security-oriented commands, like ACCESS (get/set/unset who
+							has access to what levels in a channel) and AUTH (show proof you have credentials to
+							access the server). IRCX also adds another level of channel users, the owner. In RFC 1459,
+							only hosts (@) and voices (+) were defined. Since RFC 1459's conception in the 80's, IRC
+							servers have added many extra levels, so this is somewhat irrelevant. However, in true
+							IRCX (which is RFC 1459 + extensions), there are only 3 levels: Owner (.), Host (@), and
+							Voice (+). That doesn't include normal user, which has no prefix. You could, in theory,
+							have more levels than this, but you may break some clients that don't properly support
+							IRCX. IRCX also provides a mechanism for sending a message to a person WITHIN a channel.
+							Before IRCX, any message you sent to a user was sent to them directly, out of any context
+							of a channel. In IRCX, you can use the WHISPER command, and the message will only apply to
+							that user within that channel. If they aren't in the channel, the message won't send, even
+							if they're connected.
+						</p><p>
+							IRCX also has channel metadata, or "properties", which set various channel settings, like
+							the language spoken in the channel, the password required to be an owner, etc. Standard
+							RFC 1459 IRC only has one key, and it's the key for getting into a locked room. The IRCX
+							specification also calls for DATA/REQUEST/REPLY, which are very powerful commands. They
+							are hardly used, but their applications are nearly limitless. You could use these commands
+							for games, telling a special client to change the avatar displayed, and more. Microsoft 
+							Comic Chat uses these commands for displaying expressions of the comic characters, telling
+							other users what character you're using, and a lot more. IRC is more flat, and is designed
+							for text-based communication. IRCX allows a bit more dynamic conversation, and that's why
+							some people prefer it. However, some people like IRC better because oftentimes IRC servers
+							are a lot more powerful and have more modes and features. IRCX also offers the ability to
+							search for channels by certain properties, so a user could locate a channel that speaks
+							their native language.
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="reload-motd"></a><a id="id2518514"></a><b>Q:</b></td><td align="left" valign="top"><p>How do I reload a modified MOTD?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							 As an operator (with rehash privledges), type <b class="userinput"><tt>/rehash -MOTD</tt></b>. This
+							 will reload the Message of the Day.
+						 </p></td></tr><tr class="question"><td align="left" valign="top"><a id="edit-motd"></a><a id="id2518548"></a><b>Q:</b></td><td align="left" valign="top"><p>How do I edit the Message of the Day?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							 In the same folder as ignitionServer, there is a file called
+							 <tt class="filename">ircx.motd</tt>. Open this file with Notepad and save it. If the server is
+							 currently running, you will need to type <b class="userinput"><tt>/rehash -MOTD</tt></b> (see
+							 above).
+						 </p></td></tr><tr class="question"><td align="left" valign="top"><a id="auto-vhost"></a><a id="id2518590"></a><b>Q:</b></td><td align="left" valign="top"><p>How does the Auto VHost (X:AUTOVHOST) system work?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							 The Auto VHost system is very simple to use and set up. Basically, it changes the
+							 hostname of IRC operators to a specific Virtual Host (VHost) when they log in. For this
+							 to work, there has to be an O: line and a V: line, both with the same credentials
+							 (password/username/hostmask). The X:AUTOVHOST line also needs to be set to "1" (enabled).
+							 Once these things are completed, operators can log in (with /oper), and they'll
+							 automatically get their VHost if they have one. If an operator doesn't have a VHost, it
+							 will be the same as if X:AUTOVHOST is off (0).
+						 </p></td></tr><tr class="question"><td align="left" valign="top"><a id="error-writing-ignitionserver-exe"></a><a id="id2518629"></a><b>Q:</b></td><td align="left" valign="top"><p>How come I'm getting this error in the installer: Error Opening File for
+							 Writing: "C:\Program Files\ignitionServer\ignitionServer.exe"?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							You are attempting to update or uninstall ignitionServer while ignitionServer is running
+							This cannot be done. To exit ignitionServer, hit Ctrl-Alt-Del, and stop the
+							ignitionServer.exe process (or the task, on Win9x).
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="error-writing-monitor-exe"></a><a id="id2518663"></a><b>Q:</b></td><td align="left" valign="top"><p>How come I'm getting this error in the installer: Error Opening File for
+							Writing: "C:\Program Files\ignitionServer\monitor.exe"?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							You are attempting to update or uninstall ignitionServer while the monitor is running.
+							This cannot be done. To exit the monitor, bring it up (from the system tray or taskbar),
+							and press the close button in the corner.
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="broken-l-lines"></a><a id="id2518695"></a><b>Q:</b></td><td align="left" valign="top"><p>Why don't my L: lines work anymore?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							In ignitionServer 0.3.5, we reverted back to C: and N: lines for compatibility reasons.
+							Please read <tt class="filename">ircx.conf</tt> for instructions on how to use C: and N: lines
+							(they're nearly exactly the same). Sorry for any inconvenience.
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="what-is-createmode"></a><a id="id2518731"></a><b>Q:</b></td><td align="left" valign="top"><p>What is X:CREATEMODE and how do I use it?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							X:CREATEMODE is a new X: line that we added to give server administrators greater control
+							over their server. It allows the administrator to choose what group of users is able to
+							create channels. In most cases, you will just want the default of 0, which allows all
+							users to create channels. If you are setting up a premium chat service, or otherwise will
+							only have a fixed set of channels, you will probably want to use 1, which will only allow
+							IRC operators to create channels. In addition to this, you can force users to register and
+							identify to NickServ before they can create channels. To do this, set X:CREATEMODE to 2.
+							For more information, please read <tt class="filename">ircx.conf</tt> in your favorite text
+							editor.
+						</p></td></tr><tr class="question"><td align="left" valign="top"><a id="id2518771"></a><a id="id2518773"></a><b>Q:</b></td><td align="left" valign="top"><p>Why isn't ignitionServer working on Windows XP Service Pack 2 (and/or Windows Server 2003)?</p></td></tr><tr class="answer"><td align="left" valign="top"><b>A:</b></td><td align="left" valign="top"><p>
+							Windows XP SP2 adds several security "enhancements", such as limiting the number of
+							outbound connections, and introducing an artificial lag between the opening of outbound
+							listening sockets. On a normal desktop system, these enhancements will probably prevent
+							you from becoming a spam relay or zombie. When you're using your desktop system as a
+							server by running ignitionServer, these enhancements become a serious bottleneck. It will
+							also probably prevent ignitionServer from properly initializing (it will say "loaded OK"
+							in the errorlog, becuase the Winsock subsystem is lying to ignitionServer).
+						</p><p>
+							In order to make ignitionServer properly function on XP SP2, you must make changes to
+							<tt class="filename">ircx.conf</tt> (since XP SP2 does not allow you to bind to all adapters as
+							a security measure), and you may have to patch your TCP/IP subsystem to remove these
+							security enhancements. <span class="emphasis"><em>Most of the previous also applies to Windows Server 2003,
+							in particular, you will need to make some modifications to <tt class="filename">ircx.conf</tt>
+							so that ignitionServer can work.</em></span> <span class="strong">WARNING: PATCHING
+							TCPIP.SYS IS HIGHLY DISCOURAGED BY MICROSOFT AND IT MAY VOID YOUR WARRANTY. YOU ACCEPT ALL
+							RISKS BY PATCHING YOUR TCP/IP SUBSYSTEM. BY PATCHING TCPIP.SYS, YOU AGREE NOT TO HOLD US
+							LIABLE FOR ANY DAMAGES.</span>
+						</p><p>
+							You can get the instructions for patching TCPIP.SYS and modifying
+							<tt class="filename">ircx.conf</tt> by clicking Start &gt; (All) Programs &gt; ignitionServer
+							&gt; Documentation.
+						</p></td></tr></tbody></table></div><p>
+				If you have any more questions, see our forum at <a href="http://www.ignition-project.com/forum/" target="_top">http://www.ignition-project.com/forum/</a>.
+			</p></div><div class="navfooter"><hr /><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="installation.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="readme.html">Up</a></td><td width="40%" align="right"> </td></tr><tr><td width="40%" align="left" valign="top">Installation </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div></body></html>

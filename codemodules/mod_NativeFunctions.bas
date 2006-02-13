@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_NativeFunctions"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_NativeFunctions.bas,v 1.23 2004/12/04 21:43:10 ziggythehamster Exp $
+' $Id: mod_NativeFunctions.bas,v 1.25 2005/07/20 00:10:33 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -69,6 +69,35 @@ GetAdmin = GetAdmin & SPrefix & " 258 " & Nick & " :Administrator's Name: " & mo
 GetAdmin = GetAdmin & SPrefix & " 259 " & Nick & " :Administrator's E-Mail: " & mod_list.AdminEmail
 End Function
 
+Public Function GetInfo(Nick As String) As String
+#If Debugging = 1 Then
+    SendSvrMsg "GETINFO called! (" & Nick & ")"
+#End If
+GetInfo = vbNullString
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " : _             _ _   _             ____" & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :(_) __ _ _ __ (_) |_(_) ___  _ __ / ___|  ___ _ ____   _____ _ __" & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :| |/ _` | '_ \| | __| |/ _ \| '_ \\___ \ / _ \ '__\ \ / / _ \ '__|" & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :| | (_| | | | | | |_| | (_) | | | |___) |  __/ |   \ V /  __/ |" & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :|_|\__, |_| |_|_|\__|_|\___/|_| |_|____/ \___|_|    \_/ \___|_|  (TM)" & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :   |___/ Version " & AppVersion & " / http://www.ignition-project.com/" & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " : " & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :Dedicated to the memory of Scott Gable (1963-2005)." & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " : " & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :ignitionServer is brought to you by:" & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :  Lead Programmer: Keith Gable <ziggy@ignition-project.com>" & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :  Contributors: Reid Burke <airwalk@ignition-project.com>" & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :                Nigel Jones <digi_guy@users.sourceforge.net>" & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :Special Thanks:" & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :  The pureIRCd Team, for creating the base on which ignitionServer runs on." & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :  M2Ys4U, DJ Pyro, XoRt, DJ Myth, DJ Spyke, and everyone else who actively" & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :   helps on The Ignition Project forums." & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :  Our loyal users, for dealing with the betas, botched releases, and bugs" & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :   that happen while developing software." & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " : " & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :Running Version: " & AppVersion & "." & BuildDate & " (""" & CodeName & """)" & vbCrLf
+GetInfo = GetInfo & SPrefix & " " & RPL_INFO & " " & Nick & " :On-line Since: " & StartUpDate & vbCrLf
+End Function
+
 'it's a pretty bulky bunch of code but it works fine -Dill
 'Massive cleanup, 1st mar 03 -Dill
 Public Function GetStats(Nick As String, AccessLvl As Long, Flag As String, Optional Param As String) As String
@@ -105,6 +134,13 @@ Select Case Flag
     'list y-line info
     Case "y"
 'RPL_STATSYLINE
+'RPL_STATSCOMMANDS
+        GetStats = GetStats & SPrefix & " " & RPL_STATSCOMMANDS & " " & Nick & " :Y ID Index MaxClients CurClients PingFreq SendQ" & vbCrLf
+        If AccessLvl >= 3 Then
+        For x = 1 To UBound(YLine)
+          If YLine(x).ID > 0 Then GetStats = GetStats & SPrefix & " " & RPL_STATSYLINE & " " & Nick & " :Y " & YLine(x).ID & " " & YLine(x).index & " " & YLine(x).MaxClients & " " & YLine(x).CurClients & " " & YLine(x).PingFreq & " " & YLine(x).MaxSendQ & vbCrLf
+        Next x
+        End If
     'list all K/Z line information -Dill
     Case "k"
         If AccessLvl >= 3 Then

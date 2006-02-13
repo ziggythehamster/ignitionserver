@@ -28,7 +28,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsClient.cls,v 1.26 2004/12/04 21:43:09 ziggythehamster Exp $
+' $Id: clsClient.cls,v 1.28 2004/12/30 23:55:42 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -88,6 +88,15 @@ Public WhoisIRCX As Boolean 'state of IRCX of the user asking for /whois
 'Booleans are also faster to check than strings:
 '"If boolean = true" is way faster than "If String = OtherString"
 'So the few additional bytes this uses are well worth it, in total only 26 -Dill
+
+'/*
+'** These need to be bytes. If Byte = 0, false, If Byte <> 0, true.
+'** Bytes are smaller than booleans, and would be quicker to check (?)
+'** At least, maybe. I dunno. We really need to lighten the footprint,
+'** so we could probably make this change in BRANCH_FOOTPRINT or something.
+'** That way, we don't potentially screw up HEAD and have to revert HEAD,
+'** something that isn't really all that fun.     -Ziggy
+'*/
 Public IsInvisible As Boolean
 Public IsLocOperator As Boolean
 Public IsGlobOperator As Boolean
@@ -99,7 +108,7 @@ Public IsLProtected As Boolean
 Public IsProtected As Boolean
 Public IsGagged As Boolean 'IRCX +z  -zg
 Public IsRemoteAdmClient As Boolean
-Public IsMonitored As Boolean '+L?
+Public IsMonitored As Boolean '+L
 
 Public CanGlobKill As Boolean
 Public CanLocKill As Boolean
@@ -119,6 +128,8 @@ Public SentQuit As Boolean
 Public IP As String
 Public Class As Long, IIndex As Long        'Y-Line and I-Line -Dill
 Public PassOK As Boolean
+Public Password As String 'used to store the password they sent
+Public SentLogonNotices As Boolean 'did the user get sent logon notices yet?
 Public FromLink As clsClient
 Public UpLink As String
 Public HasRegistered As Boolean

@@ -30,7 +30,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsBans.cls,v 1.7 2004/07/20 22:11:42 ziggythehamster Exp $
+' $Id: clsBans.cls,v 1.8 2005/04/17 04:54:27 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -48,12 +48,13 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 Option Explicit
 Private mCol As Collection
 
-Public Function Add(Mask As String, SetBy As String, SetOn As Long, Optional sKey As String) As clsBan
+Public Function Add(Mask As String, SetBy As String, SetByOwner As Boolean, SetOn As Long, Optional sKey As String) As clsBan
     Dim objNewMember As clsBan
     Set objNewMember = New clsBan
     objNewMember.Mask = Mask
     objNewMember.SetOn = SetOn
     objNewMember.SetBy = SetBy
+    objNewMember.SetByOwner = SetByOwner
     If Len(sKey) = 0 Then
         mCol.Add objNewMember
     Else
@@ -62,7 +63,7 @@ Public Function Add(Mask As String, SetBy As String, SetOn As Long, Optional sKe
     Set Add = objNewMember
     Set objNewMember = Nothing
 End Function
-Public Sub AddX(Mask As String, SetBy As String, SetOn As Long, Duration As Long, Optional Reason As String, Optional sKey As String)
+Public Sub AddX(Mask As String, SetBy As String, SetByOwner As Boolean, SetOn As Long, Duration As Long, Optional Reason As String, Optional sKey As String)
 On Local Error Resume Next
     Dim objNewMember As clsBan
     Set objNewMember = New clsBan
@@ -71,6 +72,7 @@ On Local Error Resume Next
     objNewMember.Duration = Duration
     objNewMember.SetOn = SetOn
     objNewMember.SetBy = SetBy
+    objNewMember.SetByOwner = SetByOwner
     If Len(sKey) = 0 Then
         mCol.Add objNewMember
     Else

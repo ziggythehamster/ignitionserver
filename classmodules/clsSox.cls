@@ -28,7 +28,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsSox.cls,v 1.16 2004/12/04 21:43:09 ziggythehamster Exp $
+' $Id: clsSox.cls,v 1.17 2005/02/23 06:10:27 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -399,14 +399,22 @@ Private Sockets() As typSocket
 Private Socks As New Collection
 
 Private Sub Class_Initialize()
-    If apiWSAStartup(WINSOCK_USE, WSADATA) = SOCKET_ERROR Then
+#If Debugging = 1 Then
+  ErrorMsg2 "clsSox_Initialize"
+#End If
+    Dim Result As Long
+    Result = apiWSAStartup(WINSOCK_USE, WSADATA)
+    If Result = SOCKET_ERROR Then
         Call MsgBox("WinSock failed to initialize properly - Error#: " & err.LastDllError) 'Creates an 'application instance' and memory space in the WinSock DLL (MUST be cleaned up later)
-        ErrorMsg "Winsock failed to initialize properly (Error #" & err.LastDllError & ")"
+        ErrorMsg2 "Winsock failed to initialize properly (Error #" & err.LastDllError & ")"
     Else
+        #If Debugging = 1 Then
+          ErrorMsg2 "Winsock2 initialized properly (result: " & Result & ")"
+        #End If
         Let Portal.hWnd = apiCreateWindowEx(0&, "STATIC", "ignitionServer", 0&, 0&, 0&, 0&, 0&, 0&, 0&, App.hInstance, ByVal 0&) 'Create a hidden object to accept our WinSock messages
         If Portal.hWnd = 0 Then
             Call MsgBox("Error: " & err.LastDllError & " on Portal creation.")   'If cleanup failed, does not / cannot raise errors
-            ErrorMsg "Socket layer failed to create a portal (Error #" & err.LastDllError & ")"
+            ErrorMsg2 "Socket layer failed to create a portal (Error #" & err.LastDllError & ")"
         Else
             Let Portal.WndProc = apiSetWindowLong(Portal.hWnd, GWL_WNDPROC, AddressOf WindowProc)
             Let Portal.Sockets = -1 ' Initialize our socket count ... NB - WE HAVE NONE, used primarily to Redim the Sockets Array
@@ -426,11 +434,11 @@ Private Sub Class_Terminate() 'Scaled down version of Terminate code, used purel
     'This will destroy our hidden object that received all our WinSock API messages
     If apiDestroyWindow(Portal.hWnd) = 0 Then
       Call MsgBox("Error#: " & err.LastDllError & " on Portal destruction")  'If cleanup failed, does not / cannot raise errors
-      ErrorMsg "Socket layer failed to destroy the portal (Error #" & err.LastDllError & ")"
+      ErrorMsg2 "Socket layer failed to destroy the portal (Error #" & err.LastDllError & ")"
     End If
     If apiWSACleanup = SOCKET_ERROR Then
       Call MsgBox("WinSock failed to terminate properly, memory leak imminent - Error#: " & err.LastDllError)  'If cleanup failed, does not / cannot raise errors
-      ErrorMsg "Winsock failed to terminate properly, memory leak imminent (Error #" & err.LastDllError & ")"
+      ErrorMsg2 "Winsock failed to terminate properly, memory leak imminent (Error #" & err.LastDllError & ")"
     End If
 End Sub
 
@@ -445,6 +453,9 @@ Private Function Accept(inSocket As Long) As Long 'Returns: New Sox Number -- in
     If tmpSocket = INVALID_SOCKET Then 'Accept API may not give us a valid socket eg. when all sockets are full, you may have to add additional error trapping if you believe you will use over 32,767 sockets
         'Since a socket was not commited for the new Connection ... we don't have to close it (Since the socket was never even created)
         Let Accept = INVALID_SOCKET
+        #If Debugging = 1 Then
+          ErrorMsg2 "Invalid socket " & inSocket
+        #End If
     Else ' Success, A new connection ... Accept now contains the new Socket number
 '        For Accept = 0 To Portal.Sockets ' First search to see if the socket already exists
 '            If Sockets(Accept).Socket = tmpSocket Then
@@ -904,7 +915,10 @@ Public Function Address(insox As Long) As String ' Returns the address used by a
 End Function
 Public Function Port(insox As Long) As Long
 On Error GoTo Whoops
-    Let Port = apiNToHS(Sockets(insox).SocketAddr.sin_port)
+    #If Debugging = 1 Then
+      SendSvrMsg "*** Get Port: apiNToHS returned '" & apiNToHS(Sockets(insox).SocketAddr.sin_port) & "'; Int2Uns returns '" & IntegerToUnsigned(apiNToHS(Sockets(insox).SocketAddr.sin_port)) & "'; Mathematical difference is '" & (apiNToHS(Sockets(insox).SocketAddr.sin_port) - IntegerToUnsigned(apiNToHS(Sockets(insox).SocketAddr.sin_port))) & "'"
+    #End If
+    Let Port = IntegerToUnsigned(apiNToHS(Sockets(insox).SocketAddr.sin_port))
     Exit Function
 Whoops:
 Let Port = 0
@@ -1027,6 +1041,9 @@ lngResult = api_getsockname(lngSocket, udtSockAddr, LenB(udtSockAddr))
 If lngResult = SOCKET_ERROR Then
     LocalPort = 0
 Else
+    #If Debugging = 1 Then
+      SendSvrMsg "*** Get LocalPort: apiNToHS returned '" & apiNToHS(udtSockAddr.sin_port) & "'; Int2Uns returns '" & IntegerToUnsigned(apiNToHS(udtSockAddr.sin_port)) & "'; Mathematical difference is '" & (apiNToHS(udtSockAddr.sin_port) - IntegerToUnsigned(apiNToHS(udtSockAddr.sin_port))) & "'"
+    #End If
     LocalPort = IntegerToUnsigned(apiNToHS(udtSockAddr.sin_port))
 End If
 

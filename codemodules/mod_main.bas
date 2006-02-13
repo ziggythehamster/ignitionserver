@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_main"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_main.bas,v 1.47 2004/12/04 23:19:57 ziggythehamster Exp $
+' $Id: mod_main.bas,v 1.48 2005/04/17 03:29:38 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -389,7 +389,7 @@ Do
     If AscW(CurCmd) = 58 Then
         'If so, retrieve it and erase the part we retrieved from the cmdline
         'if its a client sending us the prefix, silently drop the message. -Dill
-        If cptr.AccessLevel < 4 Then GoTo nextmsg
+        If cptr.AccessLevel < 4 Then GoTo nextmsg 'silently drop -Zg
         Prefix = Mid$(CurCmd, 2, InStr(1, CurCmd, " ") - 2)
         CurCmd = Mid$(CurCmd, Len(Prefix) + 3)
         If InStr(1, Prefix, "!") <> 0 Then Prefix = Left$(Prefix, InStr(1, Prefix, "!") - 1)
@@ -397,7 +397,7 @@ Do
             Set sptr = Servers(Prefix)
             If sptr Is Nothing Then
                 SendWsock cptr.index, "SQUIT " & Prefix, ":" & Prefix & " <-- ? Unknown Server"
-                SendSvrMsg "*** Notice -- SQUIT sent for unknown server prefix: " & Prefix, True
+                SendSvrMsg "*** Notice -- SQUIT sent for unknown server: " & Prefix, True
                 GoTo nextmsg
             End If
         Else
@@ -406,8 +406,9 @@ Do
             'thanks nigel :P (how come i didn't think of this, lmao?)
             If sptr Is Nothing Then
                 If cptr.ServerName = ServerName Then
-                    SendSvrMsg "***Notice -- KILL sent for unknown prefix: " & Prefix, True
+                    SendSvrMsg "*** Notice -- KILL sent for unknown client: " & Prefix, True
                     SendWsock cptr.index, "KILL " & Prefix, ":" & Prefix & " <-- ? Unknown client"
+                    If cptr.Hops = 0 Then m_error cptr, Prefix & " <-- ? Unknown client"
                 End If
                 GoTo nextmsg
             End If
@@ -1040,7 +1041,8 @@ Do
             Else
               tmpSN = cptr.Nick
             End If
-            SendWsock cptr.index, ERR_UNKNOWNCOMMAND & " " & tmpSN, TranslateCode(ERR_UNKNOWNCOMMAND, , , cmd)
+            'there's no reason to send a command > 128 chars.
+            SendWsock cptr.index, ERR_UNKNOWNCOMMAND & " " & tmpSN, TranslateCode(ERR_UNKNOWNCOMMAND, , , Left$(cmd, 128))
     End Select
 nextmsg:
     Set sptr = Nothing

@@ -1,0 +1,51 @@
+[ THE IGNITION PROJECT SECURITY BULLETIN ]----------------------------
+This is a security bulletin from The Ignition Project, a group of open
+source developers. It describes a flaw in one of our products, if
+fixes are avaliable, how to fix the issue, and what exactly went
+"wrong" that allows this security issue to occur.
+
+(Product Information)_________________________________________________
+Vendor:   The Ignition Project <http://www.ignition-project.com/>
+Product:  ignitionServer
+Versions: 0.3.0 to 0.3.6 (earlier versions may be affected)
+
+(Vulnerability Information)___________________________________________
+Vulnerability: Hosts can delete access entries added by owners
+Reported By:   Keith Gable <ziggy@ignition-project.com>
+Fix Available: Yes
+How To Fix:    Upgrade to 0.3.6-P1
+URL of Fix:    http://www.ignition-project.com/download
+Criticality:   Low
+Where:         Remote
+Impact:        Privilege Escalation, Security Bypass
+
+(Long Description)____________________________________________________
+The IRCX draft specifically says that access entries added by owners
+(users with a . before their name on chat) are only able to be deleted
+by owners. We, however, have not implemented any checking to determine
+if the user deleting the entry has sufficient privileges to do so.
+This patch implements this feature.
+
+This bug is not of extreme criticality because it does not affect the
+server as a whole; it only affects channels. Also, hosts can already
+see access entries added by owners.
+
+(How To Exploit)______________________________________________________
+[Owner]-> ACCESS #MyChan ADD VOICE *!*@* 0 :Voice everybody
+[Host] -> ACCESS #MyChan DELETE VOICE *!*@*
+
+(Vulnerable Code)_____________________________________________________
+File Name: codemodules/mod_channel.bas
+Function: m_access
+Reason: Check if the creator of the entry was an owner, and if so,
+        make sure the person deleting the entry is also an owner.
+
+File Names: classmodules/clsBan.cls, classmodules/clsGrant.cls,
+            classmodules/clsHost.cls, classmodules/clsOwner.cls,
+            classmodules/clsVoice.cls
+Reason: Need to add flag that stores the level of the person who
+        originally created the entry
+
+(References)__________________________________________________________
+Bug #1183399:
+https://sf.net/tracker/index.php?func=detail&aid=1183399&group_id=96071&atid=613526

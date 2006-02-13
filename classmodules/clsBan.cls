@@ -28,7 +28,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: clsBan.cls,v 1.6 2004/06/26 07:01:11 ziggythehamster Exp $
+' $Id: clsBan.cls,v 1.7 2005/04/17 04:54:27 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -46,6 +46,7 @@ Attribute VB_Ext_KEY = "Top_Level" ,"Yes"
 Option Explicit
 
 Public SetBy As String
+Public SetByOwner As Boolean
 Public Duration As Variant
 Public SetOn As Long
 Public Mask As String

@@ -1,0 +1,68 @@
+[ THE IGNITION PROJECT SECURITY BULLETIN ]----------------------------
+This is a security bulletin from The Ignition Project, a group of open
+source developers. It describes a flaw in one of our products, if
+fixes are avaliable, how to fix the issue, and what exactly went
+"wrong" that allows this security issue to occur.
+
+(Product Information)_________________________________________________
+Vendor:   The Ignition Project <http://www.ignition-project.com/>
+Product:  ignitionServer
+Versions: 0.3.0 to 0.3.6 (earlier versions may be affected)
+
+(Vulnerability Information)___________________________________________
+Vulnerability: Protected IRC operators cannot join channels with keys
+Reported By:   WebdesignX007 <webagent@webdesignx007.net>
+Fix Available: Yes
+How To Fix:    Upgrade to 0.3.6-P1
+URL of Fix:    http://www.ignition-project.com/download/
+Criticality:   Moderate
+Where:         Remote
+Impact:        DoS | Security Bypass
+
+(Long Description)____________________________________________________
+Users are permitted to "lock" their channels from unauthorized access
+by setting a channel key, either by using the IRC command 
+"MODE #Channel +k key" or the IRCX command
+"PROP #Channel MEMBERKEY :key". By setting either one of these keys,
+all normal users are denied access unless they have the password to
+get in. In addition to this, "regular" IRC operators cannot get into
+a locked channel. However, protected operators should be able to
+defeat being locked out by a key and be able to join a channel
+normally. However, I forgot to add this feature when we were looking
+around in the code for places that protected operators will get access
+when other kinds of operators wouldn't normally get access. The lack
+of this feature prevents protected operators from performing channel
+management on locked channels (so if a malicious user "took over" a
+channel and set a key, the only way to remove the channel from the
+server is to reboot the server).
+
+Labeled a denial of service because IRC operators are denied service
+to a channel with +k/prop memberkey set. It also gives normal users
+too much power over a channel (i.e. no way to get them out of the
+channel unless you restart the server).
+
+(How To Exploit)______________________________________________________
+As a normal user, create a channel and send either one of these
+commands:
+MODE #Channel +k password
+PROP #Channel MEMBERKEY :password
+
+Then, open a new session, login as a protected IRC operator, and try
+to join the channel. You will not be able to.
+
+(Vulnerable Code)_____________________________________________________
+File: mod_channel
+Function: m_join
+Old Line:
+If Len(Chan.Key) <> 0 Then
+New Line:
+If Len(Chan.Key) <> 0 And Not (cptr.IsProtected Or cptr.IsLProtected) Then
+
+The new code only runs the channel key processing if you're not
+protected.
+
+(References)__________________________________________________________
+Bug #1201482:
+http://sf.net/tracker/index.php?func=detail&aid=1201482&group_id=96071&atid=613526
+Forum post "If +k How can admin get in?":
+http://www.ignition-project.com/node/502

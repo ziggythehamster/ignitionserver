@@ -14,7 +14,7 @@ Attribute VB_Name = "modSox"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: modSox.bas,v 1.21 2004/12/04 21:43:10 ziggythehamster Exp $
+' $Id: modSox.bas,v 1.23 2005/04/17 03:29:37 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -246,11 +246,12 @@ Else
 End If
 End Sub
 
-Public Sub Sox_DataArrival(insox As Long, StrMsg As String)
+Public Sub Sox_DataArrival(insox As Long, myStrMsg As String)
 #If Debugging = 1 Then
     SendSvrMsg "Sox_DataArrival called!"
 #End If
 Dim cptr As clsClient, StrArray$(), i&, x&
+Dim StrMsg As String
 Set cptr = Users(insox)
 If cptr Is Nothing Then
     Sockets.CloseIt insox
@@ -260,27 +261,12 @@ If cptr.IsKilled Then
     Sockets.CloseIt insox
     Exit Sub
 End If
-If Len(StrMsg) = 0 Then Exit Sub
-If Len(StrMsg) > 2048 Then
-  'the buffer limit is 512 according to the protocol
-  'the sockets have a hard limit of 4096
-  'we're being nice.
-  cptr.IsKilled = True
-  If cptr.OnChannels.Count > 0 Then
-    For x = 1 To cptr.OnChannels.Count
-        SendToChan cptr.OnChannels.Item(x), cptr.Prefix & " QUIT :Maximum Buffer Length Reached", vbNullString
-    Next x
-  End If
-  SendToServer "QUIT :Maximum Buffer Length Reached", cptr.Nick
-  GenerateEvent "USER", "QUIT", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " :Maximum Buffer Length Reached"
-  GenerateEvent "USER", "LOGOFF", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "")
-  GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & cptr.LocalPort
-  KillStruct cptr.Nick, enmTypeClient
-  m_error cptr, "Closing Link: (Maximum Buffer Length Reached)"
-  Sockets.TerminateSocket cptr.SockHandle
-  Exit Sub
-End If
-StrMsg = Replace(StrMsg, vbCrLf, vbLf)
+If Len(myStrMsg) = 0 Then Exit Sub
+If myStrMsg = vbNullChar Then Exit Sub 'ignore 0x00 (DoS)
+StrMsg = myStrMsg 'it's a very bad idea to modify this variable directly, since it's the socket buffer and could allow overruns and all kinds of nasty business
+StrMsg = Replace(StrMsg, vbNullChar, vbNullString) 'remove 0x00
+StrMsg = Replace(StrMsg, vbCrLf, vbLf) 'filter this business
+StrMsg = Replace(StrMsg, vbCr, vbLf) 'filter this too
 
 If InStr(1, StrMsg, vbLf) = 0 Then
     cptr.tmpused = True
@@ -299,7 +285,7 @@ If InStr(1, StrMsg, vbLf) = 0 Then
     
     'handle backspace
     If StrMsg = Chr(8) Then
-      cptr.tmp = Left(cptr.tmp, Len(cptr.tmp) - 1)
+      If Len(cptr.tmp) > 0 Then cptr.tmp = Left(cptr.tmp, Len(cptr.tmp) - 1)
       'don't add this to cptr.tmp, it's backspace ^_^
     Else
       cptr.tmp = cptr.tmp & Left(StrMsg, 512) 'no buffer overruns, mommy!
@@ -329,9 +315,26 @@ If cptr.tmpused Then
 End If
 ServerTraffic = ServerTraffic + Len(StrMsg)
 StrArray = Split(StrMsg, vbLf)
-'Due to the nature of a Stack (Last one to push on is the first one that will get pulled off)
-'we will have to push incoming messages in reversed order. -Dill
+
 For i = 0 To UBound(StrArray)
+    If Len(StrArray(i)) > 1024 Then
+      'the line length is really 512, we're being nice.
+      cptr.IsKilled = True
+      If cptr.OnChannels.Count > 0 Then
+        For x = 1 To cptr.OnChannels.Count
+            SendToChan cptr.OnChannels.Item(x), cptr.Prefix & " QUIT :Line length too long", vbNullString
+        Next x
+      End If
+      SendToServer "QUIT :Line length too long", cptr.Nick
+      GenerateEvent "USER", "QUIT", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " :Line length too long"
+      GenerateEvent "USER", "LOGOFF", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "")
+      GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & cptr.LocalPort
+      KillStruct cptr.Nick, enmTypeClient
+      m_error cptr, "Closing Link: (Line length too long)"
+      Sockets.TerminateSocket cptr.SockHandle
+      Exit Sub
+    End If
+    
     If Len(StrArray(i)) > 3 Then
     
         If MaxMsgsInQueue > 0 Then
@@ -340,14 +343,14 @@ For i = 0 To UBound(StrArray)
                     cptr.IsKilled = True
                     'a client flooding us
                     For x = 1 To cptr.OnChannels.Count
-                        SendToChan cptr.OnChannels.Item(x), cptr.Prefix & " QUIT :Max RecvQ length exceeded", vbNullString
+                        SendToChan cptr.OnChannels.Item(x), cptr.Prefix & " QUIT :Flooding", vbNullString
                     Next x
-                    SendToServer "QUIT :Max RecvQ length exceeded", cptr.Nick
-                    GenerateEvent "USER", "QUIT", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " :Max RecvQ length exceeded"
+                    SendToServer "QUIT :Flooding", cptr.Nick
+                    GenerateEvent "USER", "QUIT", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "") & " :Flooding"
                     GenerateEvent "USER", "LOGOFF", Replace(cptr.Prefix, ":", ""), Replace(cptr.Prefix, ":", "")
                     GenerateEvent "SOCKET", "CLOSE", "*!*@*", cptr.IP & ":" & cptr.RemotePort & " " & ServerLocalAddr & ":" & cptr.LocalPort
                     KillStruct cptr.Nick, enmTypeClient
-                    m_error cptr, "Closing Link: Max RecvQ length exceeded"
+                    m_error cptr, "Closing Link: (Flooding)"
                     Sockets.TerminateSocket cptr.SockHandle
                     Exit Sub
                 Else
@@ -357,7 +360,7 @@ For i = 0 To UBound(StrArray)
         End If
 
         RecvMsg = RecvMsg + 1
-        RecvQ.Add cptr, StrArray(i)
+        RecvQ.Add cptr, Left$(StrArray(i), 512)
         If Left$(StrArray(i), 5) = "QUIT " Then cptr.SentQuit = True
     End If
 Next i

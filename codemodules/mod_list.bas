@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_list"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_list.bas,v 1.89 2004/12/06 04:26:43 ziggythehamster Exp $
+' $Id: mod_list.bas,v 1.103 2005/07/20 00:10:34 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -37,7 +37,8 @@ Option Explicit
 Public Const MaxTrafficRate As Long = 100
 
 '-=BUILD DATE=-
-Public Const BuildDate As String = "20041206"
+Public Const BuildDate As String = "20050719-cvs"
+Public Const CodeName As String = "Black Dog"
 
 'Level Symbols
 'CHANGE AT YOUR OWN RISK.
@@ -166,7 +167,7 @@ Public ServerLocation As String
 Public Die As Boolean
 
 'Remote Access Pass(To get special features
-Public RemotePass
+Public RemotePass As String
 
 'Enable Error Log
 Public ErrorLog As Boolean
@@ -210,6 +211,14 @@ Public Type typPortal 'Class specific variables
     WndProc As Long 'Pointer to the origional WindowProc of our window (We need to give control of ALL messages back to it before we destroy it)
     Sockets As Long 'How many Sockets are comming through the Portal, Actually hold the Socket array count. NB - MUST change with Redim of Sockets
 End Type
+
+Public Enum enmAccessType
+  aDeny = 0
+  aGrant = 1
+  aVoice = 2
+  aHost = 3
+  aOwner = 4
+End Enum
 
 Public Enum ChanMemberFlags
   ChanOwnerVoice = 7
@@ -959,5 +968,7 @@ Select Case Code
     TranslateCode = cmd & " :Bad message tag."
   Case IRCERR_ALREADYONCHANNEL
     TranslateCode = Chan & " :Already in the channel."
+  Case IRCERR_MISACCESS
+    TranslateCode = Nick & " :Unknown access entry"
 End Select
 End Function

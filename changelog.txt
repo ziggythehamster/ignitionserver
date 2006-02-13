@@ -6,7 +6,7 @@
 # DG = DigiGuy (digi_guy@users.sourceforge.net)
 # AW = Airwalk (airwalk@ignition-project.com)
 #
-# $Id: changelog.txt,v 1.220 2004/12/07 00:51:13 ziggythehamster Exp $
+# $Id: changelog.txt,v 1.271 2005/07/20 00:22:28 ziggythehamster Exp $
 #
 ### Project Start ###
 #
@@ -635,7 +635,7 @@ Zg - [9-Oct] - Installer tweak
 Zg - [9-Oct] - Also a good idea to set X:DIE to 1 :)
 Zg - [9-Oct] - And a much better idea to remove the default static channels
 #
-### RELEASE - 0.3.4 - BETA 4 ###
+### RELEASE - 0.3.5 - BETA 5 ###
 #
 Zg - [10-Oct] - Version increase
 Zg - [16-Oct] - Began MMC Snap-In
@@ -685,3 +685,81 @@ Zg - [6-Dec] - Modified ircx.conf for release
 Zg - [6-Dec] - Added version/server to more info of the monitor
 Zg - [6-Dec] - Update config template. Man I can't wait until we make it an XML file. It will be so much easier to just integrate the migration wizard into the upcoming configuration wizard.
 Zg - [6-Dec] - Added several batch files to automate the release process
+#
+### RELEASE - 0.3.6 - BETA 6 ###
+#
+Zg - [8-Dec] - Increment versions
+Zg - [8-Dec] - Changelog typo
+Zg - [8-Dec] - Re-import of remote from SVN
+Zg - [8-Dec] - Update the version on the monitor too
+Zg - [9-Dec] - Format some X: lines in ircx.conf
+Zg - [9-Dec] - More ircx.conf formatting
+Zg - [9-Dec] - Even though we don't use it, define RemotePass as string.
+Zg - [9-Dec] - Fixed bug #1081682 (restartpass and diepass should use MD5 if enabled)
+Zg - [9-Dec] - Clean up remote some (it might actually be salvagable)
+Zg - [27-Dec] - STATS y -- list Y: lines (mainly as a debugging tool)
+Zg - [27-Dec] - Fixed bug #1091434 (SendQ issues)
+Zg - [27-Dec] - Clear releasenotes
+Zg - [27-Dec] - Fixed bug #1091436 (+b does not echo to channel [perhaps we need to honor IRCXMODE?])
+Zg - [27-Dec] - Fixed bug #1091438 (offline mode triggered only at USER [not NICK and USER], offline mode creates erroneous nicknames)
+Zg - [30-Dec] - Added variable to clsClient that stores the password sent
+Zg - [30-Dec] - Fixing to break PASS... :)
+Zg - [30-Dec] - USER now checks pass (need to test it)
+Zg - [30-Dec] - Removed the code that would generate a NOTICE when you have a bad username
+Zg - [30-Dec] - Better handling of IRC logons
+Zg - [30-Dec] - Fix a compile error
+Zg - [31-Dec] - Add PASS checking to SERVER, don't want a major vulnerability (again, needs testing)
+Zg - [15-Jan] - Fixed bug #1058833 (PASS automatically attempts to authenticate you as a server if there is no logon password, even if you lack all the credentials, preventing users from sending the PASS command at all if there is no logon password)
+Zg - [15-Jan] - Fixed bug #1103099 (remote usermodes lack a space when an EVENT is sent)
+Zg - [23-Feb] - Working on fixing the negative port business...
+Zg - [23-Feb] - Fixed bug #1077268 (if port is greater than a certain number, it displays improperly [signed/unsigned translation problem])
+Zg - [23-Feb] - Fixed bug that could allow you to make the server read a buffer in a position that can't be accessed (-1) - crashable?
+Zg - [23-Feb] - Fixed bug #1092955 (strip 0x00 from input stream)
+Zg - [23-Feb] - Worked on ignitionserver.xml
+Zg - [23-Feb] - More XML stuff...
+Zg - [6-Apr] - Move the access functions to a new module, I'm cluttering mod_channel.
+Zg - [6-Apr] - Made new function, FindAccessEntry. Does everything the Find* code does.
+Zg - [6-Apr] - Fixed bug in the process that would make a for loop start at 1 and go to 0 in a collection with no items; basically, bounds-checking on the access entry stuff
+Zg - [8-Apr] - Need a more consistant error message thing. Probably am going to rip off Cisco sort of. %BUG: Message, %DEBUG: Message, and so on. There's stuff like that on Cisco routers.
+Zg - [10-Apr] - Add script to make source archives (for quick branch releases or what have you)
+Zg - [13-Apr] - ACCESS ADD/DELETE for clients now uses exact matching, still broken though (DELETE isn't working)
+Zg - [14-Apr] - Fixed bug #1177498 (ACCESS ADD/DELETE use wildcard matching, need to use exact matching)
+Zg - [17-Apr] - Fixed possible bug with the "unknown local client" code.
+Zg - [17-Apr] - Fixed bug #1184456 (buffers can be mutilated by sending large commands)
+Zg - [17-Apr] - Added a couple security bulletins to docs/security
+Zg - [17-Apr] - Fixed a typo in one of the security bulletins
+Zg - [17-Apr] - Fix up some of the server ACCESS code
+Zg - [17-Apr] - Track if the user adding access is an owner or not
+Zg - [17-Apr] - Fixed bug #1183470 (incorrectly parsing the packet length; need to parse line length instead)
+Zg - [17-Apr] - Removed one of the security bulletins because testing revealed it only messed up your buffer.
+Zg - [17-Apr] - Fixed bug #1183399 (SECURITY: hosts can delete access entries set by owners)
+Zg - [18-Apr] - Fixed bug #1149602 (access clear is not done right)
+Zg - [18-Apr] - Access clear now returns "some entries not cleared due to security" if an entry was created by an owner and you're not one
+Zg - [18-Apr] - Fixed bug #1184870 (+qo users cannot delete +q access entries)
+Zg - [15-May] - Added security bulletin for "cannot join keyed channels" vulnerability.
+Zg - [15-May] - Fixed bug #1201482 (protected IRC operators cannot join locked channels)
+Zg - [15-May] - Add a warning to the installer's welcome screen telling users their configuration files will be overritten.
+Zg - [15-May] - Overwritten has a "w" in it.
+Zg - [15-May] - Make some edits to the vulnerability information
+Zg - [15-May] - Fix another error in the security bulletin for "hosts can delete access entries added by owners"
+Zg - [26-May] - Fixed bug #1209572 (+P/+p cannot join a room that has reached its limit)
+Zg - [26-May] - Fixed bug that let users ban protected operators. Now, you can ban them, but they can come back.
+Zg - [30-May] - The installer graphics suck. These new ones rule.
+Zg - [30-May] - Add a top banner thing for the uninstaller
+Zg - [2-Jun] - Make the installer way more intelligent, give more debugging information in CVS builds.
+Zg - [2-Jun] - If ignitionServer is installed using this version of the installer or newer, it'll warn you that it's overwriting config files. Useless for users of 0.3.6 or earlier, but useful from now on.
+Zg - [5-Jun] - Move the MMC snap-in to ./dormant, since it is. I'd delete it, but maybe some programmer somewhere will want to play with it.. -_-
+Zg - [11-Jun] - Fixed a small bug within some #If and #End If's. It made Super Debug(TM) not work.
+Zg - [14-Jun] - Add the SERVICE bitmask doc to the repository (for future SERVICE command)
+Zg - [14-Jun] - Begin splitting up the monolithic modules into smaller, easier to edit ones. Started with ACCESS.
+Zg - [28-Jun] - Split m_access finally....
+Zg - [3-Jul] - The XML configuration format has been cleaned up. Perhaps it's time for a branch now so I can write the configuration wizard(s)?
+Zg - [4-Jul] - Finally, docs that don't suck!
+Zg - [4-Jul] - Add the images for the docs...
+Zg - [8-Jul] - Fixed bug #1233100 (non-IRCX users with OWNER access see mode +q get set rather than mode +o)
+Zg - [8-Jul] - Fixed bug #1233103 (users who match more than one access level get only one level applied)
+Zg - [8-Jul] - Fixed bug #1233083 (ACCESS CLEAR does not work)
+Zg - [8-Jul] - Regression from fixing the previous bugs: protected IRC operators that also match access rules will make more than one mode message show up
+Zg - [8-Jul] - Fixed bug #1183453 (run "Unknown access entry" though the text parser)
+Zg - [19-Jul] - Modify /info, give it a codename. "Black Dog" is the codename for 0.3.7. ..gonna make you sweat, gonna make you groove.. :D
+Zg - [19-Jul] - Fixed bug #1235019 (protected operators can make duplicate modes onjoin)

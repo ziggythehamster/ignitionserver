@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_user"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_user.bas,v 1.58 2004/12/04 23:19:58 ziggythehamster Exp $
+' $Id: mod_user.bas,v 1.63 2004/12/31 00:22:39 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -355,30 +355,59 @@ Else
       ErrorMsg "CRITICAL ERROR: There is a serious configuration error. The client connecting from " & cptr.IP & " has an invalid IIndex of " & cptr.IIndex & ". You have improperly set up I: lines, or improperly set up Y: lines. Please check them to ensure they are properly configured."
       Exit Function
     End If
-    If Len(ILine(cptr.IIndex).Pass) > 0 Then
-      If cptr.PassOK = False Then
-          m_error cptr, "Closing Link: (Bad Password)"
-          #If Debugging = 1 Then
-            SendSvrMsg "m_nick : bad password (vfy against '" & ILine(cptr.IIndex).Pass & "' iidx " & cptr.IIndex
-          #End If
-          KillStruct cptr.Nick, , False, cptr.IP
-          Exit Function
-      End If
-    Else
-      cptr.PassOK = True
+    
+    'verify this in USER -zg
+    
+    'If Len(ILine(cptr.IIndex).Pass) > 0 Then
+    '  If cptr.PassOK = False Then
+    '      m_error cptr, "Closing Link: (Bad Password)"
+    '      #If Debugging = 1 Then
+    '        SendSvrMsg "m_nick : bad password (vfy against '" & ILine(cptr.IIndex).Pass & "' iidx " & cptr.IIndex
+    '      #End If
+    '      KillStruct cptr.Nick, , False, cptr.IP
+    '      Exit Function
+    '  End If
+    'Else
+    '  cptr.PassOK = True
+    'End If
+    If OfflineMode = True Then
+        If Len(OfflineMessage) = 0 Then
+            'For x = 1 To .OnChannels.Count
+            '    SendToChan .OnChannels.Item(x), .Prefix & " AutoKilled: Server In Offline Mode", vbNullString
+            'Next x
+            SendToServer "QUIT :AutoKilled: Server In Offline Mode", cptr.Nick
+            SendWsock cptr.index, "KILL " & cptr.Nick, ":AutoKilled: Server In Offline Mode", cptr.Prefix
+            m_error cptr, "Closing Link: (AutoKilled: Server In Offline Mode)"
+            cptr.IsKilled = True
+            KillStruct cptr.Nick, , False, cptr.IP
+            Exit Function
+        Else
+            'For x = 1 To .OnChannels.Count
+            '    SendToChan .OnChannels.Item(x), .Prefix & " AutoKilled: " & OfflineMessage, vbNullString
+            'Next x
+            SendToServer "QUIT :AutoKilled: " & OfflineMessage, cptr.Nick
+            SendWsock cptr.index, "KILL " & cptr.Nick, ":AutoKilled: " & OfflineMessage, cptr.Prefix
+            m_error cptr, "Closing Link: (AutoKilled: " & OfflineMessage & ")"
+            cptr.IsKilled = True
+            KillStruct cptr.Nick, , False, cptr.IP
+            Exit Function
+        End If
     End If
-    WhereAmI = "if you experience problems while connecting..."
-    SendWsock cptr.index, "NOTICE AUTH", ":*** If you experience problems while connecting please email the admin (" & mod_list.AdminEmail & ") about it and include the server you tried to connect to (" & ServerName & ")."
-    If Len(cptr.User) > 0 Then
+    'if they've already sent USER, send this stuff
+    'this will ensure they don't become a user before
+    'verifying the password
+    If Len(cptr.User) > 0 And Not cptr.SentLogonNotices Then
       pdat = GetRand
       WhereAmI = "ping timeouts"
+      SendWsock cptr.index, "NOTICE AUTH", ":*** If you experience problems while connecting please email the admin (" & mod_list.AdminEmail & ") about it and include the server you tried to connect to (" & ServerName & ")."
       SendWsock cptr.index, "NOTICE AUTH", ":*** If you experience problems due to PING timeouts, type '/QUOTE PONG :" & pdat & "' or '/RAW PONG :" & pdat & "' now."
+      WhereAmI = "custom auth notice"
+      If Not Len(CustomNotice) = 0 Then 'moved so user will always see notice -AW
+          SendWsock cptr.index, "NOTICE AUTH", ":*** " & CustomNotice
+      End If
       SendWsock cptr.index, "PING " & pdat, vbNullString, , True
       IrcStat.UnknownConnections = IrcStat.UnknownConnections - 1
-    End If
-    WhereAmI = "custom auth notice"
-    If Not Len(CustomNotice) = 0 Then 'moved so user will always see notice -AW
-        SendWsock cptr.index, "NOTICE AUTH", ":*** " & CustomNotice
+      cptr.SentLogonNotices = True
     End If
   Else
     WhereAmI = "set nickname"
@@ -924,6 +953,7 @@ Public Function m_user(cptr As clsClient, sptr As clsClient, parv$()) As Long
     SendSvrMsg "USER called! (" & cptr.Nick & ")"
 #End If
 Dim ShowNick As String
+Dim tmpPass As String
 If Len(cptr.Nick) = 0 Then
   ShowNick = "Anonymous"
 Else
@@ -942,7 +972,7 @@ End If
     Exit Function
   End If
   Dim Ident$, pdat$, i&, x&, z&, allusers() As clsClient
-  If IsValidUserString(parv(0)) = True Then
+  'removed the IsValidUserString crap
   With cptr
     .User = FilterReserved(parv(0)) 'filter out illegal and legal annoying chars
     If NickLen > 0 Then
@@ -963,11 +993,23 @@ End If
     End If
     If Len(ILine(cptr.IIndex).Pass) > 0 Then
       If .PassOK = False Then
-          m_error cptr, "Closing Link: (Bad Password)"
-          KillStruct cptr.Nick, , False, cptr.IP
-          Exit Function
+          If MD5Crypt = True Then
+            tmpPass = oMD5.MD5(cptr.Password)
+          Else
+            tmpPass = cptr.Password
+          End If
+          If StrComp(tmpPass, ILine(cptr.IIndex).Pass) <> 0 Then
+            'bad password, get out of here -zg
+            m_error cptr, "Closing Link: (Bad Password)"
+            KillStruct cptr.Nick, , False, cptr.IP
+            Exit Function
+          Else
+            'the password is valid, let them keep rolling on... -zg
+            cptr.PassOK = True
+          End If
       End If
     Else
+      'there is no password, assume password is okay -zg
       cptr.PassOK = True
     End If
     If .IP = MonitorIP And Die = True Then
@@ -1011,24 +1053,18 @@ End If
     End If
     
     If Len(.Nick) = 0 Then Exit Function
-    pdat = GetRand
-    SendWsock cptr.index, "NOTICE AUTH", ":*** If you experience problems due to PING timeouts, type '/QUOTE PONG :" & pdat & "' or '/RAW PONG :" & pdat & "' now."
-    SendWsock cptr.index, "PING " & pdat, vbNullString, , True
-    IrcStat.UnknownConnections = IrcStat.UnknownConnections - 1
+    If Not cptr.SentLogonNotices Then
+      pdat = GetRand
+      SendWsock cptr.index, "NOTICE AUTH", ":*** If you experience problems while connecting please email the admin (" & mod_list.AdminEmail & ") about it and include the server you tried to connect to (" & ServerName & ")."
+      SendWsock cptr.index, "NOTICE AUTH", ":*** If you experience problems due to PING timeouts, type '/QUOTE PONG :" & pdat & "' or '/RAW PONG :" & pdat & "' now."
+      If Not Len(CustomNotice) = 0 Then 'moved so user will always see notice -AW
+          SendWsock cptr.index, "NOTICE AUTH", ":*** " & CustomNotice
+      End If
+      SendWsock cptr.index, "PING " & pdat, vbNullString, , True
+      IrcStat.UnknownConnections = IrcStat.UnknownConnections - 1
+      cptr.SentLogonNotices = True
+    End If
   End With
-  Else
-  With cptr
-    'For x = 1 To .OnChannels.Count
-    ' SendToChan .OnChannels.Item(x), .Prefix & " AutoKilled: Illegal username -- change to an alphanumeric username.", vbNullString
-    'Next x
-    SendToServer "QUIT :AutoKilled: Illegal username -- change to an alphanumeric username.", .Nick
-    SendWsock .index, "KILL " & .Nick, ":AutoKilled: Illegal username -- change to an alphanumeric username.", .Prefix
-    m_error cptr, "Closing Link: (AutoKilled: Illegal username -- change to an alphanumeric username.)"
-    .IsKilled = True
-    KillStruct .Nick, , False, .IP
-    Exit Function
-  End With
-  End If
 End Function
 
 '/*
@@ -1386,75 +1422,78 @@ End If
   SendSvrMsg "IIndex: '" & cptr.IIndex & "'; Pass: '" & ILine(cptr.IIndex).Pass & "'"
 #End If
 
-If Len(Trim$(ILine(cptr.IIndex).Pass)) <> 0 Then
-  Dim tmpPass As String
-  If MD5Crypt = True Then
-     tmpPass = oMD5.MD5(parv(0))
-  Else
-     tmpPass = parv(0)
-  End If
+'// set the password, will be checked in USER or SERVER, depending on what command is sent
+cptr.Password = parv(0)
 
-  If StrComp(tmpPass, ILine(cptr.IIndex).Pass) = 0 Then
-    m_pass = 1
-    cptr.PassOK = True
-    Exit Function
-  Else
-    m_pass = -1
-    cptr.PassOK = False
-    Exit Function
-  End If
-End If
-
+'If Len(Trim$(ILine(cptr.IIndex).Pass)) <> 0 Then
+'  Dim tmpPass As String
+'  If MD5Crypt = True Then
+'     tmpPass = oMD5.MD5(parv(0))
+'  Else
+'     tmpPass = parv(0)
+'  End If
+'
+'  If StrComp(tmpPass, ILine(cptr.IIndex).Pass) = 0 Then
+'    m_pass = 1
+'    cptr.PassOK = True
+'    Exit Function
+'  Else
+'    m_pass = -1
+'    cptr.PassOK = False
+'    Exit Function
+'  End If
+'End If
+'
 'so they didn't get caught by the I: line?
 'did their password match a L: line?
-#If Debugging = 1 Then
-  SendSvrMsg "*** trying as server"
-#End If
-
-If Not cptr.NLined Then
-    #If Debugging = 1 Then
-      SendSvrMsg "*** not NLined"
-    #End If
-    If DoNLine(cptr) Then
-        #If Debugging = 1 Then
-          SendSvrMsg "DoNLine, checking password..."
-        #End If
-        If StrComp(parv(0), ILine(cptr.IIndex).Pass) = 0 And Len(ILine(cptr.IIndex).Pass) <> 0 Then
-            #If Debugging = 1 Then
-              SendSvrMsg "DoNLine, Password OK!"
-            #End If
-            m_pass = 1
-            cptr.PassOK = True
-        Else
-            #If Debugging = 1 Then
-              SendSvrMsg "DoNLine, Password bad."
-            #End If
-            m_pass = -1
-            cptr.PassOK = False
-            cptr.NLined = False
-            cptr.AccessLevel = 1
-        End If
-    Else
-        If StrComp(parv(0), NLine(cptr.IIndex).Pass) = 0 Then
-            #If Debugging = 1 Then
-              SendSvrMsg "Not DoNLine, Password OK!"
-            #End If
-            m_pass = 1
-            cptr.PassOK = True
-            cptr.NLined = True
-        Else
-            #If Debugging = 1 Then
-              SendSvrMsg "Not DoNLine, Password bad"
-            #End If
-            cptr.AccessLevel = 1
-            m_error cptr, "Closing Link: (Bad Password)"
-            KillStruct cptr.Nick, , False
-            m_pass = -1
-            cptr.PassOK = False
-            cptr.NLined = False
-        End If
-    End If
-End If
+'#If Debugging = 1 Then
+'  SendSvrMsg "*** trying as server"
+'#End If
+'
+'If Not cptr.NLined Then
+'    #If Debugging = 1 Then
+'      SendSvrMsg "*** not NLined"
+'    #End If
+'    If DoNLine(cptr) Then
+'        #If Debugging = 1 Then
+'          SendSvrMsg "DoNLine, checking password..."
+'        #End If
+'        If StrComp(parv(0), ILine(cptr.IIndex).Pass) = 0 And Len(ILine(cptr.IIndex).Pass) <> 0 Then
+'            #If Debugging = 1 Then
+'              SendSvrMsg "DoNLine, Password OK!"
+'            #End If
+'            m_pass = 1
+'            cptr.PassOK = True
+'        Else
+'            #If Debugging = 1 Then
+'              SendSvrMsg "DoNLine, Password bad."
+'            #End If
+'            m_pass = -1
+'            cptr.PassOK = False
+'            cptr.NLined = False
+'            cptr.AccessLevel = 1
+'        End If
+'    Else
+'        If StrComp(parv(0), NLine(cptr.IIndex).Pass) = 0 Then
+'            #If Debugging = 1 Then
+'              SendSvrMsg "Not DoNLine, Password OK!"
+'            #End If
+'            m_pass = 1
+'            cptr.PassOK = True
+'            cptr.NLined = True
+'        Else
+'            #If Debugging = 1 Then
+'              SendSvrMsg "Not DoNLine, Password bad"
+'            #End If
+'            cptr.AccessLevel = 1
+'            m_error cptr, "Closing Link: (Bad Password)"
+'            KillStruct cptr.Nick, , False
+'            m_pass = -1
+'            cptr.PassOK = False
+'            cptr.NLined = False
+'        End If
+'    End If
+'End If
 End Function
 
 '/*

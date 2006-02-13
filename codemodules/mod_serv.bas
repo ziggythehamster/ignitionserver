@@ -14,7 +14,7 @@ Attribute VB_Name = "mod_serv"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: mod_serv.bas,v 1.36 2004/12/04 21:43:10 ziggythehamster Exp $
+' $Id: mod_serv.bas,v 1.40 2005/07/20 00:10:35 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -104,66 +104,14 @@ If cptr.AccessLevel = 4 Then
     Dim Target As clsClient
     Set Target = Servers(parv(0))
     If Target.ServerName = ServerName Then
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":ignitionServer --"
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":Based on pureIRCd <http://pure-ircd.sourceforge.net/>, written by"
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":Dennis Fisch and Johnny aka Pern. Aside from the network core"
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":being the same, most of the code has been improved or tweaked."
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":The entire IRCX core is completely from scratch."
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ": "
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":This program is free software; you can redistribute it and/or"
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":modify it under the terms of the GNU General Public License as"
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":published by the Free Software Foundation; either version 2, or"
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":(at your option) any later version."
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ": "
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":ignitionServer is actively developed by mainly one person,"
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":Keith Gable <ziggy@ignition-project.com>, but there have been"
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":a few other contributors, namely Reid Burke <airwalk@airwalklogik.com>"
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":and Nigel Jones <digi_guy@users.sourceforge.net>. In fact, without Reid and"
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":Nigel's help, ignitionServer would definitely not be as practical"
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":as it is."
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ": "
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":ignitionServer updates, releases, help, and information can be"
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":received at our website, http://www.ignition-project.com/. If you"
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":want to report a bug, please report it on our SourceForge bug"
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":tracker: http://sourceforge.net/tracker/?group_id=96071&atid=613526"
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ": "
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":Additional credits can be found in credits.txt in the docs directory."
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ": "
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":Version: " & AppVersion & "." & BuildDate
-        SendWsock cptr.index, RPL_INFO & " " & sptr.Nick, ":On-line Since: " & StartUpDate
+        SendWsock cptr.index, GetInfo(sptr.Nick), vbNullString, , True
         SendWsock cptr.index, RPL_ENDOFINFO & " " & sptr.Nick, ":End of /INFO list."
     Else
         SendWsock Target.FromLink.index, "INFO", ":" & Target.ServerName, ":" & sptr.Nick
     End If
 Else
     If Len(parv(0)) = 0 Then
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":ignitionServer --"
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":Based on pureIRCd <http://pure-ircd.sourceforge.net/>, written by"
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":Dennis Fisch and Johnny aka Pern. Aside from the network core"
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":being the same, most of the code has been improved or tweaked."
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":The entire IRCX core is completely from scratch."
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ": "
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":This program is free software; you can redistribute it and/or"
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":modify it under the terms of the GNU General Public License as"
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":published by the Free Software Foundation; either version 2, or"
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":(at your option) any later version."
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ": "
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":ignitionServer is actively developed by mainly one person,"
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":Keith Gable <ziggy@ignition-project.com>, but there have been"
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":a few other contributors, namely Reid Burke <airwalk@airwalklogik.com>"
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":and Nigel Jones <digi_guy@users.sourceforge.net>. In fact, without Reid and"
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":Nigel's help, ignitionServer would definitely not be as practical"
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":as it is."
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ": "
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":ignitionServer updates, releases, help, and information can be"
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":received at our website, http://www.ignition-project.com/. If you"
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":want to report a bug, please report it on our SourceForge bug"
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":tracker: http://sourceforge.net/tracker/?group_id=96071&atid=613526"
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ": "
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":Additional credits can be found in credits.txt in the docs directory."
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ": "
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":Version: " & AppVersion & "." & BuildDate
-        SendWsock cptr.index, RPL_INFO & " " & cptr.Nick, ":On-line Since: " & StartUpDate
+        SendWsock cptr.index, GetInfo(cptr.Nick), vbNullString, , True
         SendWsock cptr.index, RPL_ENDOFINFO & " " & cptr.Nick, ":End of /INFO list."
     Else
         Set sptr = GetServer(parv(0))
@@ -399,6 +347,75 @@ Public Function m_server(cptr As clsClient, sptr As clsClient, parv$()) As Long
     SendSvrMsg "*** Notice -- SERVER called! (" & cptr.Nick & ")"
 #End If
 Dim NewSptr As clsClient, User As clsClient, SendAuth As CLines, Outgoing$, SendInfo As Boolean
+Dim tmpPass As String
+If Not cptr.NLined And Not cptr.HasRegistered Then
+    #If Debugging = 1 Then
+      SendSvrMsg "*** not NLined"
+    #End If
+    If DoNLine(cptr) Then
+        #If Debugging = 1 Then
+          SendSvrMsg "DoNLine, checking password... (cptr.Password = '" & cptr.Password & "')"
+        #End If
+        '// why are we MD5Crypt-ing the password? -_-
+        'If MD5Crypt Then
+        '  tmpPass = oMD5.MD5(cptr.Password)
+        'Else
+          tmpPass = cptr.Password
+        'End If
+        If StrComp(tmpPass, ILine(cptr.IIndex).Pass) = 0 And Len(ILine(cptr.IIndex).Pass) <> 0 Then
+            'from the logic here, I'm assuming this will occur when:
+            'there is an I: line password set, and the password sent happens
+            'to match it. The user cannot authenticate as a server because there
+            'is no N: line for them. We could (should?) kill the user and say
+            'something like:
+            '"This server is not configured to accept servers from your address (<IP>)"
+            #If Debugging = 1 Then
+              SendSvrMsg "DoNLine, Password OK!"
+            #End If
+            cptr.PassOK = True
+            cptr.NLined = False 'this has yet to be checked
+            m_error cptr, "Closing Link: (This server is not configured to accept servers from your address (" & cptr.IP & "))"
+            KillStruct cptr.Nick, , False
+            Exit Function
+        Else
+            'if there is no I: line matching, or the password in the I: line
+            'doesn't match the password sent.
+            #If Debugging = 1 Then
+              SendSvrMsg "DoNLine, Password bad."
+            #End If
+            cptr.PassOK = False
+            cptr.NLined = False
+            cptr.AccessLevel = 1
+        End If
+    Else
+        'link passwords aren't hashed, cptr.Password isn't either.
+        If StrComp(cptr.Password, NLine(cptr.IIndex).Pass) = 0 Then
+            'this gets called whenever the user has an N: line
+            'and the password is okay
+            #If Debugging = 1 Then
+              SendSvrMsg "Not DoNLine, Password OK!"
+            #End If
+            cptr.PassOK = True
+            cptr.NLined = True
+            cptr.AccessLevel = 4
+            'welcome to the club mate! :)
+        Else
+            'whoops, bad password
+            #If Debugging = 1 Then
+              SendSvrMsg "Not DoNLine, Password bad"
+            #End If
+            cptr.AccessLevel = 1
+            m_error cptr, "Closing Link: (Bad Password)"
+            KillStruct cptr.Nick, , False
+            cptr.PassOK = False
+            cptr.NLined = False
+            'the exit function is needed because it makes no sense
+            'to make it parse a buttload of extra stuff to exit _anyways_
+            Exit Function
+        End If
+    End If
+End If
+
 If Not cptr.HasRegistered Then
     If cptr.AccessLevel = 4 Then
         SendInfo = False
@@ -706,25 +723,14 @@ If cptr.AccessLevel = 4 Then
     SendWsock Target.FromLink.index, "STATS " & parv(0), ":" & parv(1), ":" & sptr.Nick
   End If
 Else
-  If Len(parv(0)) = 0 Then
+  If Len(parv(0)) = 0 Or parv(0) = "*" Then
     'SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "STATS")
     SendWsock cptr.index, "210 " & cptr.Nick, ":STATS Flags" & vbCrLf
-    If cptr.AccessLevel = 3 Then
-      SendWsock cptr.index, "210 " & cptr.Nick, ":o - List Operators"
-      SendWsock cptr.index, "210 " & cptr.Nick, ":k - List K/Z lines"
-    End If
-    SendWsock cptr.index, "210 " & cptr.Nick, ":u - Uptime information"
+    If cptr.AccessLevel = 3 Then SendWsock cptr.index, "210 " & cptr.Nick, ":k - List K/Z lines"
     SendWsock cptr.index, "210 " & cptr.Nick, ":m - Command Bandwidth Usage"
-    Exit Function
-  End If
-  If parv(0) = "*" Then
-    SendWsock cptr.index, "210 " & cptr.Nick, ":STATS Flags" & vbCrLf
-    If cptr.AccessLevel = 3 Then
-      SendWsock cptr.index, "210 " & cptr.Nick, ":o - List Operators"
-      SendWsock cptr.index, "210 " & cptr.Nick, ":k - List K/Z lines"
-    End If
+    If cptr.AccessLevel = 3 Then SendWsock cptr.index, "210 " & cptr.Nick, ":o - List Operators"
     SendWsock cptr.index, "210 " & cptr.Nick, ":u - Uptime information"
-    SendWsock cptr.index, "210 " & cptr.Nick, ":m - Command Bandwidth Usage"
+    If cptr.AccessLevel = 3 Then SendWsock cptr.index, "210 " & cptr.Nick, ":y - List Y (client class) lines"
     Exit Function
   End If
   If UBound(parv) = 0 Then
@@ -1003,6 +1009,7 @@ End Function
             SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "RESTART")
             Exit Function
         End If
+        If Crypt And MD5Crypt Then parv(0) = oMD5.MD5(parv(0))
         If parv(0) = RestartPass Then
             Dim i As Long   'close all connections properly -Dill
             For i = 1 To UBound(Users)
@@ -1073,6 +1080,7 @@ End Function
             SendWsock cptr.index, ERR_NEEDMOREPARAMS & " " & cptr.Nick, TranslateCode(ERR_NEEDMOREPARAMS, , , "DIE")
             Exit Function
         End If
+        If Crypt And MD5Crypt Then parv(0) = oMD5.MD5(parv(0))
         If parv(0) = DiePass Then
             Dim i As Long   'close all connection properly -Dill
             For i = 1 To UBound(Users)

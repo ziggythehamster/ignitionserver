@@ -14,7 +14,7 @@ Attribute VB_Name = "modConf"
 '
 'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
 '
-' $Id: modConf.bas,v 1.33 2004/12/04 21:43:10 ziggythehamster Exp $
+' $Id: modConf.bas,v 1.35 2004/12/31 06:30:29 ziggythehamster Exp $
 '
 '
 'This program is free software.
@@ -54,12 +54,27 @@ Macros = m
 End Function
 Public Sub Rehash(Flag As String, Optional OnStartup As Boolean = False)
 Dim Line() As String, Char As String, Temp As String, FF As Long: FF = FreeFile
+Dim tmpY() As YLines
+Dim A As Long
 Select Case UCase$(Flag)
     Case vbNullString
         'Restore to Default
         'there's a bunch of stuff here, in case someone removes a line or two
         'I realize that this also permits a blank ircx.conf, but who will be
         'that stupid?
+        If Not OnStartup Then
+          For A = 1 To UBound(YLine)
+            ReDim tmpY(UBound(YLine))
+            tmpY(A).ConnectFreq = YLine(A).ConnectFreq
+            tmpY(A).CurClients = YLine(A).CurClients
+            tmpY(A).ID = YLine(A).ID
+            tmpY(A).index = YLine(A).index
+            tmpY(A).MaxClients = YLine(A).MaxClients
+            tmpY(A).MaxSendQ = YLine(A).MaxSendQ
+            tmpY(A).PingCounter = YLine(A).PingCounter
+            tmpY(A).PingFreq = YLine(A).PingFreq
+          Next A
+        End If
         ReDim ILine(1)
         ReDim YLine(1)
         ReDim ZLine(1)
@@ -175,6 +190,17 @@ Select Case UCase$(Flag)
                     .MaxSendQ = CLng(Line(4))
                     .PingCounter = UnixTime 'set initial timebomb -zg
                 End With
+                
+                If Not OnStartup Then
+                  For A = 1 To UBound(tmpY)
+                    If tmpY(A).ID = Line(0) Then
+                      'if the old Y: line's ID matches this one
+                      'we know the current upper bound Y: line
+                      'needs to have its CurClients set
+                      YLine(UBound(YLine)).CurClients = tmpY(A).CurClients
+                    End If
+                  Next A
+                End If
               Case "I"    'Client Authorization classes -Dill
                 Line = Split(Temp, ":")
                 ReDim Preserve ILine(UBound(ILine) + 1)
@@ -883,6 +909,8 @@ Next i
 If AutoVHost = False Then SendWsock cptr.index, "NOTICE " & cptr.Nick, ":Invalid login name"
 End Sub
 Public Function DoNLine(cptr As clsClient) As Boolean
+'Returns True if something is wrong
+'Returns False if everything is okay.
 Dim i&
 #If Debugging = 1 Then
   SendSvrMsg "*** DoNLine called!"
