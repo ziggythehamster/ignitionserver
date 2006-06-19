@@ -1,0 +1,5 @@
+[TimeStamp] %DEBUG: Some normal debug text.
+[TimeStamp] %WARNING: Something happened.
+[TimeStamp] %ERROR: Something bad happened.
+[TimeStamp] %FATAL: Something really bad happened.
+[TimeStamp] %BUG: Bug info. Please file a report at <http://bugs.ignition-project.com/>.

@@ -46,6 +46,7 @@ Module=m_accessfuncs; codemodules\m_accessfuncs.bas
 Module=m_channel_remote; codemodules\remote\m_channel_remote.bas
 Module=m_channel_local; codemodules\local\m_channel_local.bas
 ResFile32="resource\ignitionServer.res"
+Module=mTrace; vbtracer\Trace.bas
 Startup="Sub Main"
 HelpFile=""
 NoControlUpgrade=1
@@ -63,6 +64,7 @@ AutoIncrementVer=0
 ServerSupportFiles=0
 VersionCompanyName="The Ignition Project"
 VersionProductName="ignitionServer"
+CondComp="TRACEMODE = 1"
 CompilationType=0
 OptimizationType=0
 FavorPentiumPro(tm)=-1

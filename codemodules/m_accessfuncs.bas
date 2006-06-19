@@ -1,36 +1,37 @@
 Attribute VB_Name = "m_accessfuncs"
-'ignitionServer is (C) Keith Gable and Contributors
-'----------------------------------------------------
-'You must include this notice in any modifications you make. You must additionally
-'follow the GPL's provisions for sourcecode distribution and binary distribution.
-'If you are not familiar with the GPL, please read LICENSE.TXT.
-'(you are welcome to add a "Based On" line above this notice, but this notice must
-'remain intact!)
-'Released under the GNU General Public License
+'//////////////////////////////////////////////////////////
+'// ignitionServer - Open Source IRCX Server for Windows //
+'//------------------------------------------------------//
+'// © Keith Gable and Contributors                       //
+'//////////////////////////////////////////////////////////
+'// This program is free software. You can redistribute  //
+'// it and/or modify it under the terms of the GNU       //
+'// General Public License as published by the Free      //
+'// Software Foundation; either version 2 of the         //
+'// License, or (at your option) any later version.      //
+'//------------------------------------------------------//
+'// This program is distributed in the hope that it will //
+'// be useful, but WITHOUT ANY WARRANTY. Without even    //
+'// the implied warranty of MERCHANTABILITY or FITNESS   //
+'// FOR A PARTICULAR PURPOSE. See the GNU General Public //
+'// License for more details.                            //
+'//------------------------------------------------------//
+'// A copy of the GNU General Public License should have //
+'// been included with this software. If not, write to   //
+'// the Free Software Foundation, Inc., 59 Temple Place, //
+'// Suite 330, Boston, MA 02111-1307 USA or visit the    //
+'// FSF on the web at http://www.gnu.org/.               //
+'//////////////////////////////////////////////////////////
+'// Visit us Online! <http://www.ignition-project.com/>  //
+'//////////////////////////////////////////////////////////
+'// ignitionServer is based on Pure-IRCD                 //
+'// <http://pure-ircd.sourceforge.net/>                  //
+'//////////////////////////////////////////////////////////
 '
-'Contact information: Keith Gable (Ziggy) <ziggy@ignition-project.com>
-'Contributors:        Nigel Jones (DigiGuy) <digi_guy@users.sourceforge.net>
-'                     Reid Burke  (Airwalk) <airwalk@ignition-project.com>
-'
-'ignitionServer is based on Pure-IRCd <http://pure-ircd.sourceforge.net/>
-'
-' $Id: m_accessfuncs.bas,v 1.7 2005/07/08 22:59:29 ziggythehamster Exp $
-'
-'
-'This program is free software.
-'You can redistribute it and/or modify it under the terms of the
-'GNU General Public License as published by the Free Software Foundation; either version 2 of the License,
-'or (at your option) any later version.
-'
-'This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY.
-'Without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-'See the GNU General Public License for more details.
-'
-'You should have received a copy of the GNU General Public License along with this program.
-'if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+' $Id$
 
 Option Explicit
-#Const Debugging = 0
+
 '/*
 '** ACCESS functions
 '** seperated from mod_channel to make mod_channel smaller and this easier to modify and edit...
@@ -38,9 +39,8 @@ Option Explicit
 
 Public Sub CycleAccDeny(Chan As clsChannel)
 On Error GoTo CADErr
-#If Debugging = 1 Then
-  SendSvrMsg "CYCLEACCDENY called! (" & Chan.Name & ")"
-#End If
+Trace "%DEBUG:ACCESS: CycleAccDeny called! (" & Chan.Name & ")"
+
 Dim A As Long
 If Chan.Bans.Count = 0 Then Exit Sub
 For A = 1 To Chan.Bans.Count
@@ -59,9 +59,8 @@ ErrorMsg "Error " & err.Number & " (" & err.Description & ") in 'CycleAccDeny'"
 End Sub
 Public Sub CycleAccGrant(Chan As clsChannel)
 On Error GoTo CAGErr
-#If Debugging = 1 Then
-  SendSvrMsg "CYCLEACCGRANT called! (" & Chan.Name & ")"
-#End If
+Trace "%DEBUG:ACCESS: CycleAccGrant called! (" & Chan.Name & ")"
+
 Dim A As Long
 Dim at As String
 at = "start"
@@ -88,9 +87,8 @@ ErrorMsg "Error " & err.Number & " (" & err.Description & ") in 'CycleAccGrant'"
 End Sub
 Public Sub CycleAccHost(Chan As clsChannel)
 On Error GoTo CAHErr
-#If Debugging = 1 Then
-  SendSvrMsg "CYCLEACCHOST called! (" & Chan.Name & ")"
-#End If
+Trace "%DEBUG:ACCESS: CycleAccHost called! (" & Chan.Name & ")"
+
 Dim A As Long
 If Chan.Hosts.Count = 0 Then Exit Sub
 For A = 1 To Chan.Hosts.Count
@@ -109,9 +107,8 @@ ErrorMsg "Error " & err.Number & " (" & err.Description & ") in 'CycleAccHost'"
 End Sub
 Public Sub CycleAccOwner(Chan As clsChannel)
 On Error GoTo CAOErr
-#If Debugging = 1 Then
-  SendSvrMsg "CYCLEACCOWNER called! (" & Chan.Name & ")"
-#End If
+Trace "%DEBUG:ACCESS: CycleAccOwner called! (" & Chan.Name & ")"
+
 Dim A As Long
 If Chan.Owners.Count = 0 Then Exit Sub
 For A = 1 To Chan.Owners.Count
@@ -130,9 +127,8 @@ ErrorMsg "Error " & err.Number & " (" & err.Description & ") in 'CycleAccOwner'"
 End Sub
 Public Sub CycleAccVoice(Chan As clsChannel)
 On Error GoTo CAVErr
-#If Debugging = 1 Then
-  SendSvrMsg "CYCLEACCVOICE called! (" & Chan.Name & ")"
-#End If
+Trace "%DEBUG:ACCESS: CycleAccVoice called! (" & Chan.Name & ")"
+
 Dim A As Long
 If Chan.Voices.Count = 0 Then Exit Sub
 For A = 1 To Chan.Voices.Count
@@ -151,9 +147,8 @@ ErrorMsg "Error " & err.Number & " (" & err.Description & ") in 'CycleAccVoice'"
 End Sub
 Public Sub CycleAccess(Chan As clsChannel)
 On Error GoTo CAErr
-#If Debugging = 1 Then
-  SendSvrMsg "CYCLEACCESS called! (" & Chan.Name & ")"
-#End If
+Trace "%DEBUG:ACCESS: CycleAccess called! (" & Chan.Name & ")"
+
 Call CycleAccDeny(Chan)
 Call CycleAccGrant(Chan)
 Call CycleAccVoice(Chan)
@@ -166,6 +161,8 @@ ErrorMsg "Error " & err.Number & " (" & err.Description & ") in 'CycleAccess'"
 End Sub
 Public Function CopyAccess(source As clsChannel, Destination As clsChannel)
 Dim A As Long
+Trace "%DEBUG:ACCESS: CopyAccess called! (from: " & source.Name & " to: " & Destination.Name & ")"
+
 On Error GoTo CpAcErr
 If source.Bans.Count > 0 Then
   For A = 1 To source.Bans.Count
@@ -193,9 +190,8 @@ CpAcErr:
 ErrorMsg "Error " & err.Number & " (" & err.Description & ") in 'CopyAccess'"
 End Function
 Public Function IsBanned(Channel As clsChannel, User As clsClient) As Boolean
-#If Debugging = 1 Then
-    SendSvrMsg "ISBANNED called! (" & User.Nick & ")"
-#End If
+Trace "%DEBUG:ACCESS: IsBanned called! (" & User.Nick & " in " & Channel.Name & ")"
+
 Dim i As Long, UserMask$, RealUserMask$
 Dim A As Long
 On Error GoTo ex
@@ -225,9 +221,8 @@ Next i
 ex:
 End Function
 Public Function IsDenied(Channel As clsChannel, User As clsClient) As Boolean
-#If Debugging = 1 Then
-    SendSvrMsg "ISDENIED called! (" & User.Nick & ")"
-#End If
+Trace "%DEBUG:ACCESS: IsDenied called! (" & User.Nick & " in " & Channel.Name & ")"
+
 Dim i As Long, UserMask$, RealUserMask$
 Dim A As Long
 On Error GoTo ex
@@ -250,11 +245,9 @@ Next i
 ex:
 End Function
 Public Function FindVoice(Channel As clsChannel, Mask As String) As Boolean
-#If Debugging = 1 Then
-    SendSvrMsg "FINDVOICE called! (" & Mask & ")"
-#End If
-Dim i As Long, UserMask$
-Dim A As Long
+Trace "%DEBUG:ACCESS: FindVoice called! (" & Mask & " in " & Channel.Name & ")"
+
+Dim i As Long
 On Error GoTo ex
 
 For i = 1 To Channel.Voices.Count
@@ -266,11 +259,9 @@ Next i
 ex:
 End Function
 Public Function FindHost(Channel As clsChannel, Mask As String) As Boolean
-#If Debugging = 1 Then
-    SendSvrMsg "FINDHOST called! (" & Mask & ")"
-#End If
-Dim i As Long, UserMask$
-Dim A As Long
+Trace "%DEBUG:ACCESS: FindHost called! (" & Mask & " in " & Channel.Name & ")"
+
+Dim i As Long
 On Error GoTo ex
 
 For i = 1 To Channel.Hosts.Count
@@ -282,11 +273,9 @@ Next i
 ex:
 End Function
 Public Function FindOwner(Channel As clsChannel, Mask As String) As Boolean
-#If Debugging = 1 Then
-    SendSvrMsg "FINDOWNER called! (" & Mask & ")"
-#End If
-Dim i As Long, UserMask$
-Dim A As Long
+Trace "%DEBUG:ACCESS: FindOwner called! (" & Mask & " in " & Channel.Name & ")"
+
+Dim i As Long
 On Error GoTo ex
 
 For i = 1 To Channel.Owners.Count
@@ -298,11 +287,9 @@ Next i
 ex:
 End Function
 Public Function FindGrant(Channel As clsChannel, Mask As String) As Boolean
-#If Debugging = 1 Then
-    SendSvrMsg "FINDGRANT called! (" & Mask & ")"
-#End If
-Dim i As Long, UserMask$
-Dim A As Long
+Trace "%DEBUG:ACCESS: FindGrant called! (" & Mask & " in " & Channel.Name & ")"
+
+Dim i As Long
 On Error GoTo ex
 
 For i = 1 To Channel.Grants.Count
@@ -314,11 +301,9 @@ Next i
 ex:
 End Function
 Public Function FindDeny(Channel As clsChannel, Mask As String) As Boolean
-#If Debugging = 1 Then
-    SendSvrMsg "FINDDENY called! (" & Mask & ")"
-#End If
-Dim i As Long, UserMask$
-Dim A As Long
+Trace "%DEBUG:ACCESS: FindDeny called! (" & Mask & " in " & Channel.Name & ")"
+
+Dim i As Long
 On Error GoTo ex
 
 For i = 1 To Channel.Bans.Count
@@ -330,10 +315,9 @@ Next i
 ex:
 End Function
 Public Function FindAccessEntry(Channel As clsChannel, Mask As String, AccessKind As enmAccessType)
-#If Debugging = 1 Then
-    SendSvrMsg "FINDACCESSENTRY called! (" & Mask & " - AccessKind: " & CInt(AccessKind) & ")"
-#End If
-Dim i As Long, UserMask$
+Trace "%DEBUG:ACCESS: FindAccessEntry called! (" & Mask & " - AccessKind: " & CInt(AccessKind) & ")"
+
+Dim i As Long
 On Error GoTo oops
 
 '/*
@@ -391,18 +375,16 @@ ElseIf AccessKind = aVoice Then
     Next i
   End If
 Else
-  #If Debugging = 1 Then
-    SendSvrMsg "%DEBUG: Unknown access entry type passed to FindAccessEntry. Value: " & CInt(AccessKind)
-  #End If
+  Trace "%DEBUG:ACCESS: Unknown access entry type passed to FindAccessEntry. Value: " & CInt(AccessKind)
 End If
 Exit Function
+
 oops:
-SendSvrMsg "%BUG: Error #" & err.Number & " (" & err.Description & ") occured in FindAccessEntry(" & Channel.Name & "," & Mask & "," & CInt(AccessKind) & "). Please report this at http://bugs.ignition-project.com/."
+Bug "%BUG:ACCESS: Error #" & err.Number & " (" & err.Description & ") occured in FindAccessEntry(" & Channel.Name & "," & Mask & "," & CInt(AccessKind) & ")."
 End Function
 Public Function ClearAccessEntries(Channel As clsChannel, AccessKind As enmAccessType, Optional IsOwner As Boolean = True) As Boolean
-#If Debugging = 1 Then
-    SendSvrMsg "CLEARACCESSENTRIES called! (" & Channel.Name & " - AccessKind: " & CInt(AccessKind) & ")"
-#End If
+Trace "%DEBUG:ACCESS: ClearAccessEntries called! (" & Channel.Name & " - AccessKind: " & CInt(AccessKind) & " - IsOwner? " & CStr(IsOwner) & ")"
+
 Dim i As Long
 Dim r As Boolean
 r = True 'always assume true unless false
@@ -412,20 +394,11 @@ If AccessKind = aDeny Then
   If Channel.Bans.Count > 0 Then
     For i = Channel.Bans.Count To 1
       If Channel.Bans.Item(i).SetByOwner And IsOwner Then
-        #If Debugging = 1 Then
-          SendSvrMsg "%DEBUG: Removing " & Channel.Bans(i).Mask
-        #End If
         Channel.Bans.Remove i
       ElseIf Channel.Bans.Item(i).SetByOwner And Not IsOwner Then
-        #If Debugging = 1 Then
-          SendSvrMsg "%DEBUG: Not removing " & Channel.Bans(i).Mask
-        #End If
         r = False
       Else
         'not set by an owner
-        #If Debugging = 1 Then
-          SendSvrMsg "%DEBUG: Removing " & Channel.Bans(i).Mask
-        #End If
         Channel.Bans.Remove i
       End If
     Next i
@@ -483,15 +456,14 @@ ElseIf AccessKind = aVoice Then
     Next i
   End If
 Else
-  #If Debugging = 1 Then
-    SendSvrMsg "%DEBUG: Unknown access entry type passed to ClearAccessEntries. Value: " & CInt(AccessKind)
-  #End If
+  Trace "%DEBUG:ACCESS: Unknown access entry type passed to ClearAccessEntries. Value: " & CInt(AccessKind)
 End If
+
 'send back the value of r
 ClearAccessEntries = r
 Exit Function
 oops:
-SendSvrMsg "%BUG: Error #" & err.Number & " (" & err.Description & ") occured in ClearAccessEntries(" & Channel.Name & "," & CInt(AccessKind) & "," & IsOwner & "). Please report this at http://bugs.ignition-project.com/."
+Bug "%BUG:ACCESS: Error #" & err.Number & " (" & err.Description & ") occured in ClearAccessEntries(" & Channel.Name & "," & CInt(AccessKind) & "," & IsOwner & ")."
 End Function
 Public Function RemoveAccessEntry(Channel As clsChannel, Mask As String, AccessKind As enmAccessType, Optional IsOwner As Boolean = True) As Boolean
 '/*
@@ -499,9 +471,8 @@ Public Function RemoveAccessEntry(Channel As clsChannel, Mask As String, AccessK
 '** because it might make some code that expected this to always return
 '** true stop working.
 '*/
-#If Debugging = 1 Then
-    SendSvrMsg "REMOVEACCESSENTRY called! (" & Mask & " - AccessKind: " & CInt(AccessKind) & ")"
-#End If
+Trace "%DEBUG:ACCESS: RemoveAccessEntry called! (" & Mask & " in " & Channel.Name & " - AccessKind: " & CInt(AccessKind) & ")"
+
 Dim i As Long, UserMask$, What$
 On Error GoTo oops
 What = "entering function"
@@ -601,18 +572,15 @@ ElseIf AccessKind = aVoice Then
     Next i
   End If
 Else
-  #If Debugging = 1 Then
-    SendSvrMsg "%DEBUG: Unknown access entry type passed to RemoveAccessEntry. Value: " & CInt(AccessKind)
-  #End If
+  Trace "%DEBUG:ACCESS: Unknown access entry type passed to RemoveAccessEntry. Value: " & CInt(AccessKind)
 End If
 Exit Function
 oops:
-SendSvrMsg "%BUG: Error #" & err.Number & " (" & err.Description & ") occured in RemoveAccessEntry(" & Channel.Name & "," & Mask & "," & CInt(AccessKind) & "," & IsOwner & ") while " & What & ". Please report this at http://bugs.ignition-project.com/."
+Bug "%BUG:ACCESS: Error #" & err.Number & " (" & err.Description & ") occured in RemoveAccessEntry(" & Channel.Name & "," & Mask & "," & CInt(AccessKind) & "," & IsOwner & ") while " & What & "."
 End Function
 Public Function IsGranted(Channel As clsChannel, User As clsClient) As Boolean
-#If Debugging = 1 Then
-    SendSvrMsg "ISGRANTED called! (" & User.Nick & ")"
-#End If
+Trace "%DEBUG:ACCESS: IsGranted called! (" & User.Nick & " in " & Channel.Name & ")"
+
 Dim i As Long, UserMask$, RealUserMask$
 Dim A As Long
 On Error GoTo ex
@@ -628,9 +596,8 @@ Next i
 ex:
 End Function
 Public Function IsVoiced(Channel As clsChannel, User As clsClient) As Boolean
-#If Debugging = 1 Then
-    SendSvrMsg "ISVOICED called! (" & User.Nick & ")"
-#End If
+Trace "%DEBUG:ACCESS: IsVoiced called! (" & User.Nick & " in " & Channel.Name & ")"
+
 Dim i As Long, UserMask$, RealUserMask$
 Dim A As Long
 On Error GoTo ex
@@ -647,9 +614,8 @@ Next i
 ex:
 End Function
 Public Function IsHosted(Channel As clsChannel, User As clsClient) As Boolean
-#If Debugging = 1 Then
-    SendSvrMsg "ISHOSTED called! (" & User.Nick & ")"
-#End If
+Trace "%DEBUG:ACCESS: IsHosted called! (" & User.Nick & " in " & Channel.Name & ")"
+
 Dim i As Long, UserMask$, RealUserMask$
 Dim A As Long
 On Error GoTo ex
@@ -666,9 +632,8 @@ Next i
 ex:
 End Function
 Public Function IsOwnered(Channel As clsChannel, User As clsClient) As Boolean
-#If Debugging = 1 Then
-    SendSvrMsg "ISOWNERED called! (" & User.Nick & ")"
-#End If
+Trace "%DEBUG:ACCESS: IsOwnered called! (" & User.Nick & " in " & Channel.Name & ")"
+
 Dim i As Long, UserMask$, RealUserMask$
 Dim A As Long
 On Error GoTo ex

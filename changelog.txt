@@ -767,3 +767,6 @@ Zg - [19-Jul] - Fixed bug #1235019 (protected operators can make duplicate modes
 ### 2006 ###
 #
 Zg - [18-Jun] - Fixed bug #23 (can set modes that don't exist with + or - sign)
+Zg - [18-Jun] - New boilerplate; now the headers look less sucky.
+Zg - [18-Jun] - Bundling VBTracer now.
+Zg - [18-Jun] - m_accessfuncs converted over to VBTracer
