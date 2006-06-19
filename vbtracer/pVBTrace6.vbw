@@ -1,0 +1,12 @@
+frmVBTrace = 154, 154, 1176, 791, C, 220, 220, 1242, 857, C
+frmSysTray = 0, 0, 0, 0, C, 132, 132, 1154, 769, C
+cCommonDialog = 0, 0, 0, 0, C
+cStringBuilder = 198, 198, 1220, 835, C
+frmMessageWindow = 44, 44, 1066, 681, C, 154, 154, 1176, 791, C
+mMain = 132, 132, 1154, 769, C
+frmAbout = 66, 66, 1088, 703, C, 44, 44, 1066, 681, C
+frmConfigure = 308, 308, 1330, 945, C, 22, 22, 1044, 659, C
+cConfiguration = 154, 154, 1176, 791, C
+cFindReplace = 0, 0, 0, 0, C
+MSubclass = 0, 0, 0, 0, C
+ISubclass = 0, 0, 0, 0, C
