@@ -131,6 +131,7 @@ Dim ShowAudStuff      As Boolean 'to fix a stupid VB bug :\
 Dim ShowAudStuffClnt  As clsClient
 Dim HideAudStuff      As Boolean 'again, fixing a VB bug :\
 Dim HideAudStuffClnt  As clsClient
+Dim ModeSwitchSent    As Boolean 'don't process modes until a switch is sent (bug 23)
 
 Set ShowAudStuffClnt = New clsClient
 Set HideAudStuffClnt = New clsClient
@@ -513,6 +514,13 @@ CheckParam:
             GoTo CheckParam
           End If
         End If
+        
+        'Don't process modes until someone sends + or -
+        'An awful hack brought to you from HackCo.
+        '(blame Microsoft for making VB so crappy)
+        If CurMode = modeAdd Then ModeSwitchSent = True
+        If CurMode = modeRemove Then ModeSwitchSent = True
+        If ModeSwitchSent = False Then GoTo NextMode
         
         Select Case CurMode
           Case modeAdd

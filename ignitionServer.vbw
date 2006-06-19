@@ -42,3 +42,5 @@ mod_Oper = 22, 29, 594, 485, C
 m_nonstandard = 22, 22, 723, 645, C
 m_extracommands = 88, 88, 789, 711, C
 m_accessfuncs = 44, 44, 834, 536, C
+m_channel_remote = 0, 0, 0, 0, C
+m_channel_local = 0, 0, 0, 0, C

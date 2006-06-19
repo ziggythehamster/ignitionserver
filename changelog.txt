@@ -763,3 +763,7 @@ Zg - [8-Jul] - Regression from fixing the previous bugs: protected IRC operators
 Zg - [8-Jul] - Fixed bug #1183453 (run "Unknown access entry" though the text parser)
 Zg - [19-Jul] - Modify /info, give it a codename. "Black Dog" is the codename for 0.3.7. ..gonna make you sweat, gonna make you groove.. :D
 Zg - [19-Jul] - Fixed bug #1235019 (protected operators can make duplicate modes onjoin)
+#
+### 2006 ###
+#
+Zg - [18-Jun] - Fixed bug #23 (can set modes that don't exist with + or - sign)
